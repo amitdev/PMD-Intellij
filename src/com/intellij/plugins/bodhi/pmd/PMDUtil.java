@@ -1,0 +1,108 @@
+package com.intellij.plugins.bodhi.pmd;
+
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DataKeys;
+import com.intellij.openapi.project.Project;
+
+import java.io.File;
+import java.io.FileFilter;
+import java.util.List;
+
+/**
+ * A Util class providing common functions for PMD plugin.
+ *
+ * @author bodhi
+ * @version 1.1
+ */
+public class PMDUtil {
+
+    /**
+     * Get the the Project Component from given Action.
+     * @param event AnAction event
+     * @return the Project component related to the action
+     */
+    public static PMDProjectComponent getProjectComponent(AnActionEvent event) {
+        Project project = event.getData(DataKeys.PROJECT);
+        return project.getComponent(PMDProjectComponent.class);
+    }
+
+    /**
+     * Recursively find files of a criteria specified by given filter.
+     * @param root The root directory or a file.
+     * @param fileList The list where the results are added.
+     */
+    public static void listFiles(File root, List<File> fileList, FileFilter filter) {
+        File[] files = root.listFiles(filter);
+        if (files == null) {
+            //root is a file
+            fileList.add(root);
+            return;
+        }
+        for (int x = 0; x < files.length; x++) {
+            File file = files[x];
+            if (file.isDirectory()) {
+                listFiles(file, fileList, filter);
+            } else {
+                fileList.add(file);
+            }
+        }
+    }
+
+    /**
+     * Creates a java.io.FileFilter which filters files based on given extension.
+     *
+     * @param extension The extension of files to choose
+     * @return the file filter
+     */
+    public static FileFilter createFileExtensionFilter(final String extension) {
+        return new FileFilter() {
+            public boolean accept(File pathname) {
+                return isMatchingExtension(pathname, extension);
+            }
+        };
+    }
+
+    /**
+     * Creates a javax.swing.filechooser.FileFilter which filters files
+     * based on given extension.
+     *
+     * @param extension The extension of files to choose
+     * @return the file filter
+     */
+    public static javax.swing.filechooser.FileFilter createFileExtensionFilter(final String extension, final String description) {
+        return new javax.swing.filechooser.FileFilter() {
+            public boolean accept(File pathname) {
+                return isMatchingExtension(pathname, extension);
+            }
+
+            public String getDescription() {
+                return description;
+            }
+        };
+    }
+
+    /**
+     * Parses and returns the rule name from path.
+     * Rulename is got by getting the filename from path and stripping off
+     * the extension.
+     *
+     * @param rulePath the path
+     * @return the rule name
+     */
+    public static String getRuleNameFromPath(String rulePath) {
+        int index = rulePath.lastIndexOf(File.separatorChar);
+        int indexDot = rulePath.indexOf('.', index);
+        if (indexDot == -1) {
+            indexDot = rulePath.length();
+        }
+        String ruleName = rulePath;
+        if (index != -1) {
+            ruleName = rulePath.substring(index+1, indexDot);
+        }
+        return ruleName;
+    }
+
+    private static boolean isMatchingExtension(File pathname, String extension) {
+        return pathname.isDirectory() || pathname.getName().endsWith("." + extension);
+    }
+}

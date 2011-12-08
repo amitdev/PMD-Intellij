@@ -1,0 +1,46 @@
+<!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "http://plugins.intellij.net/plugin.dtd">
+<idea-plugin>
+
+    <name>PMDPlugin</name>
+    <description>A plugin to run static analysis using PMD in intelliJ.</description>
+
+    <change-notes>
+        Support for IntelliJ Idea 10.5.1.
+    </change-notes>
+
+    <version>1.5.0</version>
+    <vendor>bodhi</vendor>
+
+    <idea-version since-build="107.322"/>
+    <project-components>
+        <component>
+            <implementation-class>com.intellij.plugins.bodhi.pmd.PMDProjectComponent</implementation-class>
+            <interface-class>com.intellij.plugins.bodhi.pmd.PMDProjectComponent</interface-class>
+        </component>
+    </project-components>
+
+    <actions>
+        <!-- The Main menu item which includes predefined and custom rulesets -->
+        <group id="PMDMenuGroup" text="Run PMD" popup="true"
+               class="com.intellij.plugins.bodhi.pmd.actions.PMDMenuGroup">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="ChangesViewPopupMenu" anchor="last"/>
+        </group>
+
+        <!-- The pre defined menu group -->
+        <group id="PMDPredefined" text="Pre Defined" popup="true"
+               class="com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup">
+            <add-to-group anchor="first" group-id="PMDMenuGroup"/>
+        </group>
+
+        <!-- The Custom menu group -->
+        <group id="PMDCustom" text="Custom Rules" popup="true">
+            <add-to-group anchor="last" group-id="PMDMenuGroup"/>
+        </group>
+
+        <!-- The group representing toolbar items in settings -->
+        <group id="PMDSettingsEdit" text="Custom Rule"/>
+
+    </actions>
+</idea-plugin>
