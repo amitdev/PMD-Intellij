@@ -25,8 +25,8 @@ public class PMDCellRenderer extends ColoredTreeCellRenderer {
 
     //Try to load idea specific icons for the tree.
     static {
-        CLOSED_ICON = IconLoader.getIcon("/nodes/folder.png");
-        OPEN_ICON = IconLoader.getIcon("/nodes/folderOpen.png");
+        CLOSED_ICON = IconLoader.getIcon("/nodes/TreeClosed.png");
+        OPEN_ICON = IconLoader.getIcon("/nodes/TreeOpen.png");
     }
 
     public void customizeCellRenderer(JTree tree,
