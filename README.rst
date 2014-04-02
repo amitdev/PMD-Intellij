@@ -1,1 +1,1 @@
-An `Intellij <http://www.jetbrains.com/idea/>`_ plugin that performs static analysis using `PMD <http://pmd.sourceforge.net>`_. Download it from `here <http://plugins.intellij.net/plugin/?id=1137>`_, read documentation `here <http://confluence.jetbrains.com/display/CONTEST/PMDPlugin>`.
+An `Intellij <http://www.jetbrains.com/idea/>`_ plugin that performs static analysis using `PMD <http://pmd.sourceforge.net>`_. Download it from `here <http://plugins.intellij.net/plugin/?id=1137>`_, read documentation `here <http://confluence.jetbrains.com/display/CONTEST/PMDPlugin>`_.
