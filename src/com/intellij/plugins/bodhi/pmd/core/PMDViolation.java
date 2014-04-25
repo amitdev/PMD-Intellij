@@ -3,7 +3,7 @@ package com.intellij.plugins.bodhi.pmd.core;
 import com.intellij.plugins.bodhi.pmd.tree.PMDCellRenderer;
 import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeData;
 import com.intellij.ui.SimpleTextAttributes;
-import net.sourceforge.pmd.IRuleViolation;
+import net.sourceforge.pmd.RuleViolation;
 import net.sourceforge.pmd.Rule;
 
 import javax.swing.*;
@@ -22,7 +22,7 @@ import java.util.Map;
  */
 public class PMDViolation implements PMDTreeNodeData {
 
-    private IRuleViolation violation;
+    private RuleViolation violation;
     private String errorPosition;
     private String[] errorMsg;
 
@@ -31,7 +31,7 @@ public class PMDViolation implements PMDTreeNodeData {
      *
      * @param violation the violation
      */
-    public PMDViolation(IRuleViolation violation) {
+    public PMDViolation(RuleViolation violation) {
         this.violation = violation;
         this.errorPosition = "(" + violation.getBeginLine() + ", " + violation.getBeginColumn() + ") ";
         String fileName = violation.getFilename();
@@ -125,7 +125,7 @@ public class PMDViolation implements PMDTreeNodeData {
     }
 
     public void render(PMDCellRenderer cellRenderer, boolean expanded) {
-        cellRenderer.setIcon(attrs.get(getRule().getPriorityName()));
+        cellRenderer.setIcon(attrs.get(getRule().getPriority().getName()));
         //Show error position greyed, like idea shows.
         cellRenderer.append(getErrorPosition(), SimpleTextAttributes.GRAYED_ATTRIBUTES);
         //cellRenderer.append(getErrorMsg()[0], attrs.get(getErrorMsg()[0]));

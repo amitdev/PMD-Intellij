@@ -34,7 +34,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
     private PMDProjectComponent component;
 
     //The ruleset property file which lists all the predefined rulesets
-    private static final String RULESETS_PROPERTY_FILE = "rulesets/rulesets.properties";
+    private static final String RULESETS_PROPERTY_FILE = "rulesets/java/rulesets.properties";
     private static final String RULESETS_FILENAMES = "rulesets.filenames";
 
     /**

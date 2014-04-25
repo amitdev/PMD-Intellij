@@ -15,6 +15,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.ui.tree.TreeUtil;
 import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
@@ -99,7 +100,7 @@ public class PMDResultPanel extends JPanel {
 
         resultTree.setCellRenderer(new PMDCellRenderer());
         TreeUtil.expandAll(resultTree);
-        add(new JScrollPane(resultTree), BorderLayout.CENTER);
+        add(new JBScrollPane(resultTree), BorderLayout.CENTER);
 
         //Add selection listener to support autoscroll to source.
         resultTree.addTreeSelectionListener(new TreeSelectionListener() {
