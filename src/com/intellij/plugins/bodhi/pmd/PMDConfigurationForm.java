@@ -4,7 +4,7 @@ import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.util.Icons;
+import com.intellij.util.PlatformIcons;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.ui.DocumentAdapter;
 
@@ -46,7 +46,7 @@ public class PMDConfigurationForm {
         DefaultActionGroup actionGroup = (DefaultActionGroup) ActionManager.getInstance().getAction("PMDSettingsEdit");
         //Add the toolbar actions to it
         if (actionGroup.getChildrenCount() == 0) {
-            actionGroup.add(new AddRuleSetAction("Add", "Add a custom ruleset", Icons.ADD_ICON));
+            actionGroup.add(new AddRuleSetAction("Add", "Add a custom ruleset", PlatformIcons.ADD_ICON));
             actionGroup.add(new EditRuleSetAction("Edit", "Edit selected ruleset", IconLoader.getIcon("/actions/editSource.png")));
             actionGroup.add(new DeleteRuleSetAction("Delete", "Remove selected ruleset", IconLoader.getIcon("/general/remove.png")));
         }

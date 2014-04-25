@@ -121,7 +121,7 @@ public class PMDResultPanel extends JPanel {
                     executeWrite(editor, result);
                 } else if (e.getActionCommand().equals(PMDPopupMenu.DETAILS)) {
                     //Open a browser and show rule details
-                    BrowserUtil.launchBrowser(result.getExternalUrl());
+                    BrowserUtil.browse(result.getExternalUrl());
                 }
             }
         });
