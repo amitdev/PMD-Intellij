@@ -39,7 +39,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.io.File;
-import java.io.Writer;
 import java.io.StringWriter;
 import java.io.IOException;
 import java.util.TooManyListenersException;
@@ -80,7 +79,10 @@ public class PMDResultPanel extends JPanel {
                 if (getRowForLocation(evt.getX(), evt.getY()) == -1)
                     return null;
                 TreePath curPath = getPathForLocation(evt.getX(), evt.getY());
-                Object userObj = ((DefaultMutableTreeNode)curPath.getLastPathComponent()).getUserObject();
+                Object userObj = null;
+                if (curPath != null) {
+                    userObj = ((DefaultMutableTreeNode)curPath.getLastPathComponent()).getUserObject();
+                }
                 //Only for PMDTreeNodeData we show tool tips.
                 if (userObj instanceof PMDTreeNodeData) {
                     return ((PMDTreeNodeData)userObj).getToolTip();
@@ -133,7 +135,9 @@ public class PMDResultPanel extends JPanel {
             private DefaultMutableTreeNode getNodeFromEvent(MouseEvent e) {
                 int selRow = resultTree.getRowForLocation(e.getX(), e.getY());
                 if (selRow != -1) {
-                    return (DefaultMutableTreeNode) resultTree.getPathForLocation(e.getX(), e.getY()).getLastPathComponent();
+                    TreePath pathForLocation = resultTree.getPathForLocation(e.getX(), e.getY());
+                    if (pathForLocation != null)
+                        return (DefaultMutableTreeNode) pathForLocation.getLastPathComponent();
                 }
                 return null;
             }
@@ -382,7 +386,11 @@ public class PMDResultPanel extends JPanel {
      */
     public DefaultMutableTreeNode addNode(DefaultMutableTreeNode parent, DefaultMutableTreeNode node) {
         parent.add(node);
-        ((DefaultTreeModel)resultTree.getModel()).reload();
+        ApplicationManager.getApplication().invokeLater(new Runnable() {
+            public void run() {
+                ((DefaultTreeModel) resultTree.getModel()).reload();
+            }
+        });
         return node;
     }
 
@@ -408,9 +416,11 @@ public class PMDResultPanel extends JPanel {
         public void actionPerformed(AnActionEvent e) {
             Project project = e.getData(DataKeys.PROJECT);
             //Run the last run rule
-            String rule = project.getComponent(PMDProjectComponent.class).getLastRunRules();
-            PMDInvoker.getInstance().runPMD(e, rule, isCustomRuleSet(rule));
-            resultTree.repaint();
+            if (project != null) {
+                String rule = project.getComponent(PMDProjectComponent.class).getLastRunRules();
+                PMDInvoker.getInstance().runPMD(e, rule, isCustomRuleSet(rule));
+                resultTree.repaint();
+            }
         }
 
         private boolean isCustomRuleSet(String rule) {
@@ -430,10 +440,12 @@ public class PMDResultPanel extends JPanel {
 
         public void actionPerformed(AnActionEvent e) {
             Project project = e.getData(DataKeys.PROJECT);
-            ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
-            toolWindow.activate(null);
-            PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
-            plugin.closeResultWindow();
+            if (project != null) {
+                ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
+                toolWindow.activate(null);
+                PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
+                plugin.closeResultWindow();
+            }
         }
     }
 
