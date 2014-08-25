@@ -146,7 +146,7 @@ public class PMDResultCollector {
                     }
                     for (Iterator<DefaultMutableTreeNode> iterator = map.values().iterator(); iterator.hasNext();) {
                         DefaultMutableTreeNode node = iterator.next();
-                        if (node.getChildCount() > 0) {
+                        if (node.getChildCount() > 0 && !pmdResults.contains(node)) {
                             pmdResults.add(node);
                         }
                     }
