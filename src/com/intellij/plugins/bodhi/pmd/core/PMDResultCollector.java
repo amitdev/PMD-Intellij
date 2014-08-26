@@ -56,45 +56,6 @@ public class PMDResultCollector {
     }
 
     /**
-     * Parse the pmd report and return the results as a list of tree nodes.
-     * The user object in tree node will be a PMDViolation object.
-     *
-     * @param report The PMD report
-     * @return List of tree nodes
-     */
-    private List<DefaultMutableTreeNode> parse(Report report) {
-        PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
-        if (PMDResultCollector.report == null) {
-            PMDResultCollector.report = new Report();
-        }        
-        for (Iterator iterator = report.iterator(); iterator.hasNext();) {
-            RuleViolation iRuleViolation = (RuleViolation) iterator.next();
-            PMDResultCollector.report.addRuleViolation(iRuleViolation);
-            String message = iRuleViolation.getRule().getDescription();
-            if (message.length() > 80) {
-                message = message.substring(0, 80) + "...";
-            }
-            DefaultMutableTreeNode node = map.get(message);
-            if (node == null) {
-                node = nodeFactory.createNode(message);
-                ((PMDRuleNode)node.getUserObject()).setToolTip(iRuleViolation.getRule().getDescription());
-                map.put(message, node);
-            }
-            node.add(nodeFactory.createNode(new PMDViolation(iRuleViolation)));
-            //Add one violation
-            ((PMDRuleNode)node.getUserObject()).addChildren(1);
-        }
-        List<DefaultMutableTreeNode> pmdResults = new ArrayList<DefaultMutableTreeNode>(report.size());
-        for (Iterator<DefaultMutableTreeNode> iterator = map.values().iterator(); iterator.hasNext();) {
-            DefaultMutableTreeNode node = iterator.next();
-            if (node.getChildCount() > 0) {
-                pmdResults.add(node);
-            }
-        }
-        return pmdResults;
-    }
-
-    /**
      * Runs PMD on given set of files and generates the Report.
      *
      * @param files The list of files to run PMD
@@ -116,7 +77,8 @@ public class PMDResultCollector {
         final List<DefaultMutableTreeNode> pmdResults = new ArrayList<DefaultMutableTreeNode>();
         try {
             RuleSetFactory ruleSetFactory = RulesetsFactoryUtils.getRulesetFactory(pmdConfig);
-            rule = rule.replace("/", "-");
+            if (!isCustomRuleSet)
+                rule = rule.replace("/", "-");
             pmdConfig.setRuleSets(rule);
             pmdConfig.setReportFile(File.createTempFile("pmd", "report").getAbsolutePath());
             //RulesetsFactoryUtils.getRuleSets(rule, ruleSetFactory, System.nanoTime());
@@ -144,8 +106,7 @@ public class PMDResultCollector {
                         //Add one violation
                         ((PMDRuleNode)node.getUserObject()).addChildren(1);
                     }
-                    for (Iterator<DefaultMutableTreeNode> iterator = map.values().iterator(); iterator.hasNext();) {
-                        DefaultMutableTreeNode node = iterator.next();
+                    for (DefaultMutableTreeNode node : map.values()) {
                         if (node.getChildCount() > 0 && !pmdResults.contains(node)) {
                             pmdResults.add(node);
                         }

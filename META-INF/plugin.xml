@@ -5,10 +5,10 @@
     <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
     <change-notes>
-        Fix the result counts.
+        Fix Issue with custom rulesets on unix.
     </change-notes>
 
-    <version>1.6.2</version>
+    <version>1.6.3</version>
     <vendor>bodhi</vendor>
 
     <idea-version since-build="133.696"/>
