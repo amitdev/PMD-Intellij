@@ -8,6 +8,8 @@ import java.io.File;
 import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
 import net.sourceforge.pmd.*;
+import net.sourceforge.pmd.lang.Language;
+import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.LanguageVersion;
 import net.sourceforge.pmd.renderers.AbstractIncrementingRenderer;
 import net.sourceforge.pmd.renderers.Renderer;
@@ -63,13 +65,13 @@ public class PMDResultCollector {
      * @return The pmd Report
      */
     private List<DefaultMutableTreeNode> generateReport(List<DataSource> files, String rule, Map<String, String> options) {
+        Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
         PMDConfiguration pmdConfig = new PMDConfiguration();
-
-        Map<String, LanguageVersion> types = getLanguageVersions();
+        Language lang = LanguageRegistry.getLanguage("Java");
         String type;
         if ( (type = options.get("Target JDK")) != null) {
             LanguageVersion srcType;
-            if ( (srcType = types.get(type)) != null) {
+            if ( (srcType = lang.getVersion(type)) != null) {
                 //pmdConfig.setDefaultLanguageVersion(srcType);
                 pmdConfig.getLanguageVersionDiscoverer().setDefaultLanguageVersion(srcType);
             }
@@ -136,17 +138,6 @@ public class PMDResultCollector {
             e.printStackTrace();
         }
         return pmdResults;
-    }
-
-    private Map<String, LanguageVersion> getLanguageVersions() {
-        Map<String, LanguageVersion> types = new HashMap<String, LanguageVersion>();
-        types.put("1.3", LanguageVersion.JAVA_13);
-        types.put("1.4", LanguageVersion.JAVA_14);
-        types.put("1.5", LanguageVersion.JAVA_15);
-        types.put("1.6", LanguageVersion.JAVA_16);
-        types.put("1.7", LanguageVersion.JAVA_17);
-        types.put("1.8", LanguageVersion.JAVA_18);
-        return types;
     }
 
     /**

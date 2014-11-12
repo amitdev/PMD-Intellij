@@ -8,16 +8,16 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ToolWindowType;
+import com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
-import com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup;
 import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -71,26 +71,28 @@ public class PMDProjectComponent implements ProjectComponent, Configurable, Pers
     public void initComponent() {
         //Add custom rules as menu items if defined.
         updateCustomRulesMenu();
+        ActionGroup actionGroup = registerActions("PMDPredefined");
+        if (actionGroup != null)
+            ((PreDefinedMenuGroup) actionGroup).setComponent(this);
+        registerActions("PMDCustom");
+    }
+
+    private ActionGroup registerActions(String actionName) {
         ActionManager actionMgr = ActionManager.getInstance();
-        ActionGroup actionGroup = (ActionGroup) actionMgr.getAction("PMDPredefined");
-        for (AnAction act : actionGroup.getChildren(null)) {
-            String actName = "PMD" + act.getTemplatePresentation().getText();
-            if (actionMgr.getAction(actName) == null)
-                actionMgr.registerAction(actName, act);
+        ActionGroup actionGroup = (ActionGroup) actionMgr.getAction(actionName);
+        if (actionGroup != null) {
+            for (AnAction act : actionGroup.getChildren(null)) {
+                String actName = "PMD" + act.getTemplatePresentation().getText();
+                if (actionMgr.getAction(actName) == null)
+                    actionMgr.registerAction(actName, act);
+            }
         }
-        ((PreDefinedMenuGroup) actionGroup).setComponent(this);
-        actionGroup = (ActionGroup) actionMgr.getAction("PMDCustom");
-        for (AnAction act : actionGroup.getChildren(null)) {
-            String actName = "PMD" + act.getTemplatePresentation().getText();
-            if (actionMgr.getAction(actName) == null)
-                actionMgr.registerAction(actName, act);
-        }
+        return actionGroup;
     }
 
     private void updateCustomRulesMenu() {
         DefaultActionGroup actionGroup = (DefaultActionGroup) ActionManager.getInstance().getAction("PMDCustom");
-        for (Iterator iterator = customRuleSets.iterator(); iterator.hasNext();) {
-            final String rulePath = (String) iterator.next();
+        for (final String rulePath : customRuleSets) {
             String ruleName = PMDUtil.getRuleNameFromPath(rulePath);
             if (!customActionsMap.containsKey(rulePath)) {
                 AnAction action = new AnAction(ruleName) {
@@ -115,6 +117,8 @@ public class PMDProjectComponent implements ProjectComponent, Configurable, Pers
     public void disposeComponent() {
     }
 
+    @NonNls
+    @NotNull
     public String getComponentName() {
         return COMPONENT_NAME;
     }
@@ -214,10 +218,6 @@ public class PMDProjectComponent implements ProjectComponent, Configurable, Pers
 
     public String getDisplayName() {
         return "PMD";
-    }
-
-    public Icon getIcon() {
-        return null;
     }
 
     @Nullable
