@@ -147,6 +147,7 @@ public class PMDResultCollector {
      * @return true if valid ruleset, false otherwise.
      */
     public static String isValidRuleSet(String path) {
+        Thread.currentThread().setContextClassLoader(PMDResultCollector.class.getClassLoader());
         RuleSetFactory ruleSetFactory = new RuleSetFactory();
         try {
             RuleSet rs = ruleSetFactory.createRuleSet(path);
