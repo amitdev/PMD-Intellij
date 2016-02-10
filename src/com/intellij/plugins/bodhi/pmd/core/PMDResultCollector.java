@@ -5,6 +5,7 @@ import java.util.*;
 import java.io.IOException;
 import java.io.File;
 
+import com.intellij.plugins.bodhi.pmd.tree.PMDErrorNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
 import net.sourceforge.pmd.*;
@@ -84,41 +85,7 @@ public class PMDResultCollector {
             pmdConfig.setRuleSets(rule);
             pmdConfig.setReportFile(File.createTempFile("pmd", "report").getAbsolutePath());
             //RulesetsFactoryUtils.getRuleSets(rule, ruleSetFactory, System.nanoTime());
-            Renderer renderer = new AbstractIncrementingRenderer("pmdplugin", "PMD plugin renderer") {
-                @Override
-                public void renderFileViolations(Iterator<RuleViolation> violations) throws IOException {
-                    PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
-                    if (PMDResultCollector.report == null) {
-                        PMDResultCollector.report = new Report();
-                    }
-                    for (; violations.hasNext();) {
-                        RuleViolation iRuleViolation = violations.next();
-                        PMDResultCollector.report.addRuleViolation(iRuleViolation);
-                        String message = iRuleViolation.getRule().getDescription();
-                        if (message.length() > 80) {
-                            message = message.substring(0, 80) + "...";
-                        }
-                        DefaultMutableTreeNode node = map.get(message);
-                        if (node == null) {
-                            node = nodeFactory.createNode(message);
-                            ((PMDRuleNode)node.getUserObject()).setToolTip(iRuleViolation.getRule().getDescription());
-                            map.put(message, node);
-                        }
-                        node.add(nodeFactory.createNode(new PMDViolation(iRuleViolation)));
-                        //Add one violation
-                        ((PMDRuleNode)node.getUserObject()).addChildren(1);
-                    }
-                    for (DefaultMutableTreeNode node : map.values()) {
-                        if (node.getChildCount() > 0 && !pmdResults.contains(node)) {
-                            pmdResults.add(node);
-                        }
-                    }
-                }
-
-                public String defaultFileExtension() {
-                    return "txt";
-                }
-            };
+            PMDResultRenderer renderer = new PMDResultRenderer(pmdResults);
 
             List<Renderer> renderers = new LinkedList<Renderer>();
             renderers.add(renderer);
@@ -133,6 +100,8 @@ public class PMDResultCollector {
 
             renderer.end();
             renderer.flush();
+
+            renderer.renderErrors();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -160,5 +129,59 @@ public class PMDResultCollector {
             return e.getMessage();
         }
         return "Invalid File";
+    }
+
+    private class PMDResultRenderer extends AbstractIncrementingRenderer {
+
+        private final List<DefaultMutableTreeNode> pmdResults;
+
+        public PMDResultRenderer(List<DefaultMutableTreeNode> pmdResults) {
+            super("pmdplugin", "PMD plugin renderer");
+            this.pmdResults = pmdResults;
+        }
+
+        @Override
+        public void renderFileViolations(Iterator<RuleViolation> violations) throws IOException {
+            PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
+            if (PMDResultCollector.report == null) {
+                PMDResultCollector.report = new Report();
+            }
+            for (; violations.hasNext();) {
+                RuleViolation iRuleViolation = violations.next();
+                PMDResultCollector.report.addRuleViolation(iRuleViolation);
+                String message = iRuleViolation.getRule().getDescription();
+                if (message.length() > 80) {
+                    message = message.substring(0, 80) + "...";
+                }
+                DefaultMutableTreeNode node = map.get(message);
+                if (node == null) {
+                    node = nodeFactory.createNode(message);
+                    ((PMDRuleNode)node.getUserObject()).setToolTip(iRuleViolation.getRule().getDescription());
+                    map.put(message, node);
+                }
+                node.add(nodeFactory.createNode(new PMDViolation(iRuleViolation)));
+                //Add one violation
+                ((PMDRuleNode)node.getUserObject()).addChildren(1);
+            }
+            for (DefaultMutableTreeNode node : map.values()) {
+                if (node.getChildCount() > 0 && !pmdResults.contains(node)) {
+                    pmdResults.add(node);
+                }
+            }
+        }
+
+        public void renderErrors() {
+            if (!errors.isEmpty()) {
+                if (PMDResultCollector.report == null) {
+                    PMDResultCollector.report = new Report();
+                }
+                DefaultMutableTreeNode node = new DefaultMutableTreeNode(new PMDErrorNode(errors.get(0).getMsg()));
+                pmdResults.add(node);
+            }
+        }
+
+        public String defaultFileExtension() {
+            return "txt";
+        }
     }
 }

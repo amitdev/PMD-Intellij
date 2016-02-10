@@ -5,7 +5,8 @@
     <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
     <change-notes>
-        Support for PMD 5.4
+        Show errors from PMD in results.
+        Support for PMD 5.4.1.
     </change-notes>
 
     <version>1.7.4</version>

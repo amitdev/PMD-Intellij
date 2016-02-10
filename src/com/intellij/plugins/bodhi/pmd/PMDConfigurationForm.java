@@ -195,7 +195,7 @@ public class PMDConfigurationForm {
     private class DeleteRuleSetAction extends AnAction {
         public DeleteRuleSetAction(String text, String description, Icon icon) {
             super(text, description, icon);
-            registerCustomShortcutSet(CommonShortcuts.DELETE, rootPanel);
+            registerCustomShortcutSet(CommonShortcuts.getDelete(), rootPanel);
         }
 
         public void actionPerformed(AnActionEvent e) {

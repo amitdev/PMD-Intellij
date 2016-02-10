@@ -31,6 +31,9 @@ public class PMDRuleNode implements PMDTreeNodeData {
         }
     }
 
+    public PMDRuleNode() {
+    }
+
     /**
      * The child count of this node.
      *
