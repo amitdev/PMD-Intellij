@@ -16,4 +16,5 @@ public class PMDErrorNode extends PMDRuleNode {
         cellRenderer.setIcon(PMDCellRenderer.ERROR);
         cellRenderer.append(errorMsg);
     }
+
 }

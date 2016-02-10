@@ -9,7 +9,7 @@
         Support for PMD 5.4.1.
     </change-notes>
 
-    <version>1.7.4</version>
+    <version>1.7.5</version>
     <vendor>bodhi</vendor>
 
     <idea-version since-build="133.690"/>
