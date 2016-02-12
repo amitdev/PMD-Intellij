@@ -109,6 +109,16 @@ public class PMDResultCollector {
         return pmdResults;
     }
 
+    private String shortMessage(String message)
+    {
+        String shortMessage = message;
+        if (shortMessage.length() > 80)
+        {
+            shortMessage = message.substring(0, 80) + "...";
+        }
+        return shortMessage;
+    }
+
     /**
      * Verifies whether the ruleset specified at the path is a valid PMD ruleset.
      *
@@ -149,13 +159,10 @@ public class PMDResultCollector {
             for (; violations.hasNext();) {
                 RuleViolation iRuleViolation = violations.next();
                 PMDResultCollector.report.addRuleViolation(iRuleViolation);
-                String message = iRuleViolation.getRule().getDescription();
-                if (message.length() > 80) {
-                    message = message.substring(0, 80) + "...";
-                }
+                String message = iRuleViolation.getRule().getName() + ". " + iRuleViolation.getRule().getDescription();
                 DefaultMutableTreeNode node = map.get(message);
                 if (node == null) {
-                    node = nodeFactory.createNode(message);
+                    node = nodeFactory.createNode(shortMessage(message));
                     ((PMDRuleNode)node.getUserObject()).setToolTip(iRuleViolation.getRule().getDescription());
                     map.put(message, node);
                 }

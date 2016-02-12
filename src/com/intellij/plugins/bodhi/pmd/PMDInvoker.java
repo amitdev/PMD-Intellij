@@ -1,25 +1,28 @@
 package com.intellij.plugins.bodhi.pmd;
 
-import com.intellij.openapi.actionSystem.ActionPlaces;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DataKeys;
+import com.intellij.ide.highlighter.*;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.module.*;
+import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.openapi.vcs.changes.ChangeListManager;
+import com.intellij.openapi.roots.*;
 import com.intellij.openapi.vcs.actions.VcsContextFactory;
+import com.intellij.openapi.vfs.*;
+import com.intellij.openapi.wm.*;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
+import com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
+import com.intellij.psi.search.*;
+import com.intellij.util.PathUtilRt;
+import com.intellij.util.indexing.FileBasedIndex;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.io.File;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+
+import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.*;
 
 /**
  * Invokes PMD using the PMDResultCollector and gets results from that. This acts as a
@@ -68,33 +71,53 @@ public class PMDInvoker {
         //Show the tool window
         PMDUtil.getProjectComponent(actionEvent).setupToolWindow();
 
+        Project project = actionEvent.getData(DataKeys.PROJECT);
+
         List<File> files = new LinkedList<File>();
-        if (actionEvent.getPlace().equals(ActionPlaces.PROJECT_VIEW_POPUP)) {
+        if (actionEvent.getPlace().equals(ActionPlaces.PROJECT_VIEW_POPUP)
+                || actionEvent.getPlace().equals(ActionPlaces.SCOPE_VIEW_POPUP)
+                || actionEvent.getPlace().equals(ActionPlaces.CHANGES_VIEW_POPUP)
+                || actionEvent.getPlace().equals(ActionPlaces.MAIN_MENU)
+                ) {
+
             //If selected by right-click on file/folder (s)
-            VirtualFile[] selectedFiles = actionEvent.getData(DataKeys.VIRTUAL_FILE_ARRAY);
-            if (selectedFiles.length == 0) {
+            VirtualFile[] selectedFiles;
+            if(actionEvent.getPlace().equals(ActionPlaces.CHANGES_VIEW_POPUP))
+            {
+                selectedFiles = VcsContextFactory.SERVICE.getInstance().createContextOn(actionEvent).getSelectedFiles();
+            }
+            else if(actionEvent.getPlace().equals(ActionPlaces.MAIN_MENU))
+            {
+                VirtualFile[] contentRoots = ProjectRootManager.getInstance(project).getContentRoots();
+                selectedFiles = VfsUtil.getCommonAncestors(contentRoots);
+            }
+            else
+            {
+                selectedFiles = actionEvent.getData(DataKeys.VIRTUAL_FILE_ARRAY);
+            }
+
+            if (selectedFiles == null || selectedFiles.length == 0) {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
                 return;
             }
-            for (int i = 0; i < selectedFiles.length; i++) {
+            VirtualFileFilter filter = VirtualFileFilters.or(
+                    isDirectory(),
+                    VirtualFileFilters.and(
+                            fileHasExtension("java"),
+                            /*todo use option 'skip generated classes':*/
+                            fileInSources(project),
+                            /*todo use option 'skip tests':*/
+                            VirtualFileFilters.not(fileInTestSources(project))
+
+                    )
+
+            );
+            for (VirtualFile selectedFile : selectedFiles) {
                 //Add all java files recursively
-                PMDUtil.listFiles(new File(selectedFiles[i].getPresentableUrl()), files,
-                        PMDUtil.createFileExtensionFilter("java"));
+                PMDUtil.listFiles(selectedFile, files, filter, true);
             }
-        } else if (actionEvent.getPlace().equals("ChangesViewPopup")) {
-            VirtualFile[] selectedFiles = VcsContextFactory.SERVICE.getInstance().createContextOn(actionEvent).getSelectedFiles();
-            if (selectedFiles.length == 0) {
-                //toolWindow.displayErrorMessage("Please select a file to process first");
-                return;
-            }
-            for (int i = 0; i < selectedFiles.length; i++) {
-                //Add all java files recursively
-                PMDUtil.listFiles(new File(selectedFiles[i].getPresentableUrl()), files,
-                        PMDUtil.createFileExtensionFilter("java"));
-            }            
         } else {
             //Run on currently open file in the editor
-            Project project = actionEvent.getData(DataKeys.PROJECT);
             VirtualFile[] selectedFiles = FileEditorManager.getInstance(project).getSelectedFiles();
             if (selectedFiles.length == 0) {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
