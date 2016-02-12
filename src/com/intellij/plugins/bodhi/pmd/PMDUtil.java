@@ -2,11 +2,19 @@ package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataKeys;
+import com.intellij.openapi.module.*;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.*;
+import com.intellij.psi.*;
+import com.intellij.psi.util.PsiElementFilter;
+import com.intellij.util.PathUtilRt;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.util.List;
+import java.util.*;
+
+import static java.util.Arrays.asList;
 
 /**
  * A Util class providing common functions for PMD plugin.
@@ -46,6 +54,25 @@ public class PMDUtil {
                 fileList.add(file);
             }
         }
+    }
+
+    public static void listFiles(VirtualFile item, final List<File> result, final VirtualFileFilter filter, final boolean skipDirectories) {
+        VfsUtilCore.visitChildrenRecursively(item, new VirtualFileVisitor() {
+            @Override
+            public boolean visitFile(@NotNull VirtualFile file) {
+                if(!filter.accept(file)) {
+                    return false;
+                }
+                if(!file.isDirectory() || !skipDirectories) {
+                    result.add(new File(file.getPresentableUrl()));
+                }
+                return true;
+            }
+        });
+    }
+
+    public static List<Module> getProjectModules(Project project) {
+        return asList(ModuleManager.getInstance(project).getModules());
     }
 
     /**
