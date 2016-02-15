@@ -8,6 +8,7 @@ import java.util.Map;
 public class PersistentData {
     public List<String> customRuleSets = new ArrayList<String>();
     public Map<String, String> options = new HashMap<String, String>();
+    public String skipTestSources;
 
     public PersistentData() {
         this.customRuleSets = new ArrayList<String>();
@@ -28,5 +29,15 @@ public class PersistentData {
 
     public void setOptions(Map<String, String> options) {
         this.options = options;
+    }
+
+    public void skipTestSources(boolean skipTestSources)
+    {
+        this.skipTestSources = String.valueOf(skipTestSources);
+    }
+
+    public boolean isSkipTestSources()
+    {
+        return Boolean.valueOf(skipTestSources);
     }
 }
