@@ -9,9 +9,9 @@ import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.ui.DocumentAdapter;
 
 import javax.swing.*;
+import javax.swing.event.*;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
-import javax.swing.event.DocumentEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import java.util.*;
@@ -35,6 +35,7 @@ public class PMDConfigurationForm {
     private JTabbedPane tabbedPane1;
     private JTable table1;
     private JPanel mainPanel;
+    private JCheckBox skipTestsCheckBox;
     private boolean isModified;
 
     private static final Object[] columnNames = new String[] {"Option", "Value"};
@@ -56,6 +57,7 @@ public class PMDConfigurationForm {
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
 
         ruleList.setModel(new MyListModel(new ArrayList<String>()));
+        skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
     }
 
     /**
@@ -82,6 +84,7 @@ public class PMDConfigurationForm {
             return;
         }
         table1.setModel(new MyTableModel(toArray(data.getOptions()), columnNames));
+        skipTestsCheckBox.setSelected(data.isSkipTestSources());
         isModified = false;
     }
 
@@ -102,6 +105,7 @@ public class PMDConfigurationForm {
     public void getData(PMDProjectComponent data) {
         data.setCustomRuleSets(((MyListModel) ruleList.getModel()).getData());
         data.setOptions( toMap(table1.getModel()) );
+        data.skipTestSources(skipTestsCheckBox.isSelected());
         isModified = false;
     }
 
@@ -323,6 +327,15 @@ public class PMDConfigurationForm {
 
         public String getText() {
             return path.getText();
+        }
+    }
+
+    private class CheckBoxChangeListener implements ChangeListener
+    {
+        @Override
+        public void stateChanged(ChangeEvent e)
+        {
+            isModified = true;
         }
     }
 }

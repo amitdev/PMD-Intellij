@@ -72,6 +72,7 @@ public class PMDInvoker {
         PMDUtil.getProjectComponent(actionEvent).setupToolWindow();
 
         Project project = actionEvent.getData(DataKeys.PROJECT);
+        PMDProjectComponent projectComponent = project.getComponent(PMDProjectComponent.class);
 
         List<File> files = new LinkedList<File>();
         if (actionEvent.getPlace().equals(ActionPlaces.PROJECT_VIEW_POPUP)
@@ -100,17 +101,16 @@ public class PMDInvoker {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
                 return;
             }
+            List<VirtualFileFilter> filters = new ArrayList<>();
+            filters.add(fileHasExtension("java"));
+            filters.add(fileInSources(project));
+            if(projectComponent.isSkipTestSources())
+            {
+                filters.add(VirtualFileFilters.not(fileInTestSources(project)));
+            }
             VirtualFileFilter filter = VirtualFileFilters.or(
                     isDirectory(),
-                    VirtualFileFilters.and(
-                            fileHasExtension("java"),
-                            /*todo use option 'skip generated classes':*/
-                            fileInSources(project),
-                            /*todo use option 'skip tests':*/
-                            VirtualFileFilters.not(fileInTestSources(project))
-
-                    )
-
+                    VirtualFileFilters.and(filters.toArray(new VirtualFileFilter[filters.size()]))
             );
             for (VirtualFile selectedFile : selectedFiles) {
                 //Add all java files recursively
@@ -127,34 +127,31 @@ public class PMDInvoker {
         }
 
         //Got the files, start processing now
-        processFiles(actionEvent, rule, files, isCustomRuleSet);
+        processFiles(project, rule, files, isCustomRuleSet, projectComponent);
     }
 
     /**
      * Runs PMD on given files.
-     *
-     * @param event The action event that triggered run
+     *  @param project the project
      * @param rule The rule(s) to run
      * @param files The files on which to run
      * @param isCustomRuleSet Is it a custom ruleset or not.
+     * @param projectComponent
      */
-    private void processFiles(AnActionEvent event, final String rule, final List<File> files, final boolean isCustomRuleSet) {
-        //Activate tool window
-        final Project project = event.getData(DataKeys.PROJECT);
+    private void processFiles(Project project, final String rule, final List<File> files, final boolean isCustomRuleSet, final PMDProjectComponent projectComponent) {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
         toolWindow.activate(null);
 
         //Save all files
         ApplicationManager.getApplication().saveAll();
 
-        final PMDProjectComponent component = project.getComponent(PMDProjectComponent.class);
         //Run PMD asynchronously
         Runnable runnable = new Runnable() {
             public void run() {
                 //Show a progressindicator.
                 ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
                 String[] rules = rule.split(RULE_DELIMITER);
-                PMDResultPanel resultPanel = component.getResultPanel();
+                PMDResultPanel resultPanel = projectComponent.getResultPanel();
 
                 PMDRuleNode rootNodeData = ((PMDRuleNode) resultPanel.getRootNode().getUserObject());
                 PMDResultCollector.report = null;
@@ -166,7 +163,7 @@ public class PMDInvoker {
                     PMDResultCollector collector = new PMDResultCollector(isCustomRuleSet);
 
                     //Get the tree nodes from result collector
-                    List<DefaultMutableTreeNode> results = collector.getResults(files, rules[i], component.getOptions());
+                    List<DefaultMutableTreeNode> results = collector.getResults(files, rules[i], projectComponent.getOptions());
 
                     if (results.size() != 0) {
                         if (isCustomRuleSet) {
