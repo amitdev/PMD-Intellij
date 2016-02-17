@@ -57,6 +57,7 @@ public class PMDProjectComponent implements ProjectComponent, Configurable, Pers
     private Map<String, Pair<String, AnAction>> customActionsMap = new HashMap<String, Pair<String, AnAction>>();
     private PMDConfigurationForm form;
     private ToolWindowManager toolWindowManager;
+    private boolean skipTestSources;
 
     /**
      * Creates a PMD Project component based on the project given.
@@ -262,6 +263,7 @@ public class PMDProjectComponent implements ProjectComponent, Configurable, Pers
         for (String key : options.keySet()) {
             pd.getOptions().put(key, options.get(key));
         }
+        pd.skipTestSources(skipTestSources);
         return pd;
     }
 
@@ -274,5 +276,16 @@ public class PMDProjectComponent implements ProjectComponent, Configurable, Pers
         for (String key : state.getOptions().keySet()) {
             options.put(key, state.getOptions().get(key));
         }
+        this.skipTestSources = state.isSkipTestSources();
+    }
+
+    public void skipTestSources(boolean skipTestSources)
+    {
+        this.skipTestSources = skipTestSources;
+    }
+
+    public boolean isSkipTestSources()
+    {
+        return skipTestSources;
     }
 }

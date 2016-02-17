@@ -1,25 +1,28 @@
 package com.intellij.plugins.bodhi.pmd;
 
-import com.intellij.openapi.actionSystem.ActionPlaces;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DataKeys;
+import com.intellij.ide.highlighter.*;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.module.*;
+import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.openapi.vcs.changes.ChangeListManager;
+import com.intellij.openapi.roots.*;
 import com.intellij.openapi.vcs.actions.VcsContextFactory;
+import com.intellij.openapi.vfs.*;
+import com.intellij.openapi.wm.*;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
+import com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
+import com.intellij.psi.search.*;
+import com.intellij.util.PathUtilRt;
+import com.intellij.util.indexing.FileBasedIndex;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.io.File;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+
+import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.*;
 
 /**
  * Invokes PMD using the PMDResultCollector and gets results from that. This acts as a
@@ -37,6 +40,7 @@ public class PMDInvoker {
 
     // The singleton instance
     private static final PMDInvoker instance = new PMDInvoker();
+    public static final String JAVA_EXTENSION = "java";
 
     /**
      * Prevents instantiation by other classes.
@@ -68,33 +72,53 @@ public class PMDInvoker {
         //Show the tool window
         PMDUtil.getProjectComponent(actionEvent).setupToolWindow();
 
+        Project project = actionEvent.getData(DataKeys.PROJECT);
+        PMDProjectComponent projectComponent = project.getComponent(PMDProjectComponent.class);
+
         List<File> files = new LinkedList<File>();
-        if (actionEvent.getPlace().equals(ActionPlaces.PROJECT_VIEW_POPUP)) {
+        if (actionEvent.getPlace().equals(ActionPlaces.PROJECT_VIEW_POPUP)
+                || actionEvent.getPlace().equals(ActionPlaces.SCOPE_VIEW_POPUP)
+                || actionEvent.getPlace().equals(ActionPlaces.CHANGES_VIEW_POPUP)
+                || actionEvent.getPlace().equals(ActionPlaces.MAIN_MENU)
+                ) {
+
             //If selected by right-click on file/folder (s)
-            VirtualFile[] selectedFiles = actionEvent.getData(DataKeys.VIRTUAL_FILE_ARRAY);
-            if (selectedFiles.length == 0) {
+            VirtualFile[] selectedFiles;
+            if(actionEvent.getPlace().equals(ActionPlaces.CHANGES_VIEW_POPUP))
+            {
+                selectedFiles = VcsContextFactory.SERVICE.getInstance().createContextOn(actionEvent).getSelectedFiles();
+            }
+            else if(actionEvent.getPlace().equals(ActionPlaces.MAIN_MENU))
+            {
+                VirtualFile[] contentRoots = ProjectRootManager.getInstance(project).getContentRoots();
+                selectedFiles = VfsUtil.getCommonAncestors(contentRoots);
+            }
+            else
+            {
+                selectedFiles = actionEvent.getData(DataKeys.VIRTUAL_FILE_ARRAY);
+            }
+
+            if (selectedFiles == null || selectedFiles.length == 0) {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
                 return;
             }
-            for (int i = 0; i < selectedFiles.length; i++) {
-                //Add all java files recursively
-                PMDUtil.listFiles(new File(selectedFiles[i].getPresentableUrl()), files,
-                        PMDUtil.createFileExtensionFilter("java"));
+            List<VirtualFileFilter> filters = new ArrayList<VirtualFileFilter>();
+            filters.add(fileHasExtension(JAVA_EXTENSION));
+            filters.add(fileInSources(project));
+            if(projectComponent.isSkipTestSources())
+            {
+                filters.add(VirtualFileFilters.not(fileInTestSources(project)));
             }
-        } else if (actionEvent.getPlace().equals("ChangesViewPopup")) {
-            VirtualFile[] selectedFiles = VcsContextFactory.SERVICE.getInstance().createContextOn(actionEvent).getSelectedFiles();
-            if (selectedFiles.length == 0) {
-                //toolWindow.displayErrorMessage("Please select a file to process first");
-                return;
-            }
-            for (int i = 0; i < selectedFiles.length; i++) {
+            VirtualFileFilter filter = VirtualFileFilters.or(
+                    isDirectory(),
+                    and(filters.toArray(new VirtualFileFilter[filters.size()]))
+            );
+            for (VirtualFile selectedFile : selectedFiles) {
                 //Add all java files recursively
-                PMDUtil.listFiles(new File(selectedFiles[i].getPresentableUrl()), files,
-                        PMDUtil.createFileExtensionFilter("java"));
-            }            
+                PMDUtil.listFiles(selectedFile, files, filter, true);
+            }
         } else {
             //Run on currently open file in the editor
-            Project project = actionEvent.getData(DataKeys.PROJECT);
             VirtualFile[] selectedFiles = FileEditorManager.getInstance(project).getSelectedFiles();
             if (selectedFiles.length == 0) {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
@@ -104,34 +128,31 @@ public class PMDInvoker {
         }
 
         //Got the files, start processing now
-        processFiles(actionEvent, rule, files, isCustomRuleSet);
+        processFiles(project, rule, files, isCustomRuleSet, projectComponent);
     }
 
     /**
      * Runs PMD on given files.
-     *
-     * @param event The action event that triggered run
+     *  @param project the project
      * @param rule The rule(s) to run
      * @param files The files on which to run
      * @param isCustomRuleSet Is it a custom ruleset or not.
+     * @param projectComponent
      */
-    private void processFiles(AnActionEvent event, final String rule, final List<File> files, final boolean isCustomRuleSet) {
-        //Activate tool window
-        final Project project = event.getData(DataKeys.PROJECT);
+    private void processFiles(Project project, final String rule, final List<File> files, final boolean isCustomRuleSet, final PMDProjectComponent projectComponent) {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
         toolWindow.activate(null);
 
         //Save all files
         ApplicationManager.getApplication().saveAll();
 
-        final PMDProjectComponent component = project.getComponent(PMDProjectComponent.class);
         //Run PMD asynchronously
         Runnable runnable = new Runnable() {
             public void run() {
                 //Show a progressindicator.
                 ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
                 String[] rules = rule.split(RULE_DELIMITER);
-                PMDResultPanel resultPanel = component.getResultPanel();
+                PMDResultPanel resultPanel = projectComponent.getResultPanel();
 
                 PMDRuleNode rootNodeData = ((PMDRuleNode) resultPanel.getRootNode().getUserObject());
                 PMDResultCollector.report = null;
@@ -143,7 +164,7 @@ public class PMDInvoker {
                     PMDResultCollector collector = new PMDResultCollector(isCustomRuleSet);
 
                     //Get the tree nodes from result collector
-                    List<DefaultMutableTreeNode> results = collector.getResults(files, rules[i], component.getOptions());
+                    List<DefaultMutableTreeNode> results = collector.getResults(files, rules[i], projectComponent.getOptions());
 
                     if (results.size() != 0) {
                         if (isCustomRuleSet) {
