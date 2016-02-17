@@ -40,6 +40,7 @@ public class PMDInvoker {
 
     // The singleton instance
     private static final PMDInvoker instance = new PMDInvoker();
+    public static final String JAVA_EXTENSION = "java";
 
     /**
      * Prevents instantiation by other classes.
@@ -101,8 +102,8 @@ public class PMDInvoker {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
                 return;
             }
-            List<VirtualFileFilter> filters = new ArrayList<>();
-            filters.add(fileHasExtension("java"));
+            List<VirtualFileFilter> filters = new ArrayList<VirtualFileFilter>();
+            filters.add(fileHasExtension(JAVA_EXTENSION));
             filters.add(fileInSources(project));
             if(projectComponent.isSkipTestSources())
             {
@@ -110,7 +111,7 @@ public class PMDInvoker {
             }
             VirtualFileFilter filter = VirtualFileFilters.or(
                     isDirectory(),
-                    VirtualFileFilters.and(filters.toArray(new VirtualFileFilter[filters.size()]))
+                    and(filters.toArray(new VirtualFileFilter[filters.size()]))
             );
             for (VirtualFile selectedFile : selectedFiles) {
                 //Add all java files recursively

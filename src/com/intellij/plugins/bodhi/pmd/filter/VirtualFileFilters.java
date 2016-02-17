@@ -1,7 +1,8 @@
 package com.intellij.plugins.bodhi.pmd.filter;
 
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFileFilter;
+import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.vfs.*;
 
 public class VirtualFileFilters
 {
@@ -38,5 +39,119 @@ public class VirtualFileFilters
     public static VirtualFileFilter fileInSources(Project project)
     {
         return new FileInSourcesFilter(project);
+    }
+
+    static class AndFilter implements VirtualFileFilter
+    {
+        private final VirtualFileFilter[] filters;
+
+        AndFilter(VirtualFileFilter... filters)
+        {
+            this.filters = filters;
+        }
+
+
+        public boolean accept(VirtualFile file)
+        {
+            for (VirtualFileFilter filter : filters)
+            {
+                if(!filter.accept(file))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    static class OrFilter implements VirtualFileFilter
+    {
+        private final VirtualFileFilter[] filters;
+
+        OrFilter(VirtualFileFilter... filters)
+        {
+            this.filters = filters;
+        }
+
+
+        public boolean accept(VirtualFile file)
+        {
+            for (VirtualFileFilter filter : filters)
+            {
+                if(filter.accept(file))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    static class DirectoryFilter implements VirtualFileFilter
+    {
+        public boolean accept(VirtualFile file)
+        {
+            return file.isDirectory();
+        }
+    }
+
+    static class FileHasExtensionFilter implements VirtualFileFilter
+    {
+        private final String extension;
+
+        FileHasExtensionFilter(String extension)
+        {
+            this.extension = extension;
+        }
+
+        public boolean accept(VirtualFile file)
+        {
+            return !file.isDirectory() && file.getPresentableUrl().endsWith("." + extension);
+        }
+    }
+
+    static class FileInSourcesFilter implements VirtualFileFilter
+    {
+        private final Project project;
+
+        FileInSourcesFilter(Project project)
+        {
+            this.project = project;
+        }
+
+        public boolean accept(VirtualFile file)
+        {
+            return ProjectRootManager.getInstance(project).getFileIndex().isInSource(file);
+        }
+    }
+
+    static class FileInTestSourcesFilter implements VirtualFileFilter
+    {
+        private final Project project;
+
+        FileInTestSourcesFilter(Project project)
+        {
+            this.project = project;
+        }
+
+        public boolean accept(VirtualFile file)
+        {
+            return ProjectRootManager.getInstance(project).getFileIndex().isInTestSourceContent(file);
+        }
+    }
+
+    static class NotFilter implements VirtualFileFilter
+    {
+        private final VirtualFileFilter filter;
+
+        NotFilter(VirtualFileFilter filter)
+        {
+            this.filter = filter;
+        }
+
+        public boolean accept(VirtualFile file)
+        {
+            return !filter.accept(file);
+        }
     }
 }
