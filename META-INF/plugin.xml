@@ -5,11 +5,10 @@
     <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
     <change-notes>
-        Show errors from PMD in results.
-        Support for PMD 5.4.1.
+        Support to skip test files
     </change-notes>
 
-    <version>1.7.5</version>
+    <version>1.7.6</version>
     <vendor>bodhi</vendor>
 
     <idea-version since-build="133.690"/>
