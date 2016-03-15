@@ -41,7 +41,8 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.StringWriter;
 import java.io.IOException;
-import java.util.TooManyListenersException;
+import java.util.*;
+import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 import net.sourceforge.pmd.Report;
@@ -117,14 +118,26 @@ public class PMDResultPanel extends JPanel {
         //Add right-click menu to the tree
         popupMenu = new PMDPopupMenu(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                final PMDViolation result = popupMenu.getViolation();
+                final List<PMDViolation> results = popupMenu.getViolations();
                 if (e.getActionCommand().equals(PMDPopupMenu.SUPPRESS)) {
-                    //Suppress the violation
-                    final Editor editor = openEditor(result);
-                    executeWrite(editor, result);
+                    Map<String, PMDViolation> unique = new HashMap<String, PMDViolation>();
+                    for (PMDViolation result : results) {
+                        unique.put(result.getFilename()+":"+result.getBeginLine(), result);
+                    }
+                    for (PMDViolation result : unique.values()) {
+                        //Suppress the violation
+                        final Editor editor = openEditor(result);
+                        executeWrite(editor, result);
+                    }
                 } else if (e.getActionCommand().equals(PMDPopupMenu.DETAILS)) {
-                    //Open a browser and show rule details
-                    BrowserUtil.browse(result.getExternalUrl());
+                    Set<String> urls = new HashSet<String>();
+                    for (PMDViolation result : results) {
+                        urls.add(result.getExternalUrl());
+                    }
+                    for (String url : urls) {
+                        //Open a browser and show rule details
+                        BrowserUtil.browse(url);
+                    }
                 }
             }
         });
@@ -132,30 +145,34 @@ public class PMDResultPanel extends JPanel {
         //Add mouse listener to support double click and popup actions.
         resultTree.addMouseListener(new MouseAdapter() {
             //Get the current tree node where the mouse event happened
-            private DefaultMutableTreeNode getNodeFromEvent(MouseEvent e) {
-                int selRow = resultTree.getRowForLocation(e.getX(), e.getY());
-                if (selRow != -1) {
-                    TreePath pathForLocation = resultTree.getPathForLocation(e.getX(), e.getY());
-                    if (pathForLocation != null)
-                        return (DefaultMutableTreeNode) pathForLocation.getLastPathComponent();
+            private DefaultMutableTreeNode[] getNodeFromEvent(MouseEvent e) {
+                TreePath[] selectionPaths = resultTree.getSelectionPaths();
+                if (selectionPaths != null) {
+                    DefaultMutableTreeNode[] result = new DefaultMutableTreeNode[selectionPaths.length];
+                    for (int i = 0; i < result.length; i++) {
+                        result[i] = (DefaultMutableTreeNode) selectionPaths[i].getLastPathComponent();
+                    }
+                    return result;
                 }
                 return null;
             }
 
             public void mousePressed(MouseEvent e) {
-                DefaultMutableTreeNode treeNode = getNodeFromEvent(e);
-                if (treeNode != null) {
+                DefaultMutableTreeNode[] treeNodes = getNodeFromEvent(e);
+                if (treeNodes != null) {
                     if (e.getClickCount() == 2) {
-                        highlightError(treeNode);
+                        for (DefaultMutableTreeNode treeNode : treeNodes) {
+                            highlightError(treeNode);
+                        }
                     } else {
-                        showPopup(treeNode, e);
+                        showPopup(treeNodes, e);
                     }
                 }
             }
 
             public void mouseReleased(MouseEvent e) {
-                DefaultMutableTreeNode treeNode = getNodeFromEvent(e);
-                showPopup(treeNode, e);
+                DefaultMutableTreeNode[] treeNodes = getNodeFromEvent(e);
+                showPopup(treeNodes, e);
             }
         });
     }
@@ -163,20 +180,23 @@ public class PMDResultPanel extends JPanel {
     /**
      * Displays the right click popup menu for a tree node.
      *
-     * @param treeNode The DefaultMutableTreeNode where to show the popup
+     * @param treeNodes The DefaultMutableTreeNodes where to show the popup
      * @param e the MouseEvent
      */
-    private void showPopup(DefaultMutableTreeNode treeNode, MouseEvent e) {
+    private void showPopup(DefaultMutableTreeNode[] treeNodes, MouseEvent e) {
         //Check if its a popup trigger
-        if (treeNode != null && e.isPopupTrigger()) {
+        if (treeNodes != null && e.isPopupTrigger()) {
+            popupMenu.clearViolations();
             //Only for violation nodes, popups are supported
-            if (treeNode.getUserObject() instanceof PMDViolation) {
-                PMDViolation pmdViolation = (PMDViolation) treeNode.getUserObject();
-                //Set the violation node
-                popupMenu.setViolation(pmdViolation);
-                //Display popup
-                popupMenu.getMenu().show(resultTree, e.getX(), e.getY());
+            for (int i = 0; i < treeNodes.length; ++i) {
+                if (treeNodes[i].getUserObject() instanceof PMDViolation) {
+                    PMDViolation pmdViolation = (PMDViolation) treeNodes[i].getUserObject();
+                    //Set the violation node
+                    popupMenu.addViolation(pmdViolation);
+                }
             }
+            //Display popup
+            popupMenu.getMenu().show(resultTree, e.getX(), e.getY());
         }
     }
 

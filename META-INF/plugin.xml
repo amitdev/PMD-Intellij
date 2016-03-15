@@ -5,10 +5,10 @@
     <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
     <change-notes>
-        Support to skip test files
+        Fixes #25 : Support actions on multiple results
     </change-notes>
 
-    <version>1.7.6</version>
+    <version>1.7.7</version>
     <vendor>bodhi</vendor>
 
     <idea-version since-build="133.690"/>

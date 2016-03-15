@@ -4,6 +4,8 @@ import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
 
 import javax.swing.*;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -15,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class PMDPopupMenu {
 
-    private PMDViolation violation;
+    private List<PMDViolation> violations = new ArrayList<PMDViolation>();
     private JPopupMenu menu;
     /** Menu label for suppress */
     public static final String SUPPRESS = "Suppress";
@@ -43,8 +45,8 @@ public class PMDPopupMenu {
      *
      * @param violation The PMD Violation of the node on which menu is shown
      */
-    public void setViolation(PMDViolation violation) {
-        this.violation = violation;
+    public void addViolation(PMDViolation violation) {
+        this.violations.add(violation);
     }
 
     /**
@@ -52,8 +54,12 @@ public class PMDPopupMenu {
      *
      * @return The Violation of the node where this menu is shown
      */
-    public PMDViolation getViolation() {
-        return violation;
+    public List<PMDViolation> getViolations() {
+        return violations;
+    }
+
+    public void clearViolations() {
+        this.violations.clear();
     }
 
     /**
