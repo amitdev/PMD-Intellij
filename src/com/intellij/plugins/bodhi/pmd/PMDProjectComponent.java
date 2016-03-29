@@ -39,23 +39,22 @@ import java.util.*;
       file = "$PROJECT_FILE$"
     )}
 )
-public class PMDProjectComponent implements ProjectComponent, Configurable, PersistentStateComponent<PersistentData> {
+public class PMDProjectComponent implements ProjectComponent, PersistentStateComponent<PersistentData> {
 
     /**
      * The Tool ID of the results panel.
      */
-    public static final String TOOL_ID = "PMD";
+    static final String TOOL_ID = "PMD";
 
-    protected static final String COMPONENT_NAME = "PMDProjectComponent";
+    private static final String COMPONENT_NAME = "PMDProjectComponent";
 
     private Project currentProject;
     private PMDResultPanel resultPanel;
     private ToolWindow resultWindow;
     private String lastRunRules;
-    public List<String> customRuleSets = new ArrayList<String>();
-    public Map<String, String> options = new HashMap<String, String>();
+    private List<String> customRuleSets = new ArrayList<String>();
+    private Map<String, String> options = new HashMap<String, String>();
     private Map<String, Pair<String, AnAction>> customActionsMap = new HashMap<String, Pair<String, AnAction>>();
-    private PMDConfigurationForm form;
     private ToolWindowManager toolWindowManager;
     private boolean skipTestSources;
 
@@ -91,7 +90,7 @@ public class PMDProjectComponent implements ProjectComponent, Configurable, Pers
         return actionGroup;
     }
 
-    private void updateCustomRulesMenu() {
+    void updateCustomRulesMenu() {
         DefaultActionGroup actionGroup = (DefaultActionGroup) ActionManager.getInstance().getAction("PMDCustom");
         for (final String rulePath : customRuleSets) {
             String ruleName = PMDUtil.getRuleNameFromPath(rulePath);
@@ -102,7 +101,7 @@ public class PMDProjectComponent implements ProjectComponent, Configurable, Pers
                         setLastRunRules(rulePath);
                     }
                 };
-                customActionsMap.put(rulePath, new Pair<String, AnAction>(ruleName, action));
+                customActionsMap.put(rulePath, Pair.create(ruleName, action));
                 actionGroup.add(action);
             }
         }
@@ -215,44 +214,6 @@ public class PMDProjectComponent implements ProjectComponent, Configurable, Pers
 
     public void setOptions(Map<String, String> options) {
         this.options = options;
-    }
-
-    public String getDisplayName() {
-        return "PMD";
-    }
-
-    @Nullable
-    @NonNls
-    public String getHelpTopic() {
-        return null;
-    }
-
-    public JComponent createComponent() {
-        if (form == null) {
-            form = new PMDConfigurationForm();
-        }
-        return form.getRootPanel();
-    }
-
-    public boolean isModified() {
-        return form != null && form.isModified(this);
-    }
-
-    public void apply() throws ConfigurationException {
-        if (form != null) {
-            form.getData(this);
-        }
-        updateCustomRulesMenu();
-    }
-
-    public void reset() {
-        if (form != null) {
-            form.setData(this);
-        }
-    }
-
-    public void disposeUIResources() {
-        form = null;
     }
 
     public PersistentData getState() {

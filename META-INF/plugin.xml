@@ -5,13 +5,13 @@
     <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
     <change-notes>
-        Fixes #25 : Support actions on multiple results
+        Support for Idea 2016.1
     </change-notes>
 
-    <version>1.7.7</version>
+    <version>1.8</version>
     <vendor>bodhi</vendor>
 
-    <idea-version since-build="133.690"/>
+    <idea-version since-build="145.258"/>
     <project-components>
         <component>
             <implementation-class>com.intellij.plugins.bodhi.pmd.PMDProjectComponent</implementation-class>
@@ -44,4 +44,7 @@
         <group id="PMDSettingsEdit" text="Custom Rule"/>
 
     </actions>
+    <extensions defaultExtensionNs="com.intellij">
+        <projectConfigurable id="PMD" displayName="PMD" instance="com.intellij.plugins.bodhi.pmd.PMDConfigurable"/>
+    </extensions>
 </idea-plugin>

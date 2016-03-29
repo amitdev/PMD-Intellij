@@ -154,6 +154,7 @@ public class PMDConfigurationForm {
             int index = listModel.getSize();
             listModel.add(index, fileName);
             ruleList.setSelectedIndex(index);
+            ruleList.repaint();
         }
     }
 
@@ -208,6 +209,7 @@ public class PMDConfigurationForm {
                 ((MyListModel)ruleList.getModel()).remove(index);
                 ruleList.setSelectedIndex(index);
             }
+            ruleList.repaint();
         }
 
         public void update(AnActionEvent e) {
@@ -332,7 +334,6 @@ public class PMDConfigurationForm {
 
     private class CheckBoxChangeListener implements ChangeListener
     {
-        @Override
         public void stateChanged(ChangeEvent e)
         {
             isModified = true;
