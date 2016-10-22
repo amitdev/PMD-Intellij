@@ -6,6 +6,7 @@ import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.PMDInvoker;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
+import com.intellij.util.xml.ui.actions.DefaultAddAction;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Properties;
@@ -29,7 +30,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
     private static String allRules = "";
 
     //All the children of this group
-    private AnAction[] children;
+    private DefaultActionGroup children = new DefaultActionGroup("Pre Defined", true);
 
     private PMDProjectComponent component;
 
@@ -54,9 +55,10 @@ public class PreDefinedMenuGroup extends ActionGroup {
             String[] rulesetFilenames = props.getProperty(RULESETS_FILENAMES).split(PMDInvoker.RULE_DELIMITER);
 
             //We have 'All' rules in addition to the rulesets
-            children = new AnAction[rulesetFilenames.length+1];
+            //children = new AnAction[rulesetFilenames.length+1];
             //First one is 'All'
-            children[0] = action;
+            children.removeAll();
+            children.add(action);
 
             for (int i=0; i < rulesetFilenames.length; ++i) {
                 int start = rulesetFilenames[i].indexOf('/');
@@ -70,7 +72,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
                         getComponent().setLastRunRules(name);
                     }
                 };
-                children[i+1] = ruleAction;
+                children.add(ruleAction);
             }
         } catch (IOException e) {
             //Should not happen
@@ -82,7 +84,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
     }
 
     public AnAction[] getChildren(@Nullable AnActionEvent event) {
-        return this.children;
+        return new AnAction[] { this.children };
     }
 
     public void setComponent(PMDProjectComponent component) {

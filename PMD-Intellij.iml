@@ -8,6 +8,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="pmd-5.4.1" level="project" />
+    <orderEntry type="library" name="pmd-core-5.5.1" level="project" />
   </component>
 </module>

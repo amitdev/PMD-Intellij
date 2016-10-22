@@ -13,6 +13,7 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ToolWindowType;
+import com.intellij.plugins.bodhi.pmd.actions.PMDCustom;
 import com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
@@ -91,7 +92,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     }
 
     void updateCustomRulesMenu() {
-        DefaultActionGroup actionGroup = (DefaultActionGroup) ActionManager.getInstance().getAction("PMDCustom");
+        PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
         for (final String rulePath : customRuleSets) {
             String ruleName = PMDUtil.getRuleNameFromPath(rulePath);
             if (!customActionsMap.containsKey(rulePath)) {
