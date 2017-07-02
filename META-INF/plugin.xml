@@ -39,5 +39,8 @@
     </actions>
     <extensions defaultExtensionNs="com.intellij">
         <projectConfigurable id="PMD" displayName="PMD" instance="com.intellij.plugins.bodhi.pmd.PMDConfigurable"/>
+
+        <checkinHandlerFactory id="PMDCheckinHandlerFactory"
+                               implementation="com.intellij.plugins.bodhi.pmd.handlers.PMDCheckinHandlerFactory"/>
     </extensions>
 </idea-plugin>
