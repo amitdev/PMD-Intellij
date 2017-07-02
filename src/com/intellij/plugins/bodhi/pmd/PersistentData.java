@@ -6,9 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 public class PersistentData {
-    public List<String> customRuleSets = new ArrayList<String>();
-    public Map<String, String> options = new HashMap<String, String>();
-    public String skipTestSources;
+    private List<String> customRuleSets = new ArrayList<String>();
+    private Map<String, String> options = new HashMap<String, String>();
+    private String skipTestSources;
+    private boolean scanFilesBeforeCheckin;
 
     public PersistentData() {
         this.customRuleSets = new ArrayList<String>();
@@ -39,5 +40,13 @@ public class PersistentData {
     public boolean isSkipTestSources()
     {
         return Boolean.valueOf(skipTestSources);
+    }
+
+    public boolean isScanFilesBeforeCheckin() {
+        return scanFilesBeforeCheckin;
+    }
+
+    public void setScanFilesBeforeCheckin(boolean scanFilesBeforeCheckin) {
+        this.scanFilesBeforeCheckin = scanFilesBeforeCheckin;
     }
 }
