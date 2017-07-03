@@ -2,6 +2,7 @@ package com.intellij.plugins.bodhi.pmd.handlers;
 
 import com.intellij.CommonBundle;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.CheckinProjectPanel;
 import com.intellij.openapi.vcs.changes.CommitExecutor;
 import com.intellij.openapi.vcs.checkin.CheckinHandler;
@@ -14,10 +15,13 @@ import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
 import com.intellij.util.PairConsumer;
+import com.intellij.util.ui.UIUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.PropertyKey;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -43,8 +47,7 @@ public class PMDCheckinHandler extends CheckinHandler {
 
     @Nullable
     public RefreshableOnComponent getBeforeCheckinConfigurationPanel() {
-        JCheckBox checkBox = new JCheckBox(CommonBundle.message(ResourceBundle.getBundle(BUNDLE),
-                "handler.before.checkin.checkbox"));
+        JCheckBox checkBox = new JCheckBox(message("handler.before.checkin.checkbox"));
 
         Project project = checkinProjectPanel.getProject();
         PMDProjectComponent projectComponent = project.getComponent(PMDProjectComponent.class);
@@ -70,6 +73,11 @@ public class PMDCheckinHandler extends CheckinHandler {
                 checkBox.setSelected(projectComponent.isScanFilesBeforeCheckin());
             }
         };
+    }
+
+    @NotNull
+    private String message(@PropertyKey(resourceBundle = BUNDLE) String key, Object... params) {
+        return CommonBundle.message(ResourceBundle.getBundle(BUNDLE), key, params);
     }
 
     @Override
@@ -117,13 +125,36 @@ public class PMDCheckinHandler extends CheckinHandler {
                 rootNodeData.addChildren(childCount);
             }
         }
+        int errorCount = resultPanel.getRootNode().getChildCount();
+        return processScanResults(project, errorCount);
+    }
 
-        if (resultPanel.getRootNode().getChildCount() > 0) {
-            ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
-            toolWindow.activate(null);
-            return ReturnResult.CLOSE_WINDOW;
+    @NotNull
+    private ReturnResult processScanResults(Project project, int errorCount) {
+        if (errorCount > 0) {
+            int answer = promptUser(project, errorCount);
+            if (answer == Messages.OK) {
+                showToolWindow(project);
+                return ReturnResult.CLOSE_WINDOW;
+            }
+            if (answer == Messages.CANCEL) {
+                return ReturnResult.CANCEL;
+            }
         }
-
         return ReturnResult.COMMIT;
+    }
+
+    private void showToolWindow(Project project) {
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
+        toolWindow.activate(null);
+    }
+
+    private int promptUser(Project project, int errorCount) {
+        String[] buttons = new String[]{message("handler.before.checkin.error.review"),
+                checkinProjectPanel.getCommitActionName(),
+                CommonBundle.getCancelButtonText()};
+
+        return Messages.showDialog(project, message("handler.before.checkin.error.text", errorCount),
+                message("handler.before.checkin.error.title"), buttons, 0, UIUtil.getWarningIcon());
     }
 }
