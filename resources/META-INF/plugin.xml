@@ -1,0 +1,43 @@
+<idea-plugin>
+
+  <name>PMDPlugin</name>
+  <description>A plugin to run static analysis using PMD in intelliJ.</description>
+
+  <change-notes>
+    Support for PMD 5.8.1. This needs java version 1.7+.
+  </change-notes>
+
+  <version>1.8.2</version>
+  <vendor>bodhi</vendor>
+
+  <idea-version since-build="145.258"/>
+  <project-components>
+    <component>
+      <implementation-class>com.intellij.plugins.bodhi.pmd.PMDProjectComponent</implementation-class>
+      <interface-class>com.intellij.plugins.bodhi.pmd.PMDProjectComponent</interface-class>
+    </component>
+  </project-components>
+
+  <actions>
+    <!-- The Main menu item which includes predefined and custom rulesets -->
+    <group id="PMDMenuGroup" text="Run PMD" popup="true"
+           class="com.intellij.plugins.bodhi.pmd.actions.PMDMenuGroup">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+      <add-to-group group-id="ChangesViewPopupMenu" anchor="last"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+
+      <action class="com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup" id="PMDPredefined"
+              popup="true" text="Pre Defined"/>
+      <action id="PMDCustom" class="com.intellij.plugins.bodhi.pmd.actions.PMDCustom"
+              popup="true" text="Custom Rules"/>
+    </group>
+
+    <!-- The group representing toolbar items in settings -->
+    <group id="PMDSettingsEdit" text="Custom Rule"/>
+
+  </actions>
+  <extensions defaultExtensionNs="com.intellij">
+    <projectConfigurable id="PMD" displayName="PMD" instance="com.intellij.plugins.bodhi.pmd.PMDConfigurable"/>
+  </extensions>
+</idea-plugin>
