@@ -9,11 +9,13 @@ import com.intellij.openapi.vcs.checkin.CheckinHandler;
 import com.intellij.openapi.vcs.ui.RefreshableOnComponent;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
+import com.intellij.plugins.bodhi.pmd.PMDInvoker;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDResultPanel;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
 import com.intellij.util.PairConsumer;
 import com.intellij.util.ui.UIUtil;
 import org.apache.commons.logging.Log;
@@ -29,23 +31,24 @@ import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
-
-import static com.intellij.openapi.vcs.checkin.CheckinHandler.ReturnResult.COMMIT;
+import java.util.function.ToIntFunction;
 
 public class PMDCheckinHandler extends CheckinHandler {
 
-    private static final Log LOG = LogFactory.getLog(PMDCheckinHandler.class);
+    private static final Log log = LogFactory.getLog(PMDCheckinHandler.class);
     private static final String BUNDLE = "com.intellij.plugins.bodhi.pmd.PMD-Intellij";
 
     @NonNls
     private final CheckinProjectPanel checkinProjectPanel;
 
-    public PMDCheckinHandler(CheckinProjectPanel checkinProjectPanel) {
+    /* default */ PMDCheckinHandler(CheckinProjectPanel checkinProjectPanel) {
         this.checkinProjectPanel = checkinProjectPanel;
     }
 
     @Nullable
+    @Override
     public RefreshableOnComponent getBeforeCheckinConfigurationPanel() {
         JCheckBox checkBox = new JCheckBox(message("handler.before.checkin.checkbox"));
 
@@ -85,76 +88,100 @@ public class PMDCheckinHandler extends CheckinHandler {
                                       PairConsumer<Object, Object> additionalDataConsumer) {
         Project project = checkinProjectPanel.getProject();
         if (project == null) {
-            LOG.error("Could not get project for check-in panel, skipping");
+            log.error("Could not get project for check-in panel, skipping");
             return ReturnResult.COMMIT;
         }
 
         PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
         if (plugin == null) {
-            LOG.error("Could not get PMD Plug-in, skipping");
-            return COMMIT;
+            log.error("Could not find the PMD plugin, skipping");
+            return ReturnResult.COMMIT;
         }
 
         if (!plugin.isScanFilesBeforeCheckin()) {
             return ReturnResult.COMMIT;
         }
 
-        plugin.setupToolWindow();
-
-        List<String> rules = plugin.getCustomRuleSets();
-        PMDResultPanel resultPanel = plugin.getResultPanel();
-        PMDRuleNode rootNodeData = ((PMDRuleNode) resultPanel.getRootNode().getUserObject());
-
         PMDResultCollector.report = null;
-        for (String rule : rules) {
-            PMDResultCollector collector = new PMDResultCollector(true);
-            List<File> files = new ArrayList<>(checkinProjectPanel.getFiles());
-            List<DefaultMutableTreeNode> results = collector.getResults(files, rule, plugin.getOptions());
-            if (!results.isEmpty()) {
-                //For custom rulesets, using a separate format for rendering
-                rule = PMDUtil.getRuleNameFromPath(rule) + ";" + rule;
 
-                DefaultMutableTreeNode node = resultPanel.addNode(rule);
-                //Add all nodes to the tree
-                int childCount = 0;
-                for (DefaultMutableTreeNode pmdResult : results) {
-                    resultPanel.addNode(node, pmdResult);
-                    childCount += ((PMDRuleNode) pmdResult.getUserObject()).getChildCount();
-                }
-                ((PMDRuleNode) node.getUserObject()).addChildren(childCount);
-                rootNodeData.addChildren(childCount);
-            }
+        List<DefaultMutableTreeNode> results = new ArrayList<>();
+        for (String ruleSet : plugin.getCustomRuleSets()) {
+            Optional<DefaultMutableTreeNode> resultOptional = scanFiles(ruleSet, plugin);
+            resultOptional.ifPresent(results::add);
         }
-        int errorCount = resultPanel.getRootNode().getChildCount();
-        return processScanResults(project, errorCount);
+        return processScanResults(results, project);
+    }
+
+    private Optional<DefaultMutableTreeNode> scanFiles(String ruleSet, PMDProjectComponent plugin) {
+        DefaultMutableTreeNode result = null;
+        PMDResultCollector collector = new PMDResultCollector(true);
+        List<File> files = new ArrayList<>(checkinProjectPanel.getFiles());
+
+        List<DefaultMutableTreeNode> ruleSetResults = collector.getResults(files, ruleSet, plugin.getOptions());
+        if (!ruleSetResults.isEmpty()) {
+            result = createRuleSetNode(ruleSet, ruleSetResults);
+        }
+        return Optional.ofNullable(result);
+    }
+
+    private DefaultMutableTreeNode createRuleSetNode(String ruleSet, List<DefaultMutableTreeNode> results) {
+        ruleSet = PMDUtil.getRuleNameFromPath(ruleSet) + ";" + ruleSet;
+        DefaultMutableTreeNode ruleSetNode = PMDTreeNodeFactory.getInstance().createNode(ruleSet);
+
+        int childCount = 0;
+        for (DefaultMutableTreeNode pmdResult : results) {
+            childCount += ((PMDRuleNode) pmdResult.getUserObject()).getChildCount();
+            ruleSetNode.add(pmdResult);
+        }
+        ((PMDRuleNode) ruleSetNode.getUserObject()).addChildren(childCount);
+        return ruleSetNode;
     }
 
     @NotNull
-    private ReturnResult processScanResults(Project project, int errorCount) {
-        if (errorCount > 0) {
-            int answer = promptUser(project, errorCount);
+    private ReturnResult processScanResults(List<DefaultMutableTreeNode> results, Project project) {
+        int violations = results.stream().mapToInt(toViolations()).sum();
+        if (violations > 0) {
+            int answer = promptUser(project, violations);
             if (answer == Messages.OK) {
-                showToolWindow(project);
+                showToolWindow(results, project);
                 return ReturnResult.CLOSE_WINDOW;
             }
-            if (answer == Messages.CANCEL) {
+            if (answer == Messages.CANCEL || answer == -1) {
                 return ReturnResult.CANCEL;
             }
         }
         return ReturnResult.COMMIT;
     }
 
-    private void showToolWindow(Project project) {
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
-        toolWindow.activate(null);
+    private ToIntFunction<DefaultMutableTreeNode> toViolations() {
+        return node -> ((PMDRuleNode) node.getUserObject()).getChildCount();
     }
 
-    private int promptUser(Project project, int errorCount) {
+    private int promptUser(Project project, int violations) {
         String[] buttons = new String[]{message("handler.before.checkin.error.review"),
                 checkinProjectPanel.getCommitActionName(),
                 CommonBundle.getCancelButtonText()};
 
-        return Messages.showDialog(project, message("handler.before.checkin.error.text", errorCount),
+        return Messages.showDialog(project, message("handler.before.checkin.error.text", violations),
                 message("handler.before.checkin.error.title"), buttons, 0, UIUtil.getWarningIcon());
+    }
+
+    // TODO: refactor this mofo
+    private void showToolWindow(List<DefaultMutableTreeNode> results, Project project) {
+        PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
+        PMDResultPanel resultPanel = plugin.getResultPanel();
+        plugin.setupToolWindow();
+
+        DefaultMutableTreeNode rootNode = resultPanel.getRootNode();
+        PMDRuleNode rootNodeData = ((PMDRuleNode) rootNode.getUserObject());
+        for (DefaultMutableTreeNode node : results) {
+            PMDRuleNode nodeData = (PMDRuleNode) node.getUserObject();
+            resultPanel.addNode(rootNode, node);
+            rootNodeData.addChildren(nodeData.getChildCount());
+        }
+
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
+        toolWindow.activate(null);
+        plugin.setLastRunRules(String.join(PMDInvoker.RULE_DELIMITER, plugin.getCustomRuleSets()));
     }
 }
