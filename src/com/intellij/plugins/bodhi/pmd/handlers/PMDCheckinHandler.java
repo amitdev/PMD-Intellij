@@ -18,6 +18,7 @@ import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
 import com.intellij.util.PairConsumer;
 import com.intellij.util.ui.UIUtil;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NonNls;
@@ -33,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.function.ToIntFunction;
 
 public class PMDCheckinHandler extends CheckinHandler {
 
@@ -50,10 +50,11 @@ public class PMDCheckinHandler extends CheckinHandler {
     @Nullable
     @Override
     public RefreshableOnComponent getBeforeCheckinConfigurationPanel() {
-        JCheckBox checkBox = new JCheckBox(message("handler.before.checkin.checkbox"));
+        final JCheckBox checkBox = new JCheckBox(message("handler.before.checkin.checkbox"));
 
         Project project = checkinProjectPanel.getProject();
-        PMDProjectComponent projectComponent = project.getComponent(PMDProjectComponent.class);
+        final PMDProjectComponent projectComponent = project.getComponent(PMDProjectComponent.class);
+
         return new RefreshableOnComponent() {
             @Override
             public JComponent getComponent() {
@@ -106,13 +107,15 @@ public class PMDCheckinHandler extends CheckinHandler {
 
         List<DefaultMutableTreeNode> results = new ArrayList<>();
         for (String ruleSet : plugin.getCustomRuleSets()) {
-            Optional<DefaultMutableTreeNode> resultOptional = scanFiles(ruleSet, plugin);
-            resultOptional.ifPresent(results::add);
+            DefaultMutableTreeNode result = scanFiles(ruleSet, plugin);
+            if (result != null) {
+                results.add(result);
+            }
         }
         return processScanResults(results, project);
     }
 
-    private Optional<DefaultMutableTreeNode> scanFiles(String ruleSet, PMDProjectComponent plugin) {
+    private DefaultMutableTreeNode scanFiles(String ruleSet, PMDProjectComponent plugin) {
         DefaultMutableTreeNode result = null;
         PMDResultCollector collector = new PMDResultCollector(true);
         List<File> files = new ArrayList<>(checkinProjectPanel.getFiles());
@@ -121,7 +124,7 @@ public class PMDCheckinHandler extends CheckinHandler {
         if (!ruleSetResults.isEmpty()) {
             result = createRuleSetNode(ruleSet, ruleSetResults);
         }
-        return Optional.ofNullable(result);
+        return result;
     }
 
     private DefaultMutableTreeNode createRuleSetNode(String ruleSet, List<DefaultMutableTreeNode> results) {
@@ -139,7 +142,7 @@ public class PMDCheckinHandler extends CheckinHandler {
 
     @NotNull
     private ReturnResult processScanResults(List<DefaultMutableTreeNode> results, Project project) {
-        int violations = results.stream().mapToInt(toViolations()).sum();
+        int violations = toViolations(results);
         if (violations > 0) {
             int answer = promptUser(project, violations);
             if (answer == Messages.OK) {
@@ -153,8 +156,12 @@ public class PMDCheckinHandler extends CheckinHandler {
         return ReturnResult.COMMIT;
     }
 
-    private ToIntFunction<DefaultMutableTreeNode> toViolations() {
-        return node -> ((PMDRuleNode) node.getUserObject()).getChildCount();
+    private int toViolations(List<DefaultMutableTreeNode> results) {
+        int violations = 0;
+        for (DefaultMutableTreeNode result : results) {
+            violations += ((PMDRuleNode) result.getUserObject()).getChildCount();
+        }
+        return violations;
     }
 
     private int promptUser(Project project, int violations) {
@@ -166,7 +173,6 @@ public class PMDCheckinHandler extends CheckinHandler {
                 message("handler.before.checkin.error.title"), buttons, 0, UIUtil.getWarningIcon());
     }
 
-    // TODO: refactor this mofo
     private void showToolWindow(List<DefaultMutableTreeNode> results, Project project) {
         PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
         PMDResultPanel resultPanel = plugin.getResultPanel();
@@ -182,6 +188,6 @@ public class PMDCheckinHandler extends CheckinHandler {
 
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
         toolWindow.activate(null);
-        plugin.setLastRunRules(String.join(PMDInvoker.RULE_DELIMITER, plugin.getCustomRuleSets()));
+        plugin.setLastRunRules(StringUtils.join(plugin.getCustomRuleSets(), PMDInvoker.RULE_DELIMITER));
     }
 }
