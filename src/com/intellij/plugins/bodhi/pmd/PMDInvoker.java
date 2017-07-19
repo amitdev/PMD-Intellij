@@ -1,26 +1,29 @@
 package com.intellij.plugins.bodhi.pmd;
 
-import com.intellij.ide.highlighter.*;
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.module.*;
-import com.intellij.openapi.progress.*;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.*;
+import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vcs.actions.VcsContextFactory;
-import com.intellij.openapi.vfs.*;
-import com.intellij.openapi.wm.*;
+import com.intellij.openapi.vfs.VfsUtil;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileFilter;
+import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
-import com.intellij.psi.search.*;
-import com.intellij.util.PathUtilRt;
-import com.intellij.util.indexing.FileBasedIndex;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.*;
 
@@ -139,7 +142,7 @@ public class PMDInvoker {
      * @param isCustomRuleSet Is it a custom ruleset or not.
      * @param projectComponent
      */
-    private void processFiles(Project project, final String rule, final List<File> files, final boolean isCustomRuleSet, final PMDProjectComponent projectComponent) {
+    public void processFiles(Project project, final String rule, final List<File> files, final boolean isCustomRuleSet, final PMDProjectComponent projectComponent) {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
         toolWindow.activate(null);
 

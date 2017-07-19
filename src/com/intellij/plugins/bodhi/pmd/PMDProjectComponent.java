@@ -1,12 +1,13 @@
 package com.intellij.plugins.bodhi.pmd;
 
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.ActionGroup;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.options.Configurable;
-import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.wm.ToolWindow;
@@ -19,9 +20,7 @@ import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import javax.swing.*;
 import java.util.*;
 
 /**
@@ -45,7 +44,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     /**
      * The Tool ID of the results panel.
      */
-    static final String TOOL_ID = "PMD";
+    public static final String TOOL_ID = "PMD";
 
     private static final String COMPONENT_NAME = "PMDProjectComponent";
 
@@ -58,6 +57,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private Map<String, Pair<String, AnAction>> customActionsMap = new HashMap<String, Pair<String, AnAction>>();
     private ToolWindowManager toolWindowManager;
     private boolean skipTestSources;
+    private boolean scanFilesBeforeCheckin;
 
     /**
      * Creates a PMD Project component based on the project given.
@@ -217,6 +217,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         this.options = options;
     }
 
+    @NotNull
     public PersistentData getState() {
         final PersistentData pd = new PersistentData();
         for (String item : customRuleSets) {
@@ -226,6 +227,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
             pd.getOptions().put(key, options.get(key));
         }
         pd.skipTestSources(skipTestSources);
+        pd.setScanFilesBeforeCheckin(scanFilesBeforeCheckin);
         return pd;
     }
 
@@ -239,6 +241,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
             options.put(key, state.getOptions().get(key));
         }
         this.skipTestSources = state.isSkipTestSources();
+        this.scanFilesBeforeCheckin = state.isScanFilesBeforeCheckin();
     }
 
     public void skipTestSources(boolean skipTestSources)
@@ -249,5 +252,13 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     public boolean isSkipTestSources()
     {
         return skipTestSources;
+    }
+
+    public void setScanFilesBeforeCheckin(boolean scanFilesBeforeCheckin) {
+        this.scanFilesBeforeCheckin = scanFilesBeforeCheckin;
+    }
+
+    public boolean isScanFilesBeforeCheckin() {
+        return scanFilesBeforeCheckin;
     }
 }
