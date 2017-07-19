@@ -52,8 +52,8 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private PMDResultPanel resultPanel;
     private ToolWindow resultWindow;
     private String lastRunRules;
-    private List<String> customRuleSets = new ArrayList<String>();
-    private Map<String, String> options = new HashMap<String, String>();
+    private List<String> customRuleSets = new ArrayList<>();
+    private Map<String, String> options = new HashMap<>();
     private Map<String, Pair<String, AnAction>> customActionsMap = new HashMap<String, Pair<String, AnAction>>();
     private ToolWindowManager toolWindowManager;
     private boolean skipTestSources;

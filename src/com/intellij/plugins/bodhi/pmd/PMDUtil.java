@@ -2,17 +2,18 @@ package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataKeys;
-import com.intellij.openapi.module.*;
+import com.intellij.openapi.module.Module;
+import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.*;
-import com.intellij.psi.*;
-import com.intellij.psi.util.PsiElementFilter;
-import com.intellij.util.PathUtilRt;
+import com.intellij.openapi.vfs.VfsUtilCore;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileFilter;
+import com.intellij.openapi.vfs.VirtualFileVisitor;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.util.*;
+import java.util.List;
 
 import static java.util.Arrays.asList;
 

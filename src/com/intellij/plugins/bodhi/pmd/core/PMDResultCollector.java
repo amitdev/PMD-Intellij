@@ -39,7 +39,7 @@ public class PMDResultCollector {
      * @param isCustomRuleSet Whether a custom rule has to be run
      */
     public PMDResultCollector(boolean isCustomRuleSet) {
-        map = new HashMap<String, DefaultMutableTreeNode>();
+        map = new HashMap<>();
         this.isCustomRuleSet = isCustomRuleSet;
     }
 
