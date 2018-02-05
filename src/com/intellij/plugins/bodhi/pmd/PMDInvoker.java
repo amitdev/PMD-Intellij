@@ -16,12 +16,10 @@ import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -44,6 +42,7 @@ public class PMDInvoker {
     // The singleton instance
     private static final PMDInvoker instance = new PMDInvoker();
     public static final String JAVA_EXTENSION = "java";
+    private static final String XML_EXTENSION = "xml";
 
     /**
      * Prevents instantiation by other classes.
@@ -105,17 +104,13 @@ public class PMDInvoker {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
                 return;
             }
-            List<VirtualFileFilter> filters = new ArrayList<VirtualFileFilter>();
-            filters.add(fileHasExtension(JAVA_EXTENSION));
-            filters.add(fileInSources(project));
+            VirtualFileFilter filter = or(fileHasExtension(JAVA_EXTENSION), fileHasExtension(XML_EXTENSION));
+            filter = and(filter, fileInSources(project));
             if(projectComponent.isSkipTestSources())
             {
-                filters.add(VirtualFileFilters.not(fileInTestSources(project)));
+                filter = and(filter, not(fileInTestSources(project)));
             }
-            VirtualFileFilter filter = VirtualFileFilters.or(
-                    isDirectory(),
-                    and(filters.toArray(new VirtualFileFilter[filters.size()]))
-            );
+            filter = or(filter, isDirectory());
             for (VirtualFile selectedFile : selectedFiles) {
                 //Add all java files recursively
                 PMDUtil.listFiles(selectedFile, files, filter, true);
