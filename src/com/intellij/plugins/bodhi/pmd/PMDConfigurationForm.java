@@ -56,6 +56,7 @@ public class PMDConfigurationForm {
         buttonPanel.setLayout(new BorderLayout());
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
 
+        table1.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
         ruleList.setModel(new MyListModel(new ArrayList<String>()));
         skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
     }
