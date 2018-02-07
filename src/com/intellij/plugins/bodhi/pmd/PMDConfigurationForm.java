@@ -40,7 +40,7 @@ public class PMDConfigurationForm {
 
     private static final Object[] columnNames = new String[] {"Option", "Value"};
     private static final String[] optionNames = new String[] {"Target JDK", "Encoding"};
-    private static final String[] defaultValues = new String[] {"1.4", ""};
+    private static final String[] defaultValues = new String[] {"1.8", ""};
 
     public PMDConfigurationForm() {
         //Get the action group defined
@@ -56,6 +56,7 @@ public class PMDConfigurationForm {
         buttonPanel.setLayout(new BorderLayout());
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
 
+        table1.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
         ruleList.setModel(new MyListModel(new ArrayList<String>()));
         skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
     }
