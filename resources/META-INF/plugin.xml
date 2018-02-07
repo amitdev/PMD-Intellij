@@ -4,10 +4,10 @@
   <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
   <change-notes>
-    Support for running custom rulesets during commit.
+    Support for PMD 6.0 and minor bug fixes.
   </change-notes>
 
-  <version>1.8.3</version>
+  <version>1.8.4</version>
   <vendor>bodhi</vendor>
 
   <idea-version since-build="145.258"/>
