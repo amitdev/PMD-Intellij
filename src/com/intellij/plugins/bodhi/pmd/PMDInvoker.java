@@ -86,18 +86,17 @@ public class PMDInvoker {
 
             //If selected by right-click on file/folder (s)
             VirtualFile[] selectedFiles;
-            if(actionEvent.getPlace().equals(ActionPlaces.CHANGES_VIEW_POPUP))
-            {
-                selectedFiles = VcsContextFactory.SERVICE.getInstance().createContextOn(actionEvent).getSelectedFiles();
-            }
-            else if(actionEvent.getPlace().equals(ActionPlaces.MAIN_MENU))
-            {
-                VirtualFile[] contentRoots = ProjectRootManager.getInstance(project).getContentRoots();
-                selectedFiles = VfsUtil.getCommonAncestors(contentRoots);
-            }
-            else
-            {
-                selectedFiles = actionEvent.getData(DataKeys.VIRTUAL_FILE_ARRAY);
+            switch (actionEvent.getPlace()) {
+                case ActionPlaces.CHANGES_VIEW_POPUP:
+                    selectedFiles = VcsContextFactory.SERVICE.getInstance().createContextOn(actionEvent).getSelectedFiles();
+                    break;
+                case ActionPlaces.MAIN_MENU:
+                    VirtualFile[] contentRoots = ProjectRootManager.getInstance(project).getContentRoots();
+                    selectedFiles = VfsUtil.getCommonAncestors(contentRoots);
+                    break;
+                default:
+                    selectedFiles = actionEvent.getData(DataKeys.VIRTUAL_FILE_ARRAY);
+                    break;
             }
 
             if (selectedFiles == null || selectedFiles.length == 0) {
@@ -106,8 +105,7 @@ public class PMDInvoker {
             }
             VirtualFileFilter filter = or(fileHasExtension(JAVA_EXTENSION), fileHasExtension(XML_EXTENSION));
             filter = and(filter, fileInSources(project));
-            if(projectComponent.isSkipTestSources())
-            {
+            if (projectComponent.isSkipTestSources()) {
                 filter = and(filter, not(fileInTestSources(project)));
             }
             filter = or(filter, isDirectory());
@@ -168,6 +166,8 @@ public class PMDInvoker {
                         if (isCustomRuleSet) {
                             //For custom rulesets, using a separate format for rendering
                             rules[i] = PMDUtil.getRuleNameFromPath(rules[i]) + ";" + rules[i];
+                        } else {
+                            rules[i] = PMDUtil.getRuleName(rules[i]);
                         }
                         DefaultMutableTreeNode node = resultPanel.addNode(rules[i]);
                         //Add all nodes to the tree

@@ -120,7 +120,7 @@ public class PMDResultPanel extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 final List<PMDViolation> results = popupMenu.getViolations();
                 if (e.getActionCommand().equals(PMDPopupMenu.SUPPRESS)) {
-                    Map<String, PMDViolation> unique = new HashMap<String, PMDViolation>();
+                    Map<String, PMDViolation> unique = new HashMap<>();
                     for (PMDViolation result : results) {
                         unique.put(result.getFilename()+":"+result.getBeginLine(), result);
                     }
@@ -130,7 +130,7 @@ public class PMDResultPanel extends JPanel {
                         executeWrite(editor, result);
                     }
                 } else if (e.getActionCommand().equals(PMDPopupMenu.DETAILS)) {
-                    Set<String> urls = new HashSet<String>();
+                    Set<String> urls = new HashSet<>();
                     for (PMDViolation result : results) {
                         urls.add(result.getExternalUrl());
                     }

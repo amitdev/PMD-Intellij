@@ -133,4 +133,12 @@ public class PMDUtil {
     private static boolean isMatchingExtension(File pathname, String extension) {
         return pathname.isDirectory() || pathname.getName().endsWith("." + extension);
     }
+
+    @NotNull
+    public static String getRuleName(String ruleFileName) {
+        int start = ruleFileName.lastIndexOf('/') + 1;
+        int end = ruleFileName.indexOf('.');
+        if (end == -1) end = ruleFileName.length();
+        return ruleFileName.substring(start, end);
+    }
 }

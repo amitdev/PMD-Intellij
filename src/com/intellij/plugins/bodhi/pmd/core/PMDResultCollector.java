@@ -15,6 +15,7 @@ import net.sourceforge.pmd.lang.LanguageVersion;
 import net.sourceforge.pmd.renderers.AbstractIncrementingRenderer;
 import net.sourceforge.pmd.renderers.Renderer;
 import net.sourceforge.pmd.util.IOUtil;
+import net.sourceforge.pmd.util.ResourceLoader;
 import net.sourceforge.pmd.util.datasource.DataSource;
 import net.sourceforge.pmd.util.datasource.FileDataSource;
 
@@ -51,7 +52,7 @@ public class PMDResultCollector {
      * @return list of results
      */
     public List<DefaultMutableTreeNode> getResults(List<File> files, String rule, Map<String, String> options) {
-        List<DataSource> fileDataSources = new ArrayList<DataSource>(files.size());
+        List<DataSource> fileDataSources = new ArrayList<>(files.size());
         for (File file : files) {
             fileDataSources.add(new FileDataSource(file));
         }
@@ -77,17 +78,14 @@ public class PMDResultCollector {
                 pmdConfig.getLanguageVersionDiscoverer().setDefaultLanguageVersion(srcType);
             }
         }
-        final List<DefaultMutableTreeNode> pmdResults = new ArrayList<DefaultMutableTreeNode>();
+        final List<DefaultMutableTreeNode> pmdResults = new ArrayList<>();
         try {
-            RuleSetFactory ruleSetFactory = RulesetsFactoryUtils.getRulesetFactory(pmdConfig);
-            if (!isCustomRuleSet)
-                rule = rule.replace("/", "-");
+            RuleSetFactory ruleSetFactory = RulesetsFactoryUtils.getRulesetFactory(pmdConfig, new ResourceLoader());
             pmdConfig.setRuleSets(rule);
             pmdConfig.setReportFile(File.createTempFile("pmd", "report").getAbsolutePath());
-            //RulesetsFactoryUtils.getRuleSets(rule, ruleSetFactory, System.nanoTime());
             PMDResultRenderer renderer = new PMDResultRenderer(pmdResults);
 
-            List<Renderer> renderers = new LinkedList<Renderer>();
+            List<Renderer> renderers = new LinkedList<>();
             renderers.add(renderer);
 
             renderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFile()));
