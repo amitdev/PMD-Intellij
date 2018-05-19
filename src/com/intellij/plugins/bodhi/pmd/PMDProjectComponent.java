@@ -35,7 +35,6 @@ import java.util.*;
   name = "PDMPlugin",
   storages = {
     @Storage(
-      id = "other",
       file = "$PROJECT_FILE$"
     )}
 )
