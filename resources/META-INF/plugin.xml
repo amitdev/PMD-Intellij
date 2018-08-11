@@ -7,8 +7,8 @@
     Support for PMD 6.6.0.
   </change-notes>
 
-  <version>1.8.5</version>
-  <vendor>bodhi</vendor>
+  <version>1.8.6</version>
+  <vendor>Amit Dev</vendor>
 
   <idea-version since-build="181.0"/>
   <project-components>
