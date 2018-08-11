@@ -41,8 +41,11 @@ public class PMDInvoker {
 
     // The singleton instance
     private static final PMDInvoker instance = new PMDInvoker();
-    public static final String JAVA_EXTENSION = "java";
-    private static final String XML_EXTENSION = "xml";
+    private static final VirtualFileFilter SUPPORTED_EXTENSIONS = or(
+            fileHasExtension("java"),
+            fileHasExtension("xml"),
+            fileHasExtension("cls"),
+            fileHasExtension("trigger"));
 
     /**
      * Prevents instantiation by other classes.
@@ -103,8 +106,7 @@ public class PMDInvoker {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
                 return;
             }
-            VirtualFileFilter filter = or(fileHasExtension(JAVA_EXTENSION), fileHasExtension(XML_EXTENSION));
-            filter = and(filter, fileInSources(project));
+            VirtualFileFilter filter = and(SUPPORTED_EXTENSIONS, fileInSources(project));
             if (projectComponent.isSkipTestSources()) {
                 filter = and(filter, not(fileInTestSources(project)));
             }
@@ -145,7 +147,7 @@ public class PMDInvoker {
         //Run PMD asynchronously
         Runnable runnable = new Runnable() {
             public void run() {
-                //Show a progressindicator.
+                //Show a progress indicator.
                 ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
                 String[] rules = rule.split(RULE_DELIMITER);
                 PMDResultPanel resultPanel = projectComponent.getResultPanel();
