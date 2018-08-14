@@ -444,7 +444,7 @@ public class PMDResultPanel extends JPanel {
         }
 
         private boolean isCustomRuleSet(String rule) {
-            return rule.indexOf(File.separatorChar) != -1;
+            return rule != null && rule.length() > 0 && rule.indexOf(File.separatorChar) != -1;
         }
     }
 
