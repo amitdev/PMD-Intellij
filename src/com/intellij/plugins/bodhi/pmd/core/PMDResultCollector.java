@@ -122,9 +122,9 @@ public class PMDResultCollector {
     private String shortMessage(String message)
     {
         String shortMessage = message;
-        if (shortMessage.length() > 80)
+        if (shortMessage.length() > 180)
         {
-            shortMessage = message.substring(0, 80) + "...";
+            shortMessage = message.substring(0, 180) + "...";
         }
         return shortMessage;
     }

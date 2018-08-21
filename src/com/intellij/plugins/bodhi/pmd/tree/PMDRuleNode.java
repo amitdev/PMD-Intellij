@@ -14,7 +14,18 @@ public class PMDRuleNode implements PMDTreeNodeData {
     private String nodeName;
     private String toolTip;
     private int childCount;
+    private int fileCount = -1;
+    private int ruleSetCount = -1;
+
     private static final char CUSTOM_RULE_DELIM = ';';
+
+    public void setFileCount(int count) {
+        this.fileCount = count;
+    }
+
+    public void setRuleSetCount(int count) {
+        this.ruleSetCount = count;
+    }
 
     /**
      * Create a node with the given value as node name.
@@ -74,8 +85,11 @@ public class PMDRuleNode implements PMDTreeNodeData {
     }
 
     public void render(PMDCellRenderer cellRenderer, boolean expanded) {
-        cellRenderer.append(getNodeName(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
+        cellRenderer.append(getNodeName(), SimpleTextAttributes.REGULAR_ATTRIBUTES); // test
         cellRenderer.append(getViolationMsg(getChildCount()), SimpleTextAttributes.GRAYED_ATTRIBUTES);
+        // hack to make cell large enough to display all
+        cellRenderer.append("                                                           ",
+                SimpleTextAttributes.GRAYED_ATTRIBUTES);
         if (expanded) {
             cellRenderer.setIcon(PMDCellRenderer.OPEN_ICON);
         } else {
@@ -83,11 +97,20 @@ public class PMDRuleNode implements PMDTreeNodeData {
         }
     }
 
-    private String getViolationMsg(int count) {
-        if (count <= 1) {
-            return " (" + count + " violation)";
-        } else {
-            return " (" + count + " violations)";
+    private String getViolationMsg(int violationCount) {
+        if (fileCount == 0) {
+            return " No results: No source file(s) found to scan.";
         }
+        String result = " (" + violationCount + " violation";
+        if (violationCount != 1) result += "s";
+        if (fileCount > -1) {
+            result += " in " + fileCount + " scanned file";
+            if (fileCount != 1) result += "s";
+        }
+        if (ruleSetCount > -1) {
+            result += " using " + ruleSetCount + " rule set";
+            if (ruleSetCount != 1) result += "s";
+        }
+        return result + ")";
     }
 }
