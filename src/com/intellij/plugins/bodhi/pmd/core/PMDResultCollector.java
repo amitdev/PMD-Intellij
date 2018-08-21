@@ -1,14 +1,17 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
-import javax.swing.tree.DefaultMutableTreeNode;
-import java.util.*;
-import java.io.IOException;
-import java.io.File;
-
 import com.intellij.plugins.bodhi.pmd.tree.PMDErrorNode;
-import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
-import net.sourceforge.pmd.*;
+import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
+import net.sourceforge.pmd.PMD;
+import net.sourceforge.pmd.PMDConfiguration;
+import net.sourceforge.pmd.Report;
+import net.sourceforge.pmd.RuleContext;
+import net.sourceforge.pmd.RuleSet;
+import net.sourceforge.pmd.RuleSetFactory;
+import net.sourceforge.pmd.RuleSetNotFoundException;
+import net.sourceforge.pmd.RuleViolation;
+import net.sourceforge.pmd.RulesetsFactoryUtils;
 import net.sourceforge.pmd.lang.Language;
 import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.LanguageVersion;
@@ -18,6 +21,16 @@ import net.sourceforge.pmd.util.IOUtil;
 import net.sourceforge.pmd.util.ResourceLoader;
 import net.sourceforge.pmd.util.datasource.DataSource;
 import net.sourceforge.pmd.util.datasource.FileDataSource;
+
+import javax.swing.tree.DefaultMutableTreeNode;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Responsible for running PMD and collecting the results which can be represeted in
@@ -74,7 +87,6 @@ public class PMDResultCollector {
         if ( (type = options.get("Target JDK")) != null) {
             LanguageVersion srcType;
             if ( (srcType = lang.getVersion(type)) != null) {
-                //pmdConfig.setDefaultLanguageVersion(srcType);
                 pmdConfig.getLanguageVersionDiscoverer().setDefaultLanguageVersion(srcType);
             }
         }
