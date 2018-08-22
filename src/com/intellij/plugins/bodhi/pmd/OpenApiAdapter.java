@@ -39,7 +39,7 @@ public class OpenApiAdapter {
     private OpenApiAdapter() {
         //Support both 5.x as well as 6.0
         String version = ApplicationInfo.getInstance().getMajorVersion();
-        Class[] treeApiParamTypes = null;
+        Class[] treeApiParamTypes;
         if (version.equals("5")) {
             //In 5.x, Application.runProcessWithProgressSynchronously() method is present
             processRunner = ApplicationManager.getApplication();

@@ -90,11 +90,6 @@ public class PMDRuleNode implements PMDTreeNodeData {
         // hack to make cell large enough to display all
         cellRenderer.append("                                                           ",
                 SimpleTextAttributes.GRAYED_ATTRIBUTES);
-        if (expanded) {
-            cellRenderer.setIcon(PMDCellRenderer.OPEN_ICON);
-        } else {
-            cellRenderer.setIcon(PMDCellRenderer.CLOSED_ICON);
-        }
     }
 
     private String getViolationMsg(int violationCount) {

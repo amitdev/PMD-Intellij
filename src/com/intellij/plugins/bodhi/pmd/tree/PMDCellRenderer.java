@@ -17,8 +17,8 @@ import javax.swing.tree.DefaultMutableTreeNode;
 public class PMDCellRenderer extends ColoredTreeCellRenderer {
 
     //Default tree icons
-    public static Icon CLOSED_ICON = UIManager.getIcon("Tree.closedIcon");
-    public static Icon OPEN_ICON = UIManager.getIcon("Tree.openIcon");
+    static Icon CLOSED_ICON;
+    static Icon OPEN_ICON;
     public static final Icon ERROR = IconLoader.getIcon("/compiler/error.png");
     public static final Icon WARN = IconLoader.getIcon("/compiler/warning.png");
     public static final Icon INFO = IconLoader.getIcon("/compiler/information.png");

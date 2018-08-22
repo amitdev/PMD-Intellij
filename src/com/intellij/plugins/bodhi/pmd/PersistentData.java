@@ -6,14 +6,14 @@ import java.util.List;
 import java.util.Map;
 
 public class PersistentData {
-    private List<String> customRuleSets = new ArrayList<String>();
-    private Map<String, String> options = new HashMap<String, String>();
+    private List<String> customRuleSets;
+    private Map<String, String> options;
     private String skipTestSources;
     private boolean scanFilesBeforeCheckin;
 
     public PersistentData() {
-        this.customRuleSets = new ArrayList<String>();
-        this.options = new HashMap<String, String>();
+        this.customRuleSets = new ArrayList<>();
+        this.options = new HashMap<>();
     }
 
     public List<String> getCustomRuleSets() {
