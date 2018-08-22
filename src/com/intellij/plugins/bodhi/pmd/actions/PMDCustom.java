@@ -7,23 +7,13 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class PMDCustom extends ActionGroup {
+import java.util.HashMap;
+import java.util.Map;
 
-    DefaultActionGroup children = new DefaultActionGroup("Custom Rules", true);
+public class PMDCustom extends DefaultActionGroup {
 
-    @NotNull
-    @Override
-    public AnAction[] getChildren(@Nullable AnActionEvent anActionEvent) {
-        return new AnAction[] {children};
+    PMDCustom() {
+        super("Custom Rules", true);
     }
 
-
-    public void add(AnAction action) {
-        children.add(action);
-    }
-
-
-    public void remove(AnAction action) {
-        children.remove(action);
-    }
 }

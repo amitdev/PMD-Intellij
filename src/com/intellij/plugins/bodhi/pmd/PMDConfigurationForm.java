@@ -45,13 +45,13 @@ public class PMDConfigurationForm {
     public PMDConfigurationForm() {
         //Get the action group defined
         DefaultActionGroup actionGroup = (DefaultActionGroup) ActionManager.getInstance().getAction("PMDSettingsEdit");
-        //Add the toolbar actions to it
-        if (actionGroup.getChildrenCount() == 0) {
-            actionGroup.add(new AddRuleSetAction("Add", "Add a custom ruleset", PlatformIcons.ADD_ICON));
-            actionGroup.add(new EditRuleSetAction("Edit", "Edit selected ruleset", IconLoader.getIcon("/actions/editSource.png")));
-            actionGroup.add(new DeleteRuleSetAction("Delete", "Remove selected ruleset", IconLoader.getIcon("/general/remove.png")));
-        }
-        ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("test", actionGroup, true);
+        //Remove toolbar actions associated to previous form
+        actionGroup.removeAll();
+        //Add the toolbar actions associated to this form to it
+        actionGroup.add(new AddRuleSetAction("Add", "Add a custom ruleset", PlatformIcons.ADD_ICON));
+        actionGroup.add(new EditRuleSetAction("Edit", "Edit selected ruleset", IconLoader.getIcon("/actions/editSource.png")));
+        actionGroup.add(new DeleteRuleSetAction("Delete", "Remove selected ruleset", IconLoader.getIcon("/general/remove.png")));
+        ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("modify actions", actionGroup, true);
         toolbar.getComponent().setVisible(true);
         buttonPanel.setLayout(new BorderLayout());
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
@@ -71,11 +71,11 @@ public class PMDConfigurationForm {
 
     /**
      * Populate the UI from the list.
-     * @param data the data provider
+     * @param dataProjComp the data provider
      */
-    public void setData(PMDProjectComponent data) {
-        ruleList.setModel(new MyListModel(data.getCustomRuleSets()));
-        if (data.getOptions().isEmpty()) {
+    public void setDataOnUI(PMDProjectComponent dataProjComp) {
+        ruleList.setModel(new MyListModel(dataProjComp.getCustomRuleSets()));
+        if (dataProjComp.getOptions().isEmpty()) {
             Object[][] dat = new Object[optionNames.length][2];
             for (int i = 0; i < optionNames.length; i++) {
                 dat[i][0] = optionNames[i];
@@ -84,8 +84,8 @@ public class PMDConfigurationForm {
             table1.setModel(new MyTableModel(dat, columnNames));
             return;
         }
-        table1.setModel(new MyTableModel(toArray(data.getOptions()), columnNames));
-        skipTestsCheckBox.setSelected(data.isSkipTestSources());
+        table1.setModel(new MyTableModel(toArray(dataProjComp.getOptions()), columnNames));
+        skipTestsCheckBox.setSelected(dataProjComp.isSkipTestSources());
         isModified = false;
     }
 
@@ -101,12 +101,12 @@ public class PMDConfigurationForm {
 
     /**
      * Get the data from ui and return.
-     * @param data the data provider
+     * @param data_ProjComp the data provider
      */
-    public void getData(PMDProjectComponent data) {
-        data.setCustomRuleSets(((MyListModel) ruleList.getModel()).getData());
-        data.setOptions( toMap(table1.getModel()) );
-        data.skipTestSources(skipTestsCheckBox.isSelected());
+    public void getDataFromUi(PMDProjectComponent data_ProjComp) {
+        data_ProjComp.setCustomRuleSets(((MyListModel) ruleList.getModel()).getData());
+        data_ProjComp.setOptions( toMap(table1.getModel()) );
+        data_ProjComp.skipTestSources(skipTestsCheckBox.isSelected());
         isModified = false;
     }
 
@@ -131,7 +131,7 @@ public class PMDConfigurationForm {
         DialogBuilder db = new DialogBuilder(PMDUtil.getProjectComponent(e).getCurrentProject());
         db.addOkAction();
         db.addCancelAction();
-        db.setTitle("Select Custom RuleSet");
+        db.setTitle("Select Custom RuleSet File or type URL");
         final BrowsePanel panel = new BrowsePanel(defaultValue, db);
         db.setOkActionEnabled(defaultValue != null && defaultValue.trim().length() > 0);
         db.show();

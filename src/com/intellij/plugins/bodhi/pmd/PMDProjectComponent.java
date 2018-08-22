@@ -51,7 +51,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private PMDResultPanel resultPanel;
     private ToolWindow resultWindow;
     private String lastRunRules;
-    private List<String> customRuleSets = new ArrayList<>();
+    private List<String> customRuleSetPaths = new ArrayList<>();
     private Map<String, String> options = new HashMap<>();
     private Map<String, Pair<String, AnAction>> customActionsMap = new HashMap<String, Pair<String, AnAction>>();
     private ToolWindowManager toolWindowManager;
@@ -92,7 +92,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     void updateCustomRulesMenu() {
         PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
-        for (final String rulePath : customRuleSets) {
+        for (final String rulePath : customRuleSetPaths) {
             String ruleName = PMDUtil.getRuleNameFromPath(rulePath);
             if (!customActionsMap.containsKey(rulePath)) {
                 AnAction action = new AnAction(ruleName) {
@@ -107,7 +107,8 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         }
         for (Iterator<Map.Entry<String, Pair<String, AnAction>>> iterator = customActionsMap.entrySet().iterator(); iterator.hasNext();) {
             Map.Entry<String, Pair<String, AnAction>> entry = iterator.next();
-            if (!customRuleSets.contains(entry.getKey())) {
+            String rulePath = entry.getKey();
+            if (!customRuleSetPaths.contains(rulePath)) {
                 actionGroup.remove(entry.getValue().getSecond());
                 iterator.remove();
             }
@@ -201,11 +202,11 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     }
 
     public List<String> getCustomRuleSets() {
-        return customRuleSets;
+        return new ArrayList(customRuleSetPaths);
     }
 
-    public void setCustomRuleSets(List<String> customRuleSets) {
-        this.customRuleSets = customRuleSets;
+    public void setCustomRuleSets(List<String> customRuleSetPaths) {
+        this.customRuleSetPaths = new ArrayList(customRuleSetPaths);
     }
 
     public Map<String, String> getOptions() {
@@ -219,7 +220,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     @NotNull
     public PersistentData getState() {
         final PersistentData pd = new PersistentData();
-        for (String item : customRuleSets) {
+        for (String item : customRuleSetPaths) {
             pd.getCustomRuleSets().add(item);
         }
         for (String key : options.keySet()) {
@@ -231,10 +232,10 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     }
 
     public void loadState(PersistentData state) {
-        customRuleSets.clear();
+        customRuleSetPaths.clear();
         options.clear();
         for (String item : state.getCustomRuleSets()) {
-            customRuleSets.add(item);
+            customRuleSetPaths.add(item);
         }
         for (String key : state.getOptions().keySet()) {
             options.put(key, state.getOptions().get(key));

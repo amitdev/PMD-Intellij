@@ -39,14 +39,14 @@ public class PMDConfigurable implements Configurable {
 
     public void apply() throws ConfigurationException {
         if (form != null) {
-            form.getData(component);
+            form.getDataFromUi(component);
         }
         component.updateCustomRulesMenu();
     }
 
     public void reset() {
         if (form != null) {
-            form.setData(component);
+            form.setDataOnUI(component);
         }
     }
 

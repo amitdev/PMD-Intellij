@@ -154,9 +154,11 @@ public class PMDInvoker {
 
                 PMDRuleNode rootNodeData = ((PMDRuleNode) resultPanel.getRootNode().getUserObject());
                 PMDResultCollector.report = null;
+                rootNodeData.setFileCount(files.size());
+                rootNodeData.setRuleSetCount(rules.length);
                 for (int i = 0; i < rules.length; i++) {
-                    //TODO: better progress
-                    progress.setText("Running : " + rules[i]);
+                    //TODO: even better progress
+                    progress.setText("Running : " + rules[i] + " on " + files.size() + " file(s)");
 
                     //Create a result collector to get results
                     PMDResultCollector collector = new PMDResultCollector(isCustomRuleSet);
