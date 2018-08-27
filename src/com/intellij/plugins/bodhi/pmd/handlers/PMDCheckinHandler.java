@@ -32,7 +32,6 @@ import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class PMDCheckinHandler extends CheckinHandler {
@@ -133,10 +132,10 @@ public class PMDCheckinHandler extends CheckinHandler {
 
         int childCount = 0;
         for (DefaultMutableTreeNode pmdResult : results) {
-            childCount += ((PMDRuleNode) pmdResult.getUserObject()).getChildCount();
+            childCount += ((PMDRuleNode) pmdResult.getUserObject()).getViolationCount();
             ruleSetNode.add(pmdResult);
         }
-        ((PMDRuleNode) ruleSetNode.getUserObject()).addChildren(childCount);
+        ((PMDRuleNode) ruleSetNode.getUserObject()).addToViolationCount(childCount);
         return ruleSetNode;
     }
 
@@ -159,7 +158,7 @@ public class PMDCheckinHandler extends CheckinHandler {
     private int toViolations(List<DefaultMutableTreeNode> results) {
         int violations = 0;
         for (DefaultMutableTreeNode result : results) {
-            violations += ((PMDRuleNode) result.getUserObject()).getChildCount();
+            violations += ((PMDRuleNode) result.getUserObject()).getViolationCount();
         }
         return violations;
     }
@@ -183,11 +182,11 @@ public class PMDCheckinHandler extends CheckinHandler {
         for (DefaultMutableTreeNode node : results) {
             PMDRuleNode nodeData = (PMDRuleNode) node.getUserObject();
             resultPanel.addNode(rootNode, node);
-            rootNodeData.addChildren(nodeData.getChildCount());
+            rootNodeData.addToViolationCount(nodeData.getViolationCount());
         }
 
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
         toolWindow.activate(null);
-        plugin.setLastRunRules(StringUtils.join(plugin.getCustomRuleSets(), PMDInvoker.RULE_DELIMITER));
+        plugin.setLastRunActionAndRules(null, StringUtils.join(plugin.getCustomRuleSets(), PMDInvoker.RULE_DELIMITER), true);
     }
 }

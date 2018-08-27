@@ -16,11 +16,13 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ToolWindowType;
 import com.intellij.plugins.bodhi.pmd.actions.PMDCustom;
 import com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup;
+import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
 import java.util.*;
 
 /**
@@ -51,7 +53,9 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private PMDResultPanel resultPanel;
     private ToolWindow resultWindow;
     private String lastRunRules;
-    private List<String> customRuleSetPaths = new ArrayList<>();
+    private boolean lastRunRulesCustom;
+    private AnActionEvent lastRunActionEvent;
+    private List<String> customRuleSetPaths = new ArrayList<String>();
     private Map<String, String> options = new HashMap<>();
     private Map<String, Pair<String, AnAction>> customActionsMap = new HashMap<String, Pair<String, AnAction>>();
     private ToolWindowManager toolWindowManager;
@@ -97,8 +101,15 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
             if (!customActionsMap.containsKey(rulePath)) {
                 AnAction action = new AnAction(ruleName) {
                     public void actionPerformed(AnActionEvent e) {
-                        PMDInvoker.getInstance().runPMD(e, rulePath, true);
-                        setLastRunRules(rulePath);
+                        String err;
+                        if ( (err = PMDResultCollector.isValidRuleSet(rulePath)).length() > 0) {
+                            JOptionPane.showMessageDialog(resultPanel, "The ruleset file is not available or not a valid PMD ruleset: " + err,
+                                    "Invalid File", JOptionPane.ERROR_MESSAGE);
+                        }
+                        else {
+                            PMDInvoker.getInstance().runPMD(e, rulePath, true);
+                            setLastRunActionAndRules(e, rulePath, true);
+                        }
                     }
                 };
                 customActionsMap.put(rulePath, Pair.create(ruleName, action));
@@ -193,12 +204,33 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     }
 
     /**
-     * Set the last run PMD rule(s). Multiple rules should be delimited by
-     * PMDInvoker.RULE_DELIMITER.
-     * @param lastRunRules The last run rule name
+     * Return whether the last run PMD rules on this project are custom rules.
+     *
+     * @return whether the last run rules are custom rules.
      */
-    public void setLastRunRules(String lastRunRules) {
+    public boolean isLastRunRulesCustom() {
+        return lastRunRulesCustom;
+    }
+
+    /**
+     * Get the last run action event on this project.
+     *
+     * @return the last run action.
+     */
+    public AnActionEvent getLastRunAction() {
+        return lastRunActionEvent;
+    }
+    /**
+     * Set the last run action event and PMD rule(s). Multiple rules should be delimited by
+     * PMDInvoker.RULE_DELIMITER.
+     * @param lastActionEvent the last run action event
+     * @param lastRunRules The last run rule name
+     * @param isCustom whether the last run rules are custom rules
+     */
+    public void setLastRunActionAndRules(AnActionEvent lastActionEvent, String lastRunRules, boolean isCustom) {
         this.lastRunRules = lastRunRules;
+        this.lastRunActionEvent = lastActionEvent;
+        this.lastRunRulesCustom = isCustom;
     }
 
     public List<String> getCustomRuleSets() {
@@ -261,4 +293,5 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     public boolean isScanFilesBeforeCheckin() {
         return scanFilesBeforeCheckin;
     }
+
 }

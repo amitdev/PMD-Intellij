@@ -178,10 +178,10 @@ public class PMDInvoker {
                         int childCount = 0;
                         for (DefaultMutableTreeNode pmdResult : results) {
                             resultPanel.addNode(node, pmdResult);
-                            childCount += ((PMDRuleNode)pmdResult.getUserObject()).getChildCount();
+                            childCount += ((PMDRuleNode)pmdResult.getUserObject()).getViolationCount();
                         }
-                        ((PMDRuleNode)node.getUserObject()).addChildren(childCount);
-                        rootNodeData.addChildren(childCount);
+                        ((PMDRuleNode)node.getUserObject()).addToViolationCount(childCount);
+                        rootNodeData.addToViolationCount(childCount);
                     }
                 }
             }
