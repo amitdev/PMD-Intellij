@@ -13,7 +13,7 @@ public class PMDRuleNode implements PMDTreeNodeData {
 
     private String nodeName;
     private String toolTip;
-    private int childCount;
+    private int violationCount = -1;
     private int fileCount = -1;
     private int ruleSetCount = -1;
 
@@ -46,12 +46,12 @@ public class PMDRuleNode implements PMDTreeNodeData {
     }
 
     /**
-     * The child count of this node.
+     * The violation (child) count of this node.
      *
-     * @return the child count
+     * @return the violation count
      */
-    public int getChildCount() {
-        return childCount;
+    public int getViolationCount() {
+        return violationCount;
     }
 
     /**
@@ -63,12 +63,13 @@ public class PMDRuleNode implements PMDTreeNodeData {
     }
 
     /**
-     * Adds multiple children to this node.
+     * Adds a number to the violations (child) count of this node.
      *
-     * @param count number of children to add
+     * @param count number of violations to add
      */
-    public void addChildren(int count) {
-        childCount += count;
+    public void addToViolationCount(int count) {
+        if (violationCount == -1) violationCount = 0; // results available (successful pmd processing)
+        violationCount += count;
     }
 
     /**
@@ -86,7 +87,7 @@ public class PMDRuleNode implements PMDTreeNodeData {
 
     public void render(PMDCellRenderer cellRenderer, boolean expanded) {
         cellRenderer.append(getNodeName(), SimpleTextAttributes.REGULAR_ATTRIBUTES); // test
-        cellRenderer.append(getViolationMsg(getChildCount()), SimpleTextAttributes.GRAYED_ATTRIBUTES);
+        cellRenderer.append(getViolationMsg(getViolationCount()), SimpleTextAttributes.GRAYED_ATTRIBUTES);
         // hack to make cell large enough to display all
         cellRenderer.append("                                                           ",
                 SimpleTextAttributes.GRAYED_ATTRIBUTES);
@@ -95,6 +96,9 @@ public class PMDRuleNode implements PMDTreeNodeData {
     private String getViolationMsg(int violationCount) {
         if (fileCount == 0) {
             return " No results: No source file(s) found to scan.";
+        }
+        if (violationCount == -1) {
+            return " No results yet";
         }
         String result = " (" + violationCount + " violation";
         if (violationCount != 1) result += "s";

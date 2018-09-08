@@ -437,14 +437,14 @@ public class PMDResultPanel extends JPanel {
             Project project = e.getData(DataKeys.PROJECT);
             //Run the last run rule
             if (project != null) {
-                String rule = project.getComponent(PMDProjectComponent.class).getLastRunRules();
-                PMDInvoker.getInstance().runPMD(e, rule, isCustomRuleSet(rule));
+                PMDProjectComponent component = project.getComponent(PMDProjectComponent.class);
+                String rule = component.getLastRunRules();
+                AnActionEvent action = component.getLastRunAction();
+                boolean isCustom = component.isLastRunRulesCustom();
+                AnActionEvent actionToRun = (action != null) ? action : e;
+                PMDInvoker.getInstance().runPMD(actionToRun, rule, isCustom);
                 resultTree.repaint();
             }
-        }
-
-        private boolean isCustomRuleSet(String rule) {
-            return rule != null && rule.length() > 0 && rule.indexOf(File.separatorChar) != -1;
         }
     }
 

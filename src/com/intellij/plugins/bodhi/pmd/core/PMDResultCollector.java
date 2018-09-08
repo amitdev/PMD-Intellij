@@ -178,7 +178,7 @@ public class PMDResultCollector {
                 }
                 node.add(nodeFactory.createNode(new PMDViolation(iRuleViolation)));
                 //Add one violation
-                ((PMDRuleNode)node.getUserObject()).addChildren(1);
+                ((PMDRuleNode)node.getUserObject()).addToViolationCount(1);
             }
             for (DefaultMutableTreeNode node : map.values()) {
                 if (node.getChildCount() > 0 && !pmdResults.contains(node)) {

@@ -39,7 +39,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
         AnAction action = new AnAction("All") {
             public void actionPerformed(AnActionEvent e) {
                 PMDInvoker.getInstance().runPMD(e, allRules, false);
-                getComponent().setLastRunRules(allRules);
+                getComponent().setLastRunActionAndRules(e, allRules, false);
             }
         };
         Properties props = new Properties();
@@ -61,7 +61,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
                 AnAction ruleAction = new AnAction(ruleName) {
                     public void actionPerformed(AnActionEvent e) {
                         PMDInvoker.getInstance().runPMD(e, ruleFileName, false);
-                        getComponent().setLastRunRules(ruleFileName);
+                        getComponent().setLastRunActionAndRules(e, ruleFileName, false);
                     }
                 };
                 children.add(ruleAction);
