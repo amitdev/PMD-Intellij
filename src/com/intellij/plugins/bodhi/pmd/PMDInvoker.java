@@ -79,13 +79,15 @@ public class PMDInvoker {
 
         Project project = actionEvent.getData(DataKeys.PROJECT);
         PMDProjectComponent projectComponent = project.getComponent(PMDProjectComponent.class);
+        PMDResultPanel resultPanel = projectComponent.getResultPanel();
+        PMDRuleNode rootNodeData = ((PMDRuleNode) resultPanel.getRootNode().getUserObject());
 
         List<File> files = new LinkedList<File>();
         if (actionEvent.getPlace().equals(ActionPlaces.PROJECT_VIEW_POPUP)
                 || actionEvent.getPlace().equals(ActionPlaces.SCOPE_VIEW_POPUP)
                 || actionEvent.getPlace().equals(ActionPlaces.CHANGES_VIEW_POPUP)
                 || actionEvent.getPlace().equals(ActionPlaces.MAIN_MENU)
-                ) {
+        ) {
 
             //If selected by right-click on file/folder (s)
             VirtualFile[] selectedFiles;
@@ -104,6 +106,7 @@ public class PMDInvoker {
 
             if (selectedFiles == null || selectedFiles.length == 0) {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
+                rootNodeData.setFileCount(0);
                 return;
             }
             VirtualFileFilter filter = and(SUPPORTED_EXTENSIONS, fileInSources(project));
@@ -120,6 +123,7 @@ public class PMDInvoker {
             VirtualFile[] selectedFiles = FileEditorManager.getInstance(project).getSelectedFiles();
             if (selectedFiles.length == 0) {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
+                rootNodeData.setFileCount(0);
                 return;
             }
             files.add(new File(selectedFiles[0].getPresentableUrl()));
@@ -156,6 +160,7 @@ public class PMDInvoker {
                 PMDResultCollector.report = null;
                 rootNodeData.setFileCount(files.size());
                 rootNodeData.setRuleSetCount(rules.length);
+                rootNodeData.setRunning(true);
                 for (int i = 0; i < rules.length; i++) {
                     //TODO: even better progress
                     progress.setText("Running : " + rules[i] + " on " + files.size() + " file(s)");
@@ -184,6 +189,7 @@ public class PMDInvoker {
                         rootNodeData.addToViolationCount(childCount);
                     }
                 }
+                rootNodeData.setRunning(false);
             }
         };
         Object[] params = new Object[] {runnable, "Running PMD", true, project};
