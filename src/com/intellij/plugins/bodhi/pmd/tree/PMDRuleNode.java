@@ -13,9 +13,10 @@ public class PMDRuleNode implements PMDTreeNodeData {
 
     private String nodeName;
     private String toolTip;
-    private int violationCount = -1;
+    private volatile int violationCount = 0;
     private int fileCount = -1;
     private int ruleSetCount = -1;
+    private volatile boolean running = false;
 
     private static final char CUSTOM_RULE_DELIM = ';';
 
@@ -68,7 +69,6 @@ public class PMDRuleNode implements PMDTreeNodeData {
      * @param count number of violations to add
      */
     public void addToViolationCount(int count) {
-        if (violationCount == -1) violationCount = 0; // results available (successful pmd processing)
         violationCount += count;
     }
 
@@ -93,12 +93,16 @@ public class PMDRuleNode implements PMDTreeNodeData {
                 SimpleTextAttributes.GRAYED_ATTRIBUTES);
     }
 
+    public void setRunning(boolean r) {
+        running = r;
+    }
+
     private String getViolationMsg(int violationCount) {
         if (fileCount == 0) {
             return " No results: No source file(s) found to scan.";
         }
-        if (violationCount == -1) {
-            return " No results yet";
+        if (running) {
+            return " Processing...";
         }
         String result = " (" + violationCount + " violation";
         if (violationCount != 1) result += "s";
@@ -112,4 +116,5 @@ public class PMDRuleNode implements PMDTreeNodeData {
         }
         return result + ")";
     }
+
 }
