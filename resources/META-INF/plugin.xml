@@ -4,10 +4,10 @@
   <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
   <change-notes>
-    Bug fixes and update to PMD 6.7.
+    Bug fixes and update to PMD 6.12.
   </change-notes>
 
-  <version>1.8.8</version>
+  <version>1.8.9</version>
   <vendor>Amit Dev</vendor>
 
   <idea-version since-build="181.0"/>
