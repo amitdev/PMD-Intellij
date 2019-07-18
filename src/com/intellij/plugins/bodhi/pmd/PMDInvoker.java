@@ -169,7 +169,7 @@ public class PMDInvoker {
                     PMDResultCollector collector = new PMDResultCollector(isCustomRuleSet);
 
                     //Get the tree nodes from result collector
-                    List<DefaultMutableTreeNode> results = collector.getResults(files, rules[i], projectComponent.getOptions());
+                    List<DefaultMutableTreeNode> results = collector.getResults(files, rules[i], projectComponent);
 
                     if (results.size() != 0) {
                         if (isCustomRuleSet) {
