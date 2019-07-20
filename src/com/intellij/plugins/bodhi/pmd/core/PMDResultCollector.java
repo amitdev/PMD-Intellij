@@ -1,5 +1,8 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
+import com.intellij.openapi.project.Project;
+import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
+import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.tree.PMDErrorNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
@@ -64,12 +67,12 @@ public class PMDResultCollector {
      * @param rule The rule to run
      * @return list of results
      */
-    public List<DefaultMutableTreeNode> getResults(List<File> files, String rule, Map<String, String> options) {
+    public List<DefaultMutableTreeNode> getResults(List<File> files, String rule, PMDProjectComponent comp) {
         List<DataSource> fileDataSources = new ArrayList<>(files.size());
         for (File file : files) {
             fileDataSources.add(new FileDataSource(file));
         }
-        return generateReport(fileDataSources, rule, options);
+        return generateReport(fileDataSources, rule, comp);
     }
 
     /**
@@ -79,7 +82,10 @@ public class PMDResultCollector {
      * @param rule The rule(s) to run
      * @return The pmd Report
      */
-    private List<DefaultMutableTreeNode> generateReport(List<DataSource> files, String rule, Map<String, String> options) {
+    private List<DefaultMutableTreeNode> generateReport(List<DataSource> files, String rule, PMDProjectComponent comp) {
+        Map<String, String> options = comp.getOptions();
+        Project project = comp.getCurrentProject();
+
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
         PMDConfiguration pmdConfig = new PMDConfiguration();
         Language lang = LanguageRegistry.getLanguage("Java");
@@ -90,8 +96,11 @@ public class PMDResultCollector {
                 pmdConfig.getLanguageVersionDiscoverer().setDefaultLanguageVersion(srcType);
             }
         }
+
         final List<DefaultMutableTreeNode> pmdResults = new ArrayList<>();
         try {
+            pmdConfig.prependClasspath(PMDUtil.getFullClassPathForAllModules(project));
+
             RuleSetFactory ruleSetFactory = RulesetsFactoryUtils.getRulesetFactory(pmdConfig, new ResourceLoader());
             pmdConfig.setRuleSets(rule);
             pmdConfig.setReportFile(File.createTempFile("pmd", "report").getAbsolutePath());

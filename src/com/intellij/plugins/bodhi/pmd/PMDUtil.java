@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.DataKeys;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.OrderEnumerator;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
@@ -14,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.FileFilter;
 import java.util.List;
+import java.util.StringJoiner;
 
 import static java.util.Arrays.asList;
 
@@ -74,6 +76,15 @@ public class PMDUtil {
 
     public static List<Module> getProjectModules(Project project) {
         return asList(ModuleManager.getInstance(project).getModules());
+    }
+
+    public static String getFullClassPathForAllModules(Project project) {
+        List<Module> modules = getProjectModules(project);
+        StringJoiner joiner = new StringJoiner(File.pathSeparator);
+        for (Module module : modules) {
+            joiner.add(OrderEnumerator.orderEntries(module).recursively().getPathsList().getPathsString());
+        }
+        return joiner.toString();
     }
 
     /**

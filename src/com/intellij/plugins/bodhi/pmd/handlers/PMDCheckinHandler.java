@@ -119,7 +119,7 @@ public class PMDCheckinHandler extends CheckinHandler {
         PMDResultCollector collector = new PMDResultCollector(true);
         List<File> files = new ArrayList<>(checkinProjectPanel.getFiles());
 
-        List<DefaultMutableTreeNode> ruleSetResults = collector.getResults(files, ruleSet, plugin.getOptions());
+        List<DefaultMutableTreeNode> ruleSetResults = collector.getResults(files, ruleSet, plugin);
         if (!ruleSetResults.isEmpty()) {
             result = createRuleSetNode(ruleSet, ruleSetResults);
         }
