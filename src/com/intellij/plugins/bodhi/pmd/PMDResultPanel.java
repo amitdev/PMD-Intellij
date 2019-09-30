@@ -469,24 +469,4 @@ public class PMDResultPanel extends JPanel {
         }
     }
 
-    private class ExportAction extends AnAction {
-        private ExportAction() {
-            super("Export", "Export the results to file", IconLoader.getIcon("/actions/export.png"));
-        }
-
-        public void actionPerformed(AnActionEvent e) {
-            DialogBuilder db = new DialogBuilder(PMDUtil.getProjectComponent(e).getCurrentProject());
-            db.addOkAction();
-            db.addCancelAction();
-            db.setTitle("Export to File");
-            final PMDConfigurationForm.BrowsePanel panel = new PMDConfigurationForm.BrowsePanel("", db);
-            db.setOkActionEnabled(true);
-            db.show();
-            //If ok is selected add the selected ruleset
-            if (db.getDialogWrapper().getExitCode() == DialogWrapper.OK_EXIT_CODE) {
-                String fileName = panel.getText();
-                System.out.println("Save to : " + fileName);
-            }
-        }
-    }
 }

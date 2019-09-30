@@ -11,8 +11,9 @@ import javax.swing.*;
 public class PMDConfigurable implements Configurable {
     private PMDConfigurationForm form;
     private PMDProjectComponent component;
-
+    final Project project;
     public PMDConfigurable(Project project) {
+        this.project=project;
         component = project.getComponent(PMDProjectComponent.class);
     }
 
@@ -28,7 +29,7 @@ public class PMDConfigurable implements Configurable {
 
     public JComponent createComponent() {
         if (form == null) {
-            form = new PMDConfigurationForm();
+            form = new PMDConfigurationForm(project);
         }
         return form.getRootPanel();
     }
