@@ -11,7 +11,8 @@ import javax.swing.*;
 public class PMDConfigurable implements Configurable {
     private PMDConfigurationForm form;
     private PMDProjectComponent component;
-    final Project project;
+    private final Project project;
+
     public PMDConfigurable(Project project) {
         this.project=project;
         component = project.getComponent(PMDProjectComponent.class);

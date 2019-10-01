@@ -41,13 +41,13 @@ public class PMDConfigurationForm {
     private JTable table1;
     private JPanel mainPanel;
     private JCheckBox skipTestsCheckBox;
+
     private boolean isModified;
+    private Project project;
 
     private static final Object[] columnNames = new String[] {"Option", "Value"};
     private static final String[] optionNames = new String[] {"Target JDK", "Encoding"};
     private static final String[] defaultValues = new String[] {"1.8", ""};
-
-    private Project project;
 
     public PMDConfigurationForm(final Project project) {
         this.project = project;
