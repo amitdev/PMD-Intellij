@@ -316,6 +316,7 @@ public class PMDConfigurationForm {
                     final VirtualFile toSelect = project.getBaseDir();
 
                     final FileChooserDescriptor descriptor = new FileChooserDescriptor(true, false, false, false, false, false);
+                    descriptor.withFileFilter(virtualFile -> virtualFile.getName().endsWith(".xml"));
 
                     final VirtualFile chosen = FileChooser.chooseFile(descriptor, BrowsePanel.this, project, toSelect);
                     if (chosen != null) {
