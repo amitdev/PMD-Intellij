@@ -178,7 +178,7 @@ public class PMDResultCollector {
             for (; violations.hasNext();) {
                 RuleViolation iRuleViolation = violations.next();
                 PMDResultCollector.report.addRuleViolation(iRuleViolation);
-                String message = iRuleViolation.getRule().getName() + ". " + iRuleViolation.getRule().getDescription();
+                String message = iRuleViolation.getRule().getName() + ": " + iRuleViolation.getRule().getMessage();
                 DefaultMutableTreeNode node = map.get(message);
                 if (node == null) {
                     node = nodeFactory.createNode(shortMessage(message));

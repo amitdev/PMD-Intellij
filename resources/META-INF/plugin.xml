@@ -4,13 +4,13 @@
   <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
   <change-notes>
-    Update PMD plugin to use PMD 6.21.
+    Update PMD plugin to use PMD 6.25.
   </change-notes>
 
-  <version>1.8.12</version>
+  <version>1.8.13</version>
   <vendor>Amit Dev</vendor>
 
-  <idea-version since-build="181.0"/>
+  <idea-version since-build="201.0"/>
   <project-components>
     <component>
       <implementation-class>com.intellij.plugins.bodhi.pmd.PMDProjectComponent</implementation-class>
