@@ -2,7 +2,7 @@ package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DataKeys;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -23,7 +23,13 @@ import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.*;
+import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.and;
+import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.fileHasExtension;
+import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.fileInSources;
+import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.fileInTestSources;
+import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.isDirectory;
+import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.not;
+import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.or;
 
 /**
  * Invokes PMD using the PMDResultCollector and gets results from that. This acts as a
@@ -77,7 +83,7 @@ public class PMDInvoker {
         //Show the tool window
         PMDUtil.getProjectComponent(actionEvent).setupToolWindow();
 
-        Project project = actionEvent.getData(DataKeys.PROJECT);
+        Project project = actionEvent.getData(PlatformDataKeys.PROJECT);
         PMDProjectComponent projectComponent = project.getComponent(PMDProjectComponent.class);
         PMDResultPanel resultPanel = projectComponent.getResultPanel();
         PMDRuleNode rootNodeData = ((PMDRuleNode) resultPanel.getRootNode().getUserObject());
@@ -100,7 +106,7 @@ public class PMDInvoker {
                     selectedFiles = VfsUtil.getCommonAncestors(contentRoots);
                     break;
                 default:
-                    selectedFiles = actionEvent.getData(DataKeys.VIRTUAL_FILE_ARRAY);
+                    selectedFiles = actionEvent.getData(PlatformDataKeys.VIRTUAL_FILE_ARRAY);
                     break;
             }
 

@@ -1,7 +1,7 @@
 package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DataKeys;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
@@ -33,7 +33,7 @@ public class PMDUtil {
      * @return the Project component related to the action
      */
     public static PMDProjectComponent getProjectComponent(AnActionEvent event) {
-        Project project = event.getData(DataKeys.PROJECT);
+        Project project = event.getData(PlatformDataKeys.PROJECT);
         return project.getComponent(PMDProjectComponent.class);
     }
 

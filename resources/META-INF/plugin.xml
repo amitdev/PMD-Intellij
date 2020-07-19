@@ -3,9 +3,7 @@
   <name>PMDPlugin</name>
   <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
-  <change-notes>
-    Update PMD plugin to use PMD 6.25.
-  </change-notes>
+  <change-notes> Update PMD plugin to use PMD 6.25 and update to new plugin format.</change-notes>
 
   <version>1.8.13</version>
   <vendor>Amit Dev</vendor>
@@ -14,9 +12,12 @@
   <project-components>
     <component>
       <implementation-class>com.intellij.plugins.bodhi.pmd.PMDProjectComponent</implementation-class>
-      <interface-class>com.intellij.plugins.bodhi.pmd.PMDProjectComponent</interface-class>
     </component>
   </project-components>
+
+  <depends>
+    com.intellij.modules.platform
+  </depends>
 
   <actions>
     <!-- The Main menu item which includes predefined and custom rulesets -->
