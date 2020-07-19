@@ -147,13 +147,6 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         resultPanel = new PMDResultPanel(this);
     }
 
-    public void projectClosed() {
-        //When the project is closed, the result window has to be closed.
-        if (toolWindowManager.getToolWindow(TOOL_ID) != null) {
-            toolWindowManager.unregisterToolWindow(TOOL_ID);
-        }
-    }
-
     /**
      * Registers a tool window for showing PMD results.
      */
