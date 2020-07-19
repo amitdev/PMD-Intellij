@@ -160,6 +160,32 @@ public class PMDResultCollector {
         return "Invalid File";
     }
 
+    public static RuleSet loadRuleSet(String path) throws InvalidRuleSetException {
+        Thread.currentThread().setContextClassLoader(PMDResultCollector.class.getClassLoader());
+        RuleSetFactory ruleSetFactory = new RuleSetFactory();
+        try {
+            RuleSet rs = ruleSetFactory.createRuleSet(path);
+            if (rs.getRules().size() != 0) {
+                return rs;
+            }
+        } catch (RuntimeException | RuleSetNotFoundException e) {
+            throw  new InvalidRuleSetException(e);
+        }
+        throw  new InvalidRuleSetException("Invalid File");
+    }
+
+    public static class InvalidRuleSetException extends Exception {
+
+        public InvalidRuleSetException(final String message) {
+            super(message);
+        }
+
+        public InvalidRuleSetException(final Throwable cause) {
+            super(cause);
+        }
+
+    }
+
     private class PMDResultRenderer extends AbstractIncrementingRenderer {
 
         private final List<DefaultMutableTreeNode> pmdResults;

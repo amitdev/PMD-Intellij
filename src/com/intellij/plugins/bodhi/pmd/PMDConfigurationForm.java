@@ -1,5 +1,10 @@
 package com.intellij.plugins.bodhi.pmd;
 
+import com.intellij.openapi.fileChooser.FileChooser;
+import com.intellij.openapi.fileChooser.FileChooserDescriptor;
+import com.intellij.openapi.vfs.VfsUtilCore;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.util.IconLoader;
@@ -36,13 +41,16 @@ public class PMDConfigurationForm {
     private JTable table1;
     private JPanel mainPanel;
     private JCheckBox skipTestsCheckBox;
+
     private boolean isModified;
+    private Project project;
 
     private static final Object[] columnNames = new String[] {"Option", "Value"};
     private static final String[] optionNames = new String[] {"Target JDK", "Encoding"};
     private static final String[] defaultValues = new String[] {"1.8", ""};
 
-    public PMDConfigurationForm() {
+    public PMDConfigurationForm(final Project project) {
+        this.project = project;
         //Get the action group defined
         DefaultActionGroup actionGroup = (DefaultActionGroup) ActionManager.getInstance().getAction("PMDSettingsEdit");
         //Remove toolbar actions associated to previous form
@@ -132,7 +140,7 @@ public class PMDConfigurationForm {
         db.addOkAction();
         db.addCancelAction();
         db.setTitle("Select Custom RuleSet File or type URL");
-        final BrowsePanel panel = new BrowsePanel(defaultValue, db);
+        final BrowsePanel panel = new BrowsePanel(defaultValue, db, project);
         db.setOkActionEnabled(defaultValue != null && defaultValue.trim().length() > 0);
         db.show();
         //If ok is selected add the selected ruleset
@@ -282,8 +290,11 @@ public class PMDConfigurationForm {
         private JTextField path;
         private JButton open;
 
-        public BrowsePanel(String defaultValue, final DialogBuilder db) {
+        private Project project;
+
+        public BrowsePanel(String defaultValue, final DialogBuilder db, final Project project) {
             super();
+            this.project = project;
             setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
             label = new JLabel("Choose RuleSet: ");
             label.setMinimumSize(new Dimension(100, 20));
@@ -302,14 +313,15 @@ public class PMDConfigurationForm {
             open.setPreferredSize(new Dimension(80, 20));
             open.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-                    JFileChooser fc = new JFileChooser();
-                    fc.setFileFilter(PMDUtil.createFileExtensionFilter("xml", "XML Files"));
-                    final Component parent = SwingUtilities.getRoot(path);
-                    fc.showDialog(parent, "Open");
-                    File selected = fc.getSelectedFile();
-                    if (selected != null) {
-                        String newLocation = selected.getPath();
-                        path.setText(newLocation);
+                    final VirtualFile toSelect = project.getBaseDir();
+
+                    final FileChooserDescriptor descriptor = new FileChooserDescriptor(true, false, false, false, false, false);
+                    descriptor.withFileFilter(virtualFile -> virtualFile.getName().endsWith(".xml"));
+
+                    final VirtualFile chosen = FileChooser.chooseFile(descriptor, BrowsePanel.this, project, toSelect);
+                    if (chosen != null) {
+                        final File newConfigFile = VfsUtilCore.virtualToIoFile(chosen);
+                        path.setText(newConfigFile.getAbsolutePath());
                     }
                 }
             });
