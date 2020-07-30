@@ -198,7 +198,6 @@ public class PMDInvoker {
                 rootNodeData.setRunning(false);
             }
         };
-        Object[] params = new Object[] {runnable, "Running PMD", true, project};
-        OpenApiAdapter.getInstance().runProcessWithProgressSynchronously(params);
+        ProgressManager.getInstance().runProcessWithProgressSynchronously(runnable, "Running PMD", true, project);
     }
 }

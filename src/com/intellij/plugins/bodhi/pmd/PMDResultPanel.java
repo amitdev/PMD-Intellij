@@ -286,8 +286,8 @@ public class PMDResultPanel extends JPanel {
             }
         };
 
-        actionGroup.add(OpenApiAdapter.getInstance().createCollapseAllAction(treeExpander, this));
-        actionGroup.add(OpenApiAdapter.getInstance().createExpandAllAction(treeExpander, this));
+        actionGroup.add(CommonActionsManager.getInstance().createCollapseAllAction(treeExpander, this));
+        actionGroup.add(CommonActionsManager.getInstance().createExpandAllAction(treeExpander, this));
 
         //OccurenceNavigator for next/prev actions
         OccurenceNavigator occurenceNavigator = new OccurenceNavigatorSupport(resultTree) {

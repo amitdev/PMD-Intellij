@@ -3,9 +3,9 @@
   <name>PMDPlugin</name>
   <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
-  <change-notes> Update PMD plugin to use PMD 6.25 and update to new plugin format.</change-notes>
+  <change-notes> Update PMD plugin to use PMD 6.26 and make it compatible with Idea 2020.2.</change-notes>
 
-  <version>1.8.13</version>
+  <version>1.8.14</version>
   <vendor>Amit Dev</vendor>
 
   <idea-version since-build="201.0"/>
@@ -15,9 +15,7 @@
     </component>
   </project-components>
 
-  <depends>
-    com.intellij.modules.platform
-  </depends>
+  <depends>com.intellij.modules.platform</depends>
 
   <actions>
     <!-- The Main menu item which includes predefined and custom rulesets -->
