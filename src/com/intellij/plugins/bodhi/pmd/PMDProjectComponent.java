@@ -19,11 +19,17 @@ import com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
+import net.sourceforge.pmd.RuleSet;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  *
@@ -97,23 +103,25 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     void updateCustomRulesMenu() {
         PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
         for (final String rulePath : customRuleSetPaths) {
-            String ruleName = PMDUtil.getRuleNameFromPath(rulePath);
-            if (!customActionsMap.containsKey(rulePath)) {
-                AnAction action = new AnAction(ruleName) {
+            if (customActionsMap.containsKey(rulePath)) {
+                continue;
+            }
+            try {
+                RuleSet ruleSet = PMDResultCollector.loadRuleSet(rulePath);
+                String ruleFileName = PMDUtil.getRuleNameFromPath(rulePath);
+                AnAction action = new AnAction(String.format(Locale.ENGLISH, "%s (%s)",ruleSet.getName() , ruleFileName)) {
                     public void actionPerformed(AnActionEvent e) {
-                        String err;
-                        if ( (err = PMDResultCollector.isValidRuleSet(rulePath)).length() > 0) {
-                            JOptionPane.showMessageDialog(resultPanel, "The ruleset file is not available or not a valid PMD ruleset: " + err,
-                                    "Invalid File", JOptionPane.ERROR_MESSAGE);
-                        }
-                        else {
-                            PMDInvoker.getInstance().runPMD(e, rulePath, true);
-                            setLastRunActionAndRules(e, rulePath, true);
-                        }
+                        PMDInvoker.getInstance().runPMD(e, rulePath, true);
+                        setLastRunActionAndRules(e, rulePath, true);
                     }
                 };
-                customActionsMap.put(rulePath, Pair.create(ruleName, action));
+                customActionsMap.put(rulePath, Pair.create(ruleFileName, action));
                 actionGroup.add(action);
+            } catch (PMDResultCollector.InvalidRuleSetException e) {
+                JOptionPane.showMessageDialog(resultPanel,
+                                              "The ruleset file is not available or not a valid PMD ruleset:\n"
+                                              + e.getMessage(),
+                                              "Invalid File", JOptionPane.ERROR_MESSAGE);
             }
         }
         for (Iterator<Map.Entry<String, Pair<String, AnAction>>> iterator = customActionsMap.entrySet().iterator(); iterator.hasNext();) {
@@ -137,13 +145,6 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     public void projectOpened() {
         resultPanel = new PMDResultPanel(this);
-    }
-
-    public void projectClosed() {
-        //When the project is closed, the result window has to be closed.
-        if (toolWindowManager.getToolWindow(TOOL_ID) != null) {
-            toolWindowManager.unregisterToolWindow(TOOL_ID);
-        }
     }
 
     /**

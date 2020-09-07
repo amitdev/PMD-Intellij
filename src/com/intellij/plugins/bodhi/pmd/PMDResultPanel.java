@@ -1,52 +1,69 @@
 package com.intellij.plugins.bodhi.pmd;
 
-import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.OpenFileDescriptor;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.openapi.util.IconLoader;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.openapi.editor.Editor;
+import com.intellij.ide.AutoScrollToSourceOptionProvider;
+import com.intellij.ide.BrowserUtil;
+import com.intellij.ide.CommonActionsManager;
+import com.intellij.ide.ExporterToTextFile;
+import com.intellij.ide.OccurenceNavigator;
+import com.intellij.ide.OccurenceNavigatorSupport;
+import com.intellij.ide.TreeExpander;
+import com.intellij.openapi.actionSystem.ActionGroup;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionToolbar;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.CommonShortcuts;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
-import com.intellij.openapi.ui.DialogBuilder;
-import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.ui.components.JBScrollPane;
-import com.intellij.util.ui.tree.TreeUtil;
-import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.OpenFileDescriptor;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.IconLoader;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
+import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
 import com.intellij.plugins.bodhi.pmd.tree.PMDCellRenderer;
-import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
-import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeData;
 import com.intellij.plugins.bodhi.pmd.tree.PMDPopupMenu;
-import com.intellij.ide.*;
+import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeData;
+import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
 import com.intellij.pom.Navigatable;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.usageView.UsageViewBundle;
-
-import javax.swing.*;
-import javax.swing.event.TreeSelectionListener;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.tree.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import java.io.File;
-import java.io.StringWriter;
-import java.io.IOException;
-import java.util.*;
-import java.util.List;
-
-import org.jetbrains.annotations.Nullable;
+import com.intellij.util.ui.tree.TreeUtil;
 import net.sourceforge.pmd.Report;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeModel;
+import javax.swing.tree.TreePath;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TooManyListenersException;
 
 /**
  * The result panel where the PMD results are shown. This includes a toolbar and
@@ -269,8 +286,8 @@ public class PMDResultPanel extends JPanel {
             }
         };
 
-        actionGroup.add(OpenApiAdapter.getInstance().createCollapseAllAction(treeExpander, this));
-        actionGroup.add(OpenApiAdapter.getInstance().createExpandAllAction(treeExpander, this));
+        actionGroup.add(CommonActionsManager.getInstance().createCollapseAllAction(treeExpander, this));
+        actionGroup.add(CommonActionsManager.getInstance().createExpandAllAction(treeExpander, this));
 
         //OccurenceNavigator for next/prev actions
         OccurenceNavigator occurenceNavigator = new OccurenceNavigatorSupport(resultTree) {
@@ -434,7 +451,7 @@ public class PMDResultPanel extends JPanel {
         }
 
         public void actionPerformed(AnActionEvent e) {
-            Project project = e.getData(DataKeys.PROJECT);
+            Project project = e.getData(PlatformDataKeys.PROJECT);
             //Run the last run rule
             if (project != null) {
                 PMDProjectComponent component = project.getComponent(PMDProjectComponent.class);
@@ -459,7 +476,7 @@ public class PMDResultPanel extends JPanel {
         }
 
         public void actionPerformed(AnActionEvent e) {
-            Project project = e.getData(DataKeys.PROJECT);
+            Project project = e.getData(PlatformDataKeys.PROJECT);
             if (project != null) {
                 ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
                 toolWindow.activate(null);
@@ -469,24 +486,4 @@ public class PMDResultPanel extends JPanel {
         }
     }
 
-    private class ExportAction extends AnAction {
-        private ExportAction() {
-            super("Export", "Export the results to file", IconLoader.getIcon("/actions/export.png"));
-        }
-
-        public void actionPerformed(AnActionEvent e) {
-            DialogBuilder db = new DialogBuilder(PMDUtil.getProjectComponent(e).getCurrentProject());
-            db.addOkAction();
-            db.addCancelAction();
-            db.setTitle("Export to File");
-            final PMDConfigurationForm.BrowsePanel panel = new PMDConfigurationForm.BrowsePanel("", db);
-            db.setOkActionEnabled(true);
-            db.show();
-            //If ok is selected add the selected ruleset
-            if (db.getDialogWrapper().getExitCode() == DialogWrapper.OK_EXIT_CODE) {
-                String fileName = panel.getText();
-                System.out.println("Save to : " + fileName);
-            }
-        }
-    }
 }

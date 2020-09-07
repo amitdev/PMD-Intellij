@@ -17,7 +17,7 @@ public class PMDMenuGroup extends DefaultActionGroup {
     public void update(AnActionEvent e) {
         super.update(e);
         Presentation presentation = e.getPresentation();
-        Project project = e.getData(DataKeys.PROJECT);
+        Project project = e.getData(PlatformDataKeys.PROJECT);
         if (project == null) {
             //If no project defined, disable the menu item
             presentation.setEnabled(false);
