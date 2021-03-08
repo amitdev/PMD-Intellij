@@ -9,7 +9,6 @@ import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -24,12 +23,7 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
  *
@@ -98,30 +92,6 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         }
         return actionGroup;
     }
-
-    /**
-     * Return a Map from rule path to label where label is the filename, except if contains duplicates: more of the path is included.
-     * @param paths the rule paths
-     * @return a Map from rule path to label
-     */
-//    private Map<String, String> getRulePathToLabel(Iterable<String> paths) {
-//        Map pathToLabel = new HashMap<String, String>();
-//        boolean duplicates = false;
-//        List fileNames = new ArrayList();
-//        for (String path : paths) {
-//            String fileName = PMDUtil.getBareFileNameFromPath(path);
-//            if (fileNames.contains(fileName)) {
-//                duplicates = true;
-//                break;
-//            }
-//            fileNames.add(fileName);
-//        }
-//        for (String path : paths) {
-//            String label = (duplicates) ? PMDUtil.getExtendedFileNameFromPath(path) : PMDUtil.getFileNameFromPath(path);
-//            pathToLabel.put(path, label);
-//        }
-//        return pathToLabel;
-//    }
 
     private boolean hasDuplicateBareFileName(Iterable<String> paths)    {
         boolean duplicate = false;
