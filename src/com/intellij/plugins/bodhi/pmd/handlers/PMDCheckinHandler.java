@@ -127,7 +127,7 @@ public class PMDCheckinHandler extends CheckinHandler {
     }
 
     private DefaultMutableTreeNode createRuleSetNode(String ruleSet, List<DefaultMutableTreeNode> results) {
-        ruleSet = PMDUtil.getRuleNameFromPath(ruleSet) + ";" + ruleSet;
+        ruleSet = PMDUtil.getFileNameFromPath(ruleSet) + ";" + ruleSet;
         DefaultMutableTreeNode ruleSetNode = PMDTreeNodeFactory.getInstance().createNode(ruleSet);
 
         int childCount = 0;

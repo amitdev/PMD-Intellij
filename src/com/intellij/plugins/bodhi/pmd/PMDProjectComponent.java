@@ -61,9 +61,8 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private String lastRunRules;
     private boolean lastRunRulesCustom;
     private AnActionEvent lastRunActionEvent;
-    private List<String> customRuleSetPaths = new ArrayList<String>();
+    private Set<String> customRuleSetPaths = new LinkedHashSet<>(); // avoid duplicates, maintain order
     private Map<String, String> options = new HashMap<>();
-    private Map<String, Pair<String, AnAction>> customActionsMap = new HashMap<String, Pair<String, AnAction>>();
     private ToolWindowManager toolWindowManager;
     private boolean skipTestSources;
     private boolean scanFilesBeforeCheckin;
@@ -100,36 +99,72 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         return actionGroup;
     }
 
+    /**
+     * Return a Map from rule path to label where label is the filename, except if contains duplicates: more of the path is included.
+     * @param paths the rule paths
+     * @return a Map from rule path to label
+     */
+//    private Map<String, String> getRulePathToLabel(Iterable<String> paths) {
+//        Map pathToLabel = new HashMap<String, String>();
+//        boolean duplicates = false;
+//        List fileNames = new ArrayList();
+//        for (String path : paths) {
+//            String fileName = PMDUtil.getBareFileNameFromPath(path);
+//            if (fileNames.contains(fileName)) {
+//                duplicates = true;
+//                break;
+//            }
+//            fileNames.add(fileName);
+//        }
+//        for (String path : paths) {
+//            String label = (duplicates) ? PMDUtil.getExtendedFileNameFromPath(path) : PMDUtil.getFileNameFromPath(path);
+//            pathToLabel.put(path, label);
+//        }
+//        return pathToLabel;
+//    }
+
+    private boolean hasDuplicateBareFileName(Iterable<String> paths)    {
+        boolean duplicate = false;
+        List fileNames = new ArrayList();
+        for (String path : paths) {
+            String fileName = PMDUtil.getBareFileNameFromPath(path);
+            if (fileNames.contains(fileName)) {
+                duplicate = true;
+                break;
+            }
+            fileNames.add(fileName);
+        }
+        return duplicate;
+    }
+
+    /**
+     * Reflect customRuleSetPaths into actionGroup (ActionManager singleton instance)
+     */
     void updateCustomRulesMenu() {
         PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
+        actionGroup.removeAll(); // start clean
+        boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
         for (final String rulePath : customRuleSetPaths) {
-            if (customActionsMap.containsKey(rulePath)) {
-                continue;
-            }
             try {
                 RuleSet ruleSet = PMDResultCollector.loadRuleSet(rulePath);
-                String ruleFileName = PMDUtil.getRuleNameFromPath(rulePath);
-                AnAction action = new AnAction(String.format(Locale.ENGLISH, "%s (%s)",ruleSet.getName() , ruleFileName)) {
+                String ruleSetName = ruleSet.getName(); // from the xml
+                String extFileName = PMDUtil.getExtendedFileNameFromPath(rulePath);
+                String bareFileName = PMDUtil.getBareFileNameFromPath(rulePath);
+                String actionText = ruleSetName;
+                if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
+                    actionText += " (" + extFileName + ")";
+                }
+                AnAction action = new AnAction(actionText) {
                     public void actionPerformed(AnActionEvent e) {
                         PMDInvoker.getInstance().runPMD(e, rulePath, true);
                         setLastRunActionAndRules(e, rulePath, true);
                     }
                 };
-                customActionsMap.put(rulePath, Pair.create(ruleFileName, action));
                 actionGroup.add(action);
             } catch (PMDResultCollector.InvalidRuleSetException e) {
                 JOptionPane.showMessageDialog(resultPanel,
-                                              "The ruleset file is not available or not a valid PMD ruleset:\n"
-                                              + e.getMessage(),
-                                              "Invalid File", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-        for (Iterator<Map.Entry<String, Pair<String, AnAction>>> iterator = customActionsMap.entrySet().iterator(); iterator.hasNext();) {
-            Map.Entry<String, Pair<String, AnAction>> entry = iterator.next();
-            String rulePath = entry.getKey();
-            if (!customRuleSetPaths.contains(rulePath)) {
-                actionGroup.remove(entry.getValue().getSecond());
-                iterator.remove();
+                        "The ruleset file is not available or not a valid PMD ruleset:\n" + e.getMessage(),
+                        "Invalid File", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -239,7 +274,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     }
 
     public void setCustomRuleSets(List<String> customRuleSetPaths) {
-        this.customRuleSetPaths = new ArrayList(customRuleSetPaths);
+        this.customRuleSetPaths = new LinkedHashSet(customRuleSetPaths);
     }
 
     public Map<String, String> getOptions() {

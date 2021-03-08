@@ -2,8 +2,8 @@ package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
-import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.OrderEnumerator;
 import com.intellij.openapi.vfs.VfsUtilCore;
@@ -16,6 +16,8 @@ import java.io.File;
 import java.io.FileFilter;
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
 
@@ -26,6 +28,8 @@ import static java.util.Arrays.asList;
  * @version 1.1
  */
 public class PMDUtil {
+
+    public static final Pattern HOST_NAME_PATTERN = Pattern.compile(".+\\.([a-z]+\\.[a-z]+)/.+");
 
     /**
      * Get the the Project Component from given Action.
@@ -121,24 +125,83 @@ public class PMDUtil {
     }
 
     /**
-     * Parses and returns the rule name from path.
+     * Parses and returns the rule file name without extension from path.
      * Rulename is got by getting the filename from path and stripping off
      * the extension.
      *
      * @param rulePath the path
      * @return the rule name
      */
-    public static String getRuleNameFromPath(String rulePath) {
+    public static String getBareFileNameFromPath(String rulePath) {
+        String fileName = getFileNameFromPath(rulePath);
+        int indexDot = fileName.indexOf('.');
+        if (indexDot == -1) { // not found
+            return fileName;
+        }
+        return fileName.substring(0, indexDot);
+    }
+
+    /**
+     * Returns the file name including extension from path.
+     *
+     * @param rulePath the path
+     * @return the rule file name including extension
+     */
+    public static String getFileNameFromPath(String rulePath) {
         int index = rulePath.lastIndexOf(File.separatorChar);
-        int indexDot = rulePath.indexOf('.', index);
-        if (indexDot == -1) {
-            indexDot = rulePath.length();
+        return rulePath.substring(index + 1); // if not found (-1), start from 0
+    }
+
+    /**
+     * Parses and returns the extended rule file name from path, to include part of the path to distinguish between
+     * the same ruleset in different locations. Include the file extension.
+     *
+     * @param rulePath the path of the rule set
+     * @return the extended rule file name
+     */
+    public static String getExtendedFileNameFromPath(String rulePath) {
+        int index = rulePath.lastIndexOf(File.separatorChar); // index of last '/'
+        if (index == -1) {
+            return rulePath;
         }
-        String ruleName = rulePath;
-        if (index != -1) {
-            ruleName = rulePath.substring(index+1, indexDot);
+        String shortPathDesc = "";
+        if (rulePath.startsWith("http")) {
+            shortPathDesc = getHostNameFromPath(rulePath) + ": " + rulePath.substring(index + 1);
         }
-        return ruleName;
+        else {
+            shortPathDesc = getFileBaseFromPath(rulePath) + ": " + rulePath.substring(index + 1);
+        }
+        return shortPathDesc;
+    }
+
+    /**
+     * Returns the hostname like: githubusercontent.com from the path
+     * @param rulePath
+     * @return the hostname like: githubusercontent.com
+     */
+    private static String getHostNameFromPath(String rulePath) {
+        String hostName = "";
+        Matcher m = HOST_NAME_PATTERN.matcher(rulePath);
+        if (m.matches()) {
+            hostName = m.group(1);
+        }
+        return hostName;
+    }
+
+    /**
+     * Returns the file base path like: /Users/john from the path
+     * @param rulePath
+     * @return the hostname like: githubusercontent.com
+     */
+    private static String getFileBaseFromPath(String rulePath) {
+        int sepIndex1 = rulePath.indexOf(File.separatorChar);
+        int sepIndex2 = rulePath.indexOf(File.separatorChar, sepIndex1 + 1);
+        int sepIndex3 = rulePath.indexOf(File.separatorChar, sepIndex2 + 1);
+        String fileBase = "";
+        if (sepIndex3 > -1) {
+            fileBase = rulePath.substring(0, sepIndex3);
+        }
+        return fileBase;
     }
 
     private static boolean isMatchingExtension(File pathname, String extension) {
