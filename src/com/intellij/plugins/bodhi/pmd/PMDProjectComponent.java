@@ -255,6 +255,10 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         this.options = options;
     }
 
+    /**
+     * Return fields in a PersistentData object
+     * @return
+     */
     @NotNull
     public PersistentData getState() {
         final PersistentData pd = new PersistentData();
@@ -264,11 +268,15 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         for (String key : options.keySet()) {
             pd.getOptions().put(key, options.get(key));
         }
-        pd.skipTestSources(skipTestSources);
+        pd.setSkipTestSources(skipTestSources);
         pd.setScanFilesBeforeCheckin(scanFilesBeforeCheckin);
         return pd;
     }
 
+    /**
+     * load state into fields
+     * @param state
+     */
     public void loadState(PersistentData state) {
         customRuleSetPaths.clear();
         options.clear();
