@@ -180,9 +180,9 @@ public class PMDInvoker {
                     if (results.size() != 0) {
                         if (isCustomRuleSet) {
                             //For custom rulesets, using a separate format for rendering
-                            rules[i] = PMDUtil.getRuleNameFromPath(rules[i]) + ";" + rules[i];
+                            rules[i] = PMDUtil.getBareFileNameFromPath(rules[i]) + ";" + rules[i];
                         } else {
-                            rules[i] = PMDUtil.getRuleName(rules[i]);
+                            rules[i] = PMDUtil.getBareFileNameFromPath(rules[i]);
                         }
                         DefaultMutableTreeNode node = resultPanel.addNode(rules[i]);
                         //Add all nodes to the tree
