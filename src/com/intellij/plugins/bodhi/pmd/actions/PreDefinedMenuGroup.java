@@ -1,15 +1,17 @@
 package com.intellij.plugins.bodhi.pmd.actions;
 
-import com.intellij.openapi.actionSystem.*;
-import com.intellij.plugins.bodhi.pmd.PMDUtil;
+import com.intellij.openapi.actionSystem.ActionGroup;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.plugins.bodhi.pmd.PMDInvoker;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
+import com.intellij.plugins.bodhi.pmd.PMDUtil;
+import net.sourceforge.pmd.util.ResourceLoader;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Properties;
 import java.io.IOException;
-
-import net.sourceforge.pmd.util.ResourceLoader;
+import java.util.Properties;
 
 /**
  * This ActionGroup defines the actions for pre defined rulesets that
@@ -55,7 +57,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
 
             for (int i=0; i < rulesetFilenames.length; ++i) {
                 final String ruleFileName = rulesetFilenames[i];
-                final String ruleName = PMDUtil.getRuleName(ruleFileName);
+                final String ruleName = PMDUtil.getBareFileNameFromPath(ruleFileName);
                 allRules += ruleFileName;
                 allRules += (i == rulesetFilenames.length - 1) ? "" : PMDInvoker.RULE_DELIMITER;
                 AnAction ruleAction = new AnAction(ruleName) {

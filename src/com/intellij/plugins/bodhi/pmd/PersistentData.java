@@ -6,9 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 public class PersistentData {
+    private static final boolean DEFAULT_SKIP_TEST_SRC = true;
     private List<String> customRuleSets;
     private Map<String, String> options;
-    private String skipTestSources;
+    private boolean skipTestSources = DEFAULT_SKIP_TEST_SRC;
     private boolean scanFilesBeforeCheckin;
 
     public PersistentData() {
@@ -20,33 +21,32 @@ public class PersistentData {
         return customRuleSets;
     }
 
-    public void setCustomRuleSets(List<String> customRuleSets) {
-        this.customRuleSets = customRuleSets;
+    public void setCustomRuleSets(List<String> rules) {
+        this.customRuleSets = rules;
     }
 
     public Map<String, String> getOptions() {
         return options;
     }
 
-    public void setOptions(Map<String, String> options) {
-        this.options = options;
+    public void setOptions(Map<String, String> opts) {
+        options = opts;
     }
 
-    public void skipTestSources(boolean skipTestSources)
-    {
-        this.skipTestSources = String.valueOf(skipTestSources);
+    public void setSkipTestSources(boolean skip) {
+        skipTestSources = skip;
     }
 
-    public boolean isSkipTestSources()
-    {
-        return Boolean.valueOf(skipTestSources);
+    public boolean isSkipTestSources() {
+        return skipTestSources;
     }
 
     public boolean isScanFilesBeforeCheckin() {
         return scanFilesBeforeCheckin;
     }
 
-    public void setScanFilesBeforeCheckin(boolean scanFilesBeforeCheckin) {
-        this.scanFilesBeforeCheckin = scanFilesBeforeCheckin;
+    public void setScanFilesBeforeCheckin(boolean scan) {
+        scanFilesBeforeCheckin = scan;
     }
+
 }
