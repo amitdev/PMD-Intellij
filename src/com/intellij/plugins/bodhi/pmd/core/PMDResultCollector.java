@@ -47,17 +47,12 @@ public class PMDResultCollector {
     private Map<String, DefaultMutableTreeNode> map;
     public static Report report;
 
-    //Whether we are using custom ruleset or not
-    private boolean isCustomRuleSet;
-
     /**
      * Creates an instance of PMDResultCollector.
      *
-     * @param isCustomRuleSet Whether a custom rule has to be run
      */
-    public PMDResultCollector(boolean isCustomRuleSet) {
+    public PMDResultCollector() {
         map = new HashMap<>();
-        this.isCustomRuleSet = isCustomRuleSet;
     }
 
     /**
@@ -152,9 +147,7 @@ public class PMDResultCollector {
             if (rs.getRules().size() != 0) {
                 return "";
             }
-        } catch (RuleSetNotFoundException e) {
-            return e.getMessage();
-        } catch (RuntimeException e) {
+        } catch (RuleSetNotFoundException | RuntimeException e) {
             return e.getMessage();
         }
         return "Invalid File";
@@ -201,10 +194,10 @@ public class PMDResultCollector {
             if (PMDResultCollector.report == null) {
                 PMDResultCollector.report = new Report();
             }
-            for (; violations.hasNext();) {
+            while (violations.hasNext()) {
                 RuleViolation iRuleViolation = violations.next();
                 PMDResultCollector.report.addRuleViolation(iRuleViolation);
-                String message = iRuleViolation.getRule().getName() + ": " + iRuleViolation.getRule().getMessage();
+                String message = iRuleViolation.getRule().getName();
                 DefaultMutableTreeNode node = map.get(message);
                 if (node == null) {
                     node = nodeFactory.createNode(shortMessage(message));
