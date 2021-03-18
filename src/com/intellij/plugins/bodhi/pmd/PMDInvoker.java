@@ -172,7 +172,7 @@ public class PMDInvoker {
                     progress.setText("Running : " + rules[i] + " on " + files.size() + " file(s)");
 
                     //Create a result collector to get results
-                    PMDResultCollector collector = new PMDResultCollector(isCustomRuleSet);
+                    PMDResultCollector collector = new PMDResultCollector();
 
                     //Get the tree nodes from result collector
                     List<DefaultMutableTreeNode> results = collector.getResults(files, rules[i], projectComponent);

@@ -116,7 +116,7 @@ public class PMDCheckinHandler extends CheckinHandler {
 
     private DefaultMutableTreeNode scanFiles(String ruleSet, PMDProjectComponent plugin) {
         DefaultMutableTreeNode result = null;
-        PMDResultCollector collector = new PMDResultCollector(true);
+        PMDResultCollector collector = new PMDResultCollector();
         List<File> files = new ArrayList<>(checkinProjectPanel.getFiles());
 
         List<DefaultMutableTreeNode> ruleSetResults = collector.getResults(files, ruleSet, plugin);

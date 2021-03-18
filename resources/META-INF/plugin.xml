@@ -3,9 +3,9 @@
   <name>PMDPlugin</name>
   <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
-  <change-notes> Update PMD plugin to use PMD version 6.27.0</change-notes>
+  <change-notes> Update PMD plugin to use PMD version 6.32.0</change-notes>
 
-  <version>1.8.15</version>
+  <version>1.8.16</version>
   <vendor>Amit Dev</vendor>
 
   <idea-version since-build="201.0"/>
