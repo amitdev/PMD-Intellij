@@ -1,20 +1,46 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
-public class PMDErrorNode extends PMDRuleNode {
+import com.intellij.plugins.bodhi.pmd.core.PMDProcessingError;
+import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 
-    private String errorMsg;
+/**
+ * PMD leaf tree node for processing errors. It is Navigatable,
+ * so that the user can navigate to the source of the processing error.
+ *
+ * @author jborgers
+ */
+public class PMDErrorNode extends PMDLeafNode {
 
-    public PMDErrorNode(String errorMsg) {
-        this.errorMsg = errorMsg;
+    private PMDProcessingError pmdProcessingError;
+
+    public PMDErrorNode(PMDProcessingError error) {
+        pmdProcessingError = error;
     }
 
+    @Override
     public String getToolTip() {
-        return "Error in running PMD rule on this file";
+        return pmdProcessingError.getCauseMsg();
     }
 
+    @Override
     public void render(PMDCellRenderer cellRenderer, boolean expanded) {
         cellRenderer.setIcon(PMDCellRenderer.ERROR);
-        cellRenderer.append(errorMsg);
+        // Show error position greyed, like idea shows.
+        cellRenderer.append(pmdProcessingError.getPositionText(), GRAYED_ATTRIBUTES);
+        cellRenderer.append(pmdProcessingError.getErrorMsg()); // includes file name
     }
 
+    @Override
+    public int getErrorCount() {
+        return 1;
+    }
+
+    /**
+     * Open editor and select/navigate to the correct line and column.
+     *
+     * @param requestFocus Focus the editor.
+     */
+    public void navigate(boolean requestFocus) {
+        highlightFindingInEditor(pmdProcessingError);
+    }
 }

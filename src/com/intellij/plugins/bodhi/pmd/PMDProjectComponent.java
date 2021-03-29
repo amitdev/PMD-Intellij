@@ -52,7 +52,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private Project currentProject;
     private PMDResultPanel resultPanel;
     private ToolWindow resultWindow;
-    private String lastRunRules;
+    private String lastRunRuleSetPaths;
     private boolean lastRunRulesCustom;
     private AnActionEvent lastRunActionEvent;
     private Set<String> customRuleSetPaths = new LinkedHashSet<>(); // avoid duplicates, maintain order
@@ -114,20 +114,20 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
         actionGroup.removeAll(); // start clean
         boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
-        for (final String rulePath : customRuleSetPaths) {
+        for (final String ruleSetPath : customRuleSetPaths) {
             try {
-                RuleSet ruleSet = PMDResultCollector.loadRuleSet(rulePath);
+                RuleSet ruleSet = PMDResultCollector.loadRuleSet(ruleSetPath);
                 String ruleSetName = ruleSet.getName(); // from the xml
-                String extFileName = PMDUtil.getExtendedFileNameFromPath(rulePath);
-                String bareFileName = PMDUtil.getBareFileNameFromPath(rulePath);
+                String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
+                String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
                 String actionText = ruleSetName;
                 if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
                     actionText += " (" + extFileName + ")";
                 }
                 AnAction action = new AnAction(actionText) {
                     public void actionPerformed(AnActionEvent e) {
-                        PMDInvoker.getInstance().runPMD(e, rulePath, true);
-                        setLastRunActionAndRules(e, rulePath, true);
+                        PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
+                        setLastRunActionAndRules(e, ruleSetPath, true);
                     }
                 };
                 actionGroup.add(action);
@@ -201,12 +201,12 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     }
 
     /**
-     * Get the last run PMD rules on this project.
+     * Get the last run PMD rule set paths on this project.
      *
-     * @return the last run rules.
+     * @return the last run rule set paths.
      */
-    public String getLastRunRules() {
-        return lastRunRules;
+    public String getLastRunRuleSetPaths() {
+        return lastRunRuleSetPaths;
     }
 
     /**
@@ -230,16 +230,16 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      * Set the last run action event and PMD rule(s). Multiple rules should be delimited by
      * PMDInvoker.RULE_DELIMITER.
      * @param lastActionEvent the last run action event
-     * @param lastRunRules The last run rule name
+     * @param lastRunRuleSetPaths The last run rule set paths
      * @param isCustom whether the last run rules are custom rules
      */
-    public void setLastRunActionAndRules(AnActionEvent lastActionEvent, String lastRunRules, boolean isCustom) {
-        this.lastRunRules = lastRunRules;
+    public void setLastRunActionAndRules(AnActionEvent lastActionEvent, String lastRunRuleSetPaths, boolean isCustom) {
+        this.lastRunRuleSetPaths = lastRunRuleSetPaths;
         this.lastRunActionEvent = lastActionEvent;
         this.lastRunRulesCustom = isCustom;
     }
 
-    public List<String> getCustomRuleSets() {
+    public List<String> getCustomRuleSetPaths() {
         return new ArrayList(customRuleSetPaths);
     }
 

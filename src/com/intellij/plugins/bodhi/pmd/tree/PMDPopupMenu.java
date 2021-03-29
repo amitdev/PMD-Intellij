@@ -1,13 +1,12 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
 import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.jetbrains.annotations.NotNull;
 
 /**
  * The is the presentation class for the popup menu on violation result tree.

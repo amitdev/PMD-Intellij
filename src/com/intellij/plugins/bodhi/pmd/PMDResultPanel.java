@@ -1,20 +1,7 @@
 package com.intellij.plugins.bodhi.pmd;
 
-import com.intellij.ide.AutoScrollToSourceOptionProvider;
-import com.intellij.ide.BrowserUtil;
-import com.intellij.ide.CommonActionsManager;
-import com.intellij.ide.ExporterToTextFile;
-import com.intellij.ide.OccurenceNavigator;
-import com.intellij.ide.OccurenceNavigatorSupport;
-import com.intellij.ide.TreeExpander;
-import com.intellij.openapi.actionSystem.ActionGroup;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionToolbar;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonShortcuts;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.ide.*;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.editor.Editor;
@@ -27,12 +14,10 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
+import com.intellij.plugins.bodhi.pmd.core.HasPositionInFile;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
-import com.intellij.plugins.bodhi.pmd.tree.PMDCellRenderer;
-import com.intellij.plugins.bodhi.pmd.tree.PMDPopupMenu;
-import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeData;
-import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
+import com.intellij.plugins.bodhi.pmd.tree.*;
 import com.intellij.pom.Navigatable;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.usageView.UsageViewBundle;
@@ -46,10 +31,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeModel;
-import javax.swing.tree.TreePath;
+import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -58,12 +40,8 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TooManyListenersException;
+import java.util.*;
 
 /**
  * The result panel where the PMD results are shown. This includes a toolbar and
@@ -76,7 +54,8 @@ public class PMDResultPanel extends JPanel {
 
     private JTree resultTree;
     private PMDProjectComponent projectComponent;
-    private DefaultMutableTreeNode rootNode;
+    private PMDRootNode rootNode;
+    private PMDBranchNode processingErrorsNode;
     private boolean scrolling;
     private PMDPopupMenu popupMenu;
     public static final String PMD_SUPPRESSION = "//NOPMD";
@@ -97,13 +76,11 @@ public class PMDResultPanel extends JPanel {
                 if (getRowForLocation(evt.getX(), evt.getY()) == -1)
                     return null;
                 TreePath curPath = getPathForLocation(evt.getX(), evt.getY());
-                Object userObj = null;
                 if (curPath != null) {
-                    userObj = ((DefaultMutableTreeNode)curPath.getLastPathComponent()).getUserObject();
-                }
-                //Only for PMDTreeNodeData we show tool tips.
-                if (userObj instanceof PMDTreeNodeData) {
-                    return ((PMDTreeNodeData)userObj).getToolTip();
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode)curPath.getLastPathComponent();
+                    if (node instanceof BasePMDNode) {
+                        return ((BasePMDNode) node).getToolTip();
+                    }
                 }
                 return super.getToolTipText(evt);
             }
@@ -126,8 +103,9 @@ public class PMDResultPanel extends JPanel {
         resultTree.addTreeSelectionListener(new TreeSelectionListener() {
             public void valueChanged(TreeSelectionEvent treeSelectionEvent) {
                 if (scrolling) {
-                    DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode) treeSelectionEvent.getPath().getLastPathComponent();
-                    highlightError(treeNode);
+//                    DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode) treeSelectionEvent.getPath().getLastPathComponent();
+//                    highlightError(treeNode);
+
                 }
             }
         });
@@ -179,7 +157,7 @@ public class PMDResultPanel extends JPanel {
                 if (treeNodes != null) {
                     if (e.getClickCount() == 2) {
                         for (DefaultMutableTreeNode treeNode : treeNodes) {
-                            highlightError(treeNode);
+                            highlightFindingInEditor(treeNode);
                         }
                     } else {
                         showPopup(treeNodes, e);
@@ -205,11 +183,9 @@ public class PMDResultPanel extends JPanel {
         if (treeNodes != null && e.isPopupTrigger()) {
             popupMenu.clearViolations();
             //Only for violation nodes, popups are supported
-            for (int i = 0; i < treeNodes.length; ++i) {
-                if (treeNodes[i].getUserObject() instanceof PMDViolation) {
-                    PMDViolation pmdViolation = (PMDViolation) treeNodes[i].getUserObject();
-                    //Set the violation node
-                    popupMenu.addViolation(pmdViolation);
+            for (DefaultMutableTreeNode treeNode : treeNodes) {
+                if (treeNode instanceof PMDViolationNode) {
+                    popupMenu.addViolation(((PMDViolationNode)treeNode).getPmdViolation());
                 }
             }
             //Display popup
@@ -241,7 +217,7 @@ public class PMDResultPanel extends JPanel {
                             public void run() {
                                 int offset = editor.getDocument().getLineEndOffset(result.getBeginLine()-1);
                                 //Append PMD special comment to end of line.
-                                editor.getDocument().insertString(offset, PMD_SUPPRESSION);
+                                editor.getDocument().insertString(offset, PMD_SUPPRESSION + " - <@TODO explain reason for suppression>");
                             }
                         });
                     }
@@ -370,48 +346,54 @@ public class PMDResultPanel extends JPanel {
     }
 
     /**
-     * Highlights a given violation/error represented by the given tree node.
+     * Highlights a given violation/suppressed/error represented by the given tree node.
      *
-     * @param treeNode The tree node having the violation
+     * @param treeNode The tree node having the violation/suppressed/error
      */
-    public void highlightError(DefaultMutableTreeNode treeNode) {
-        if (treeNode != null) {
-            Object obj = treeNode.getUserObject();
-            if (obj instanceof PMDViolation) {
-                openEditor((PMDViolation) obj);
-            }
+    public void highlightFindingInEditor(DefaultMutableTreeNode treeNode) {
+        if (treeNode != null && treeNode instanceof Navigatable) {
+            ((Navigatable)treeNode).navigate(true);
         }
     }
 
     /**
-     * Opens the given violation's file in the Editor and returns the Editor.
+     * Highlights a given finding: violation, suppressed violation or error, in the editor
      *
-     * @param result The Violation
-     * @return the editor with caret at the violation
+     * @param finding the finding to navigate to
      */
-    private Editor openEditor(PMDViolation result) {
+    public void highlightFindingInEditor(HasPositionInFile finding) {
+        openEditor(finding);
+    }
+
+    /**
+     * Opens the given finding's file in the Editor and returns the Editor with caret at the finding.
+     *
+     * @param finding The finding
+     * @return the editor with caret at the finding
+     */
+    private Editor openEditor(HasPositionInFile finding) {
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(projectComponent.getCurrentProject());
         final VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(
-                result.getFilename().replace(File.separatorChar, '/'));
+                finding.getFilename().replace(File.separatorChar, '/'));
         if (virtualFile != null) {
             return fileEditorManager.openTextEditor(new OpenFileDescriptor(
                     projectComponent.getCurrentProject(),
                     virtualFile,
-                    Math.max(result.getBeginLine()-1, 0),
-                    Math.max(result.getBeginColumn()-1, 0)),
+                    Math.max(finding.getBeginLine()-1, 0),
+                    Math.max(finding.getBeginColumn()-1, 0)),
                     true);
         }
         return null;
     }
 
     /**
-     * Adds a node to the tree as a direct child of the root, and return it
+     * Adds a branch node to the tree as a direct child of the root, and return it
      *
-     * @param nodeValue the user object of the tree node to create
-     * @return the created node
+     * @param name the rule name
+     * @return the created rule set node
      */
-    public DefaultMutableTreeNode addNode(Object nodeValue) {
-        return addNode(rootNode, PMDTreeNodeFactory.getInstance().createNode(nodeValue));
+    public PMDBranchNode addCreateBranchNodeAtRoot(String name) {
+        return (PMDBranchNode)addNode(rootNode, new PMDBranchNode(name));
     }
 
     /**
@@ -421,24 +403,45 @@ public class PMDResultPanel extends JPanel {
      * @param node The child not which is added as child to parent node
      * @return the child node
      */
-    public DefaultMutableTreeNode addNode(DefaultMutableTreeNode parent, DefaultMutableTreeNode node) {
+    public BasePMDNode addNode(PMDBranchNode parent, BasePMDNode node) {
         parent.add(node);
+        reloadResultTree();
+        return node;
+    }
+
+    public void reloadResultTree() {
         ApplicationManager.getApplication().invokeLater(new Runnable() {
             public void run() {
                 ((DefaultTreeModel) resultTree.getModel()).reload();
             }
         });
-        return node;
     }
-
 
     /**
      * Get the root node of the violation tree.
      *
      * @return the root node
      */
-    public DefaultMutableTreeNode getRootNode() {
+    public PMDRootNode getRootNode() {
         return rootNode;
+    }
+
+    /**
+     * Creates and returns the processingErrors branch node.
+     *
+     * @return the new processingErrors brnach node
+     */
+    public PMDBranchNode getNewProcessingErrorsNode() {
+        return processingErrorsNode = new PMDBranchNode("Processing errors");
+    }
+
+    /**
+     * Add the leaf node containing the processing errors to the root node, only if it has > 0 leaf nodes.
+     */
+    public void addProcessingErrorsNodeToRootIfHasAny() {
+        if (processingErrorsNode.getChildCount() > 0) {
+            rootNode.add(processingErrorsNode);
+        }
     }
 
     /**
@@ -455,11 +458,11 @@ public class PMDResultPanel extends JPanel {
             //Run the last run rule
             if (project != null) {
                 PMDProjectComponent component = project.getComponent(PMDProjectComponent.class);
-                String rule = component.getLastRunRules();
+                String ruleSetPaths = component.getLastRunRuleSetPaths();
                 AnActionEvent action = component.getLastRunAction();
                 boolean isCustom = component.isLastRunRulesCustom();
                 AnActionEvent actionToRun = (action != null) ? action : e;
-                PMDInvoker.getInstance().runPMD(actionToRun, rule, isCustom);
+                PMDInvoker.getInstance().runPMD(actionToRun, ruleSetPaths, isCustom);
                 resultTree.repaint();
             }
         }

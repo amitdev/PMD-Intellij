@@ -2,7 +2,8 @@ package com.intellij.plugins.bodhi.pmd.filter;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
-import com.intellij.openapi.vfs.*;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileFilter;
 
 public class VirtualFileFilters
 {
