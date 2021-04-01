@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * Responsible for running PMD and collecting the results which can be represeted in
+ * Responsible for running PMD and collecting the results which can be represented in
  * tree format.
  *
  * @author bodhi
@@ -29,8 +29,8 @@ import java.util.*;
  */
 public class PMDResultCollector {
 
-    private Map<String, PMDBranchNode> ruleNameToNodeMap;
-    public static Report report;
+    private final Map<String, PMDBranchNode> ruleNameToNodeMap;
+    private static Report report = new Report();
 
     /**
      * Creates an instance of PMDResultCollector.
@@ -39,6 +39,20 @@ public class PMDResultCollector {
         ruleNameToNodeMap = new LinkedHashMap<>();
     } // linked to keep insertion order
 
+    /**
+     * Clears the pmd results Report by assigning a new one
+     */
+    public static void clearReport() {
+        report = new Report();
+    }
+
+    /**
+     * Returns the report with pmd results
+     * @return the report with pmd results
+     */
+    public static Report getReport() {
+        return report;
+    }
     /**
      * Runs the given ruleSet(s) on given set of files and returns the result.
      *
@@ -122,7 +136,7 @@ public class PMDResultCollector {
     }
 
     /**
-     * Verifies whether the rule set specified at the path is a valid PMD ruleset.
+     * Verifies whether the rule set specified at the path is a valid PMD rule set.
      *
      * @param path path of the rule set
      * @return true if valid rule set, false otherwise.
@@ -171,7 +185,7 @@ public class PMDResultCollector {
 
         private final List<PMDBranchNode> pmdRuleResultNodes;
         private final PMDBranchNode processingErrorsNode;
-        private Set<String> filesWithError = new HashSet();
+        private final Set<String> filesWithError = new HashSet<>();
 
         public PMDResultRenderer(List<PMDBranchNode> pmdRuleSetResults, PMDBranchNode errorsNode) {
             super("pmdplugin", "PMD plugin renderer");
@@ -182,9 +196,6 @@ public class PMDResultCollector {
         @Override
         public void renderFileViolations(Iterator<RuleViolation> violations) throws IOException {
             PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
-            if (PMDResultCollector.report == null) {
-                PMDResultCollector.report = new Report();
-            }
             while (violations.hasNext()) {
                 RuleViolation iRuleViolation = violations.next();
                 PMDResultCollector.report.addRuleViolation(iRuleViolation);

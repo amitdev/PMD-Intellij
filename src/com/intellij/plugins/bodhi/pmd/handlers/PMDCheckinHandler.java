@@ -42,7 +42,8 @@ public class PMDCheckinHandler extends CheckinHandler {
     @NonNls
     private final CheckinProjectPanel checkinProjectPanel;
 
-    /* default */ PMDCheckinHandler(CheckinProjectPanel checkinProjectPanel) {
+    /* default */
+    PMDCheckinHandler(CheckinProjectPanel checkinProjectPanel) {
         this.checkinProjectPanel = checkinProjectPanel;
     }
 
@@ -102,7 +103,7 @@ public class PMDCheckinHandler extends CheckinHandler {
             return ReturnResult.COMMIT;
         }
 
-        PMDResultCollector.report = null;
+        PMDResultCollector.clearReport();
 
         List<PMDBranchNode> ruleSetResultNodes = new ArrayList<>();
         for (String ruleSetPath : plugin.getCustomRuleSetPaths()) {

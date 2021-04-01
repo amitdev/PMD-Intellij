@@ -31,7 +31,10 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
-import javax.swing.tree.*;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeModel;
+import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -310,7 +313,7 @@ public class PMDResultPanel extends JPanel {
             }
 
             public String getReportText() {
-                Report r = PMDResultCollector.report;
+                Report r = PMDResultCollector.getReport();
                 HTMLRenderer renderer = new HTMLRenderer();
                 StringWriter w = new StringWriter();
                 try {
