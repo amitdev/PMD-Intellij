@@ -220,7 +220,7 @@ public class PMDResultPanel extends JPanel {
                             public void run() {
                                 int offset = editor.getDocument().getLineEndOffset(result.getBeginLine()-1);
                                 //Append PMD special comment to end of line.
-                                editor.getDocument().insertString(offset, PMD_SUPPRESSION + " - <@TODO explain reason for suppression>");
+                                editor.getDocument().insertString(offset, PMD_SUPPRESSION + " - TODO explain reason for suppression");
                             }
                         });
                     }
