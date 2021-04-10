@@ -1,43 +1,38 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
 import com.intellij.plugins.bodhi.pmd.PMDResultPanel;
-
-import javax.swing.tree.DefaultMutableTreeNode;
+import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 
 /**
  * Encapsulates the root node.
  *
  * @author bodhi
- * @version 1.0
+ * @version 1.1
  */
-class PMDRootNode extends DefaultMutableTreeNode {
+public class PMDRootNode extends PMDBranchNode {
 
     /**
-     * Lable of the root node.
+     * Label of the root node.
      */
-    public static final String LABEL = "PMD Results";
+    private static final String LABEL = "PMD Results";
 
-    //The panel where tree resides
+    /**
+     * The panel where tree resides
+     */
     private PMDResultPanel resultPanel;
+
+    private int fileCount = -1;
+    private int ruleSetCount = -1;
+    private volatile boolean running = false;
 
     /**
      * Creates a root node with given panel.
      *
-     * @param resultPanel panel where tree resides
+     * @param panel panel where tree resides
      */
-    public PMDRootNode(PMDResultPanel resultPanel) {
-        this(resultPanel, new PMDRuleNode(LABEL));
-    }
-
-    /**
-     * Creates a root node with given panel and ruleNode.
-     *
-     * @param resultPanel panel where tree resides
-     * @param ruleNode rule node to use.
-     */
-    public PMDRootNode(PMDResultPanel resultPanel, PMDRuleNode ruleNode) {
-        super(ruleNode);
-        this.resultPanel = resultPanel;
+    public PMDRootNode(PMDResultPanel panel) {
+        super(LABEL);
+        resultPanel = panel;
     }
 
     /**
@@ -47,5 +42,57 @@ class PMDRootNode extends DefaultMutableTreeNode {
      */
     public PMDResultPanel getResultPanel() {
         return resultPanel;
+    }
+
+    @Override
+    public String getToolTip() {
+        return null;
+    }
+
+    public void setFileCount(int count) {
+        this.fileCount = count;
+    }
+
+    public void setRuleSetCount(int count) {
+        this.ruleSetCount = count;
+    }
+
+    public void setRunning(boolean r) {
+        running = r;
+    }
+
+    public void render(PMDCellRenderer cellRenderer, boolean expanded) {
+        cellRenderer.append(getNodeName());
+        if (fileCount == 0) {
+            cellRenderer.append(" No results: No source file(s) found to scan.");
+            return;
+        }
+        if (running) {
+            cellRenderer.append(" Processing...");
+            return;
+        }
+        String result = " (" + getViolationCount() + " violation";
+        if (getViolationCount() != 1) result += "s";
+        if (getSuppressedCount() > 0) {
+            result += ", " + getSuppressedCount() + " suppressed violation";
+            if (getSuppressedCount() > 1) {
+                result += "s";
+            }
+        }
+        if (getErrorCount() > 0) {
+            result += ", " + getErrorCount() + " processing error";
+            if (getErrorCount() > 1) {
+                result += "s";
+            }
+        }
+        if (fileCount > -1) {
+            result += " in " + fileCount + " scanned file";
+            if (fileCount != 1) result += "s";
+        }
+        if (ruleSetCount > -1) {
+            result += " using " + ruleSetCount + " rule set";
+            if (ruleSetCount != 1) result += "s";
+        }
+        cellRenderer.append(result + ")", GRAYED_ATTRIBUTES);
     }
 }

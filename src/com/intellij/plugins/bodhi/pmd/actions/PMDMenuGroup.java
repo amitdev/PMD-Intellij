@@ -1,9 +1,9 @@
 package com.intellij.plugins.bodhi.pmd.actions;
 
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 
 /**
  * The main menu group for the PMD Plugin. This will contain the Predefined

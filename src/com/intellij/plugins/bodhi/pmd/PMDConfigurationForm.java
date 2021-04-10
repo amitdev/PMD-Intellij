@@ -1,31 +1,33 @@
 package com.intellij.plugins.bodhi.pmd;
 
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
-import com.intellij.openapi.vfs.VfsUtilCore;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.util.IconLoader;
-import com.intellij.openapi.actionSystem.*;
-import com.intellij.util.PlatformIcons;
+import com.intellij.openapi.vfs.VfsUtilCore;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.ui.DocumentAdapter;
+import com.intellij.util.PlatformIcons;
 
 import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Document;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.DocumentEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
-import java.util.*;
-import java.util.List;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.io.File;
+import java.util.List;
+import java.util.*;
 
 /**
  * This class represents the UI for settings.
@@ -82,7 +84,7 @@ public class PMDConfigurationForm {
      * @param dataProjComp the data provider
      */
     public void setDataOnUI(PMDProjectComponent dataProjComp) {
-        ruleList.setModel(new MyListModel(dataProjComp.getCustomRuleSets()));
+        ruleList.setModel(new MyListModel(dataProjComp.getCustomRuleSetPaths()));
         if (dataProjComp.getOptions().isEmpty()) {
             Object[][] dat = new Object[optionNames.length][2];
             for (int i = 0; i < optionNames.length; i++) {

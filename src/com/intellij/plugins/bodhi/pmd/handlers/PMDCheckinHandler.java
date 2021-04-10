@@ -14,7 +14,8 @@ import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDResultPanel;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDBranchNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRootNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
 import com.intellij.util.PairConsumer;
 import com.intellij.util.ui.UIUtil;
@@ -27,7 +28,6 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.PropertyKey;
 
 import javax.swing.*;
-import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
@@ -42,7 +42,8 @@ public class PMDCheckinHandler extends CheckinHandler {
     @NonNls
     private final CheckinProjectPanel checkinProjectPanel;
 
-    /* default */ PMDCheckinHandler(CheckinProjectPanel checkinProjectPanel) {
+    /* default */
+    PMDCheckinHandler(CheckinProjectPanel checkinProjectPanel) {
         this.checkinProjectPanel = checkinProjectPanel;
     }
 
@@ -102,50 +103,47 @@ public class PMDCheckinHandler extends CheckinHandler {
             return ReturnResult.COMMIT;
         }
 
-        PMDResultCollector.report = null;
+        PMDResultCollector.clearReport();
 
-        List<DefaultMutableTreeNode> results = new ArrayList<>();
-        for (String ruleSet : plugin.getCustomRuleSets()) {
-            DefaultMutableTreeNode result = scanFiles(ruleSet, plugin);
-            if (result != null) {
-                results.add(result);
+        List<PMDBranchNode> ruleSetResultNodes = new ArrayList<>();
+        for (String ruleSetPath : plugin.getCustomRuleSetPaths()) {
+            PMDBranchNode ruleSetResultNode = scanFiles(ruleSetPath, plugin);
+            if (ruleSetResultNode != null) {
+                ruleSetResultNodes.add(ruleSetResultNode);
             }
         }
-        return processScanResults(results, project);
+        return processScanResults(ruleSetResultNodes, project);
     }
 
-    private DefaultMutableTreeNode scanFiles(String ruleSet, PMDProjectComponent plugin) {
-        DefaultMutableTreeNode result = null;
+    private PMDBranchNode scanFiles(String ruleSetPath, PMDProjectComponent plugin) {
+        PMDBranchNode ruleSetResultNode = null;
         PMDResultCollector collector = new PMDResultCollector();
         List<File> files = new ArrayList<>(checkinProjectPanel.getFiles());
 
-        List<DefaultMutableTreeNode> ruleSetResults = collector.getResults(files, ruleSet, plugin);
-        if (!ruleSetResults.isEmpty()) {
-            result = createRuleSetNode(ruleSet, ruleSetResults);
+        List<PMDBranchNode> ruleSetResultNodes = collector.runPMDAndGetResults(files, ruleSetPath, plugin);
+        if (!ruleSetResultNodes.isEmpty()) {
+            ruleSetResultNode = createRuleSetNodeWithResults(ruleSetPath, ruleSetResultNodes);
         }
-        return result;
+        return ruleSetResultNode;
     }
 
-    private DefaultMutableTreeNode createRuleSetNode(String ruleSet, List<DefaultMutableTreeNode> results) {
-        ruleSet = PMDUtil.getFileNameFromPath(ruleSet) + ";" + ruleSet;
-        DefaultMutableTreeNode ruleSetNode = PMDTreeNodeFactory.getInstance().createNode(ruleSet);
+    private PMDBranchNode createRuleSetNodeWithResults(String ruleSetPath, List<PMDBranchNode> ruleResultNodes) {
+        ruleSetPath = PMDUtil.getFileNameFromPath(ruleSetPath) + ";" + ruleSetPath;
+        PMDBranchNode ruleSetNode = PMDTreeNodeFactory.getInstance().createBranchNode(ruleSetPath);
 
-        int childCount = 0;
-        for (DefaultMutableTreeNode pmdResult : results) {
-            childCount += ((PMDRuleNode) pmdResult.getUserObject()).getViolationCount();
-            ruleSetNode.add(pmdResult);
+        for (PMDBranchNode ruleResultNode : ruleResultNodes) {
+            ruleSetNode.add(ruleResultNode);
         }
-        ((PMDRuleNode) ruleSetNode.getUserObject()).addToViolationCount(childCount);
         return ruleSetNode;
     }
 
     @NotNull
-    private ReturnResult processScanResults(List<DefaultMutableTreeNode> results, Project project) {
-        int violations = toViolations(results);
+    private ReturnResult processScanResults(List<PMDBranchNode> ruleSetResultNodes, Project project) {
+        int violations = toViolations(ruleSetResultNodes);
         if (violations > 0) {
             int answer = promptUser(project, violations);
             if (answer == Messages.OK) {
-                showToolWindow(results, project);
+                showToolWindow(ruleSetResultNodes, project);
                 return ReturnResult.CLOSE_WINDOW;
             }
             if (answer == Messages.CANCEL || answer == -1) {
@@ -155,10 +153,10 @@ public class PMDCheckinHandler extends CheckinHandler {
         return ReturnResult.COMMIT;
     }
 
-    private int toViolations(List<DefaultMutableTreeNode> results) {
+    private int toViolations(List<PMDBranchNode> ruleSetResultNodes) {
         int violations = 0;
-        for (DefaultMutableTreeNode result : results) {
-            violations += ((PMDRuleNode) result.getUserObject()).getViolationCount();
+        for (PMDBranchNode ruleSetResultNode : ruleSetResultNodes) {
+            violations += ruleSetResultNode.getViolationCount();
         }
         return violations;
     }
@@ -172,21 +170,17 @@ public class PMDCheckinHandler extends CheckinHandler {
                 message("handler.before.checkin.error.title"), buttons, 0, UIUtil.getWarningIcon());
     }
 
-    private void showToolWindow(List<DefaultMutableTreeNode> results, Project project) {
+    private void showToolWindow(List<PMDBranchNode> ruleSetResultNodes, Project project) {
         PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
         PMDResultPanel resultPanel = plugin.getResultPanel();
         plugin.setupToolWindow();
 
-        DefaultMutableTreeNode rootNode = resultPanel.getRootNode();
-        PMDRuleNode rootNodeData = ((PMDRuleNode) rootNode.getUserObject());
-        for (DefaultMutableTreeNode node : results) {
-            PMDRuleNode nodeData = (PMDRuleNode) node.getUserObject();
-            resultPanel.addNode(rootNode, node);
-            rootNodeData.addToViolationCount(nodeData.getViolationCount());
+        PMDRootNode rootNode = resultPanel.getRootNode();
+        for (PMDBranchNode ruleSetNode : ruleSetResultNodes) {
+            resultPanel.addNode(rootNode, ruleSetNode);
         }
-
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
         toolWindow.activate(null);
-        plugin.setLastRunActionAndRules(null, StringUtils.join(plugin.getCustomRuleSets(), PMDInvoker.RULE_DELIMITER), true);
+        plugin.setLastRunActionAndRules(null, StringUtils.join(plugin.getCustomRuleSetPaths(), PMDInvoker.RULE_DELIMITER), true);
     }
 }

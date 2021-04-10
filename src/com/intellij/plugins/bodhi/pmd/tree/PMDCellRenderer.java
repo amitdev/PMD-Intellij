@@ -1,10 +1,13 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
-import com.intellij.ui.ColoredTreeCellRenderer;
 import com.intellij.openapi.util.IconLoader;
+import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
+import com.intellij.ui.ColoredTreeCellRenderer;
 
 import javax.swing.*;
-import javax.swing.tree.DefaultMutableTreeNode;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A Custom Cell renderer that will render the user objects of this plugin
@@ -12,7 +15,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
  * attributes.
  *
  * @author bodhi
- * @version 1.1
+ * @version 1.2
  */
 public class PMDCellRenderer extends ColoredTreeCellRenderer {
 
@@ -23,10 +26,20 @@ public class PMDCellRenderer extends ColoredTreeCellRenderer {
     public static final Icon WARN = IconLoader.getIcon("/compiler/warning.png");
     public static final Icon INFO = IconLoader.getIcon("/compiler/information.png");
 
+    private static final Map<String, Icon> prioToIcon;
+
     //Try to load idea specific icons for the tree.
     static {
         CLOSED_ICON = IconLoader.getIcon("/nodes/TreeClosed.png");
         OPEN_ICON = IconLoader.getIcon("/nodes/TreeOpen.png");
+
+        Map<String, Icon> attrs = new HashMap<>();
+        attrs.put("Medium", WARN);
+        attrs.put("Medium High", WARN);
+        attrs.put("High", ERROR);
+        attrs.put("Medium Low", INFO);
+        attrs.put("Low", INFO);
+        prioToIcon = Collections.unmodifiableMap(attrs);
     }
 
     public void customizeCellRenderer(JTree tree,
@@ -36,13 +49,12 @@ public class PMDCellRenderer extends ColoredTreeCellRenderer {
                                       boolean leaf,
                                       int row,
                                       boolean hasFocus) {
-        DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode)value;
-        Object userObject = treeNode.getUserObject();
-
-        if (userObject instanceof PMDTreeNodeData) {
-            //Each PMDTreeNodeData knows how to render itself.
-            ((PMDTreeNodeData)userObject).render(this, expanded);
+        if (value instanceof BasePMDNode) {
+            ((BasePMDNode)value).render(this, expanded);
         }
     }
 
+    public void setIconForViolationPrio(PMDViolation violation) {
+        setIcon(prioToIcon.get(violation.getRulePriorityName()));
+    }
 }

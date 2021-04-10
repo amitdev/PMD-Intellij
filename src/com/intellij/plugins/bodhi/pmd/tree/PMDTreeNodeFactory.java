@@ -1,9 +1,9 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
-import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
 import com.intellij.plugins.bodhi.pmd.PMDResultPanel;
-
-import javax.swing.tree.DefaultMutableTreeNode;
+import com.intellij.plugins.bodhi.pmd.core.PMDProcessingError;
+import com.intellij.plugins.bodhi.pmd.core.PMDSuppressedViolation;
+import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
 
 /**
  * A Factory that creates different types of tree nodes used by PMD plugin.
@@ -32,19 +32,43 @@ public class PMDTreeNodeFactory {
     }
 
     /**
-     * Creates a tree node object based on the user object that has to be wrapped.
-     * Supports String as well as PMDViolation as userobjects.
+     * Creates a branch tree node object
      *
-     * @param userObject String or PMDViolation object that has to be wrapped.
-     * @return The created treenode or null if userObject is invalid.
+     * @param name the branch node name
+     * @return The created node
      */
-    public DefaultMutableTreeNode createNode(Object userObject) {
-        if (userObject instanceof PMDViolation) {
-            return new PMDResultNode(userObject);
-        } else if (userObject instanceof String) {
-            return new DefaultMutableTreeNode(new PMDRuleNode((String)userObject));
-        }
-        return null;
+    public PMDBranchNode createBranchNode(String name) {
+        return new PMDBranchNode(name);
+    }
+
+    /**
+     * Creates a tree leaf node object for the violation
+     *
+     * @param violation PMDViolation that will be wrapped.
+     * @return The created tree node 
+     */
+    public PMDViolationNode createViolationLeafNode(PMDViolation violation) {
+        return new PMDViolationNode(violation);
+    }
+
+    /**
+     * Creates a tree leaf node object for the suppressed violation
+     *
+     * @param suppressed the suppressed PMDViolation that will be wrapped.
+     * @return The created tree node
+     */
+    public PMDSuppressedNode createSuppressedLeafNode(PMDSuppressedViolation suppressed) {
+        return new PMDSuppressedNode(suppressed);
+    }
+
+    /**
+     * Creates a tree leaf node object for the processing error
+     *
+     * @param error the PMDProcessingError that will be wrapped.
+     * @return The created tree node
+     */
+    public PMDErrorNode createErrorLeafNode(PMDProcessingError error) {
+        return new PMDErrorNode(error);
     }
 
     /**
@@ -53,7 +77,9 @@ public class PMDTreeNodeFactory {
      * @param resultPanel The Panel where the tree resides
      * @return The tree node to be used as root.
      */
-    public DefaultMutableTreeNode createRootNode(PMDResultPanel resultPanel) {
+    public PMDRootNode createRootNode(PMDResultPanel resultPanel) {
         return new PMDRootNode(resultPanel);
     }
+
+
 }

@@ -16,20 +16,14 @@ import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDBranchNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRootNode;
 
-import javax.swing.tree.DefaultMutableTreeNode;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.and;
-import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.fileHasExtension;
-import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.fileInSources;
-import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.fileInTestSources;
-import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.isDirectory;
-import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.not;
-import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.or;
+import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.*;
 
 /**
  * Invokes PMD using the PMDResultCollector and gets results from that. This acts as a
@@ -72,12 +66,12 @@ public class PMDInvoker {
      * Runs PMD based on the given parameters, and populates result.
      *
      * @param actionEvent The action event that triggered run
-     * @param rule The rule(s) to run
+     * @param ruleSetPaths The ruleSetPath(s) for rules to run
      * @param isCustomRuleSet Is it a custom ruleset or not.
      */
-    public void runPMD(AnActionEvent actionEvent, String rule, boolean isCustomRuleSet) {
-        //If no rule is selected, nothing to do
-        if (rule == null || rule.length() == 0) {
+    public void runPMD(AnActionEvent actionEvent, String ruleSetPaths, boolean isCustomRuleSet) {
+        //If no ruleSetPath is selected, nothing to do
+        if (ruleSetPaths == null || ruleSetPaths.length() == 0) {
             return;
         }
         //Show the tool window
@@ -86,7 +80,7 @@ public class PMDInvoker {
         Project project = actionEvent.getData(PlatformDataKeys.PROJECT);
         PMDProjectComponent projectComponent = project.getComponent(PMDProjectComponent.class);
         PMDResultPanel resultPanel = projectComponent.getResultPanel();
-        PMDRuleNode rootNodeData = ((PMDRuleNode) resultPanel.getRootNode().getUserObject());
+        PMDRootNode rootNode = resultPanel.getRootNode();
 
         List<File> files = new LinkedList<File>();
         if (actionEvent.getPlace().equals(ActionPlaces.PROJECT_VIEW_POPUP)
@@ -112,7 +106,7 @@ public class PMDInvoker {
 
             if (selectedFiles == null || selectedFiles.length == 0) {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
-                rootNodeData.setFileCount(0);
+                rootNode.setFileCount(0);
                 return;
             }
             VirtualFileFilter filter = and(SUPPORTED_EXTENSIONS, fileInSources(project));
@@ -129,25 +123,25 @@ public class PMDInvoker {
             VirtualFile[] selectedFiles = FileEditorManager.getInstance(project).getSelectedFiles();
             if (selectedFiles.length == 0) {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
-                rootNodeData.setFileCount(0);
+                rootNode.setFileCount(0);
                 return;
             }
             files.add(new File(selectedFiles[0].getPresentableUrl()));
         }
 
         //Got the files, start processing now
-        processFiles(project, rule, files, isCustomRuleSet, projectComponent);
+        processFiles(project, ruleSetPaths, files, isCustomRuleSet, projectComponent);
     }
 
     /**
      * Runs PMD on given files.
      *  @param project the project
-     * @param rule The rule(s) to run
+     * @param ruleSetPaths The ruleSetPath(s) of rules to run
      * @param files The files on which to run
      * @param isCustomRuleSet Is it a custom ruleset or not.
      * @param projectComponent
      */
-    public void processFiles(Project project, final String rule, final List<File> files, final boolean isCustomRuleSet, final PMDProjectComponent projectComponent) {
+    public void processFiles(Project project, final String ruleSetPaths, final List<File> files, final boolean isCustomRuleSet, final PMDProjectComponent projectComponent) {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
         toolWindow.activate(null);
 
@@ -159,43 +153,45 @@ public class PMDInvoker {
             public void run() {
                 //Show a progress indicator.
                 ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
-                String[] rules = rule.split(RULE_DELIMITER);
+                String[] ruleSetPathArray = ruleSetPaths.split(RULE_DELIMITER);
                 PMDResultPanel resultPanel = projectComponent.getResultPanel();
 
-                PMDRuleNode rootNodeData = ((PMDRuleNode) resultPanel.getRootNode().getUserObject());
-                PMDResultCollector.report = null;
-                rootNodeData.setFileCount(files.size());
-                rootNodeData.setRuleSetCount(rules.length);
-                rootNodeData.setRunning(true);
-                for (int i = 0; i < rules.length; i++) {
+                PMDRootNode rootNode = resultPanel.getRootNode();
+                PMDResultCollector.clearReport();
+                rootNode.setFileCount(files.size());
+                rootNode.setRuleSetCount(ruleSetPathArray.length);
+                rootNode.setRunning(true);
+                for (String ruleSetPath : ruleSetPathArray) {
                     //TODO: even better progress
-                    progress.setText("Running : " + rules[i] + " on " + files.size() + " file(s)");
+                    progress.setText("Running : " + ruleSetPath + " on " + files.size() + " file(s)");
 
                     //Create a result collector to get results
                     PMDResultCollector collector = new PMDResultCollector();
 
                     //Get the tree nodes from result collector
-                    List<DefaultMutableTreeNode> results = collector.getResults(files, rules[i], projectComponent);
+                    List<PMDBranchNode> resultRuleNodes = collector.runPMDAndGetResults(files, ruleSetPath, projectComponent);
 
-                    if (results.size() != 0) {
+                    if (resultRuleNodes.size() != 0) {
+                        String ruleSetName;
                         if (isCustomRuleSet) {
                             //For custom rulesets, using a separate format for rendering
-                            rules[i] = PMDUtil.getBareFileNameFromPath(rules[i]) + ";" + rules[i];
+                            ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath) + ";" + ruleSetPath;
                         } else {
-                            rules[i] = PMDUtil.getBareFileNameFromPath(rules[i]);
+                            ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
                         }
-                        DefaultMutableTreeNode node = resultPanel.addNode(rules[i]);
-                        //Add all nodes to the tree
-                        int childCount = 0;
-                        for (DefaultMutableTreeNode pmdResult : results) {
-                            resultPanel.addNode(node, pmdResult);
-                            childCount += ((PMDRuleNode)pmdResult.getUserObject()).getViolationCount();
+                        PMDBranchNode ruleSetNode = resultPanel.addCreateBranchNodeAtRoot(ruleSetName);
+                        //Add all rule nodes to the tree
+                        for (PMDBranchNode resultRuleNode : resultRuleNodes) {
+                            resultPanel.addNode(ruleSetNode, resultRuleNode);
                         }
-                        ((PMDRuleNode)node.getUserObject()).addToViolationCount(childCount);
-                        rootNodeData.addToViolationCount(childCount);
+                        rootNode.calculateCounts();
+                        resultPanel.reloadResultTree();
                     }
                 }
-                rootNodeData.setRunning(false);
+                resultPanel.addProcessingErrorsNodeToRootIfHasAny(); // as last node
+                rootNode.calculateCounts();
+                rootNode.setRunning(false);
+                resultPanel.reloadResultTree();
             }
         };
         ProgressManager.getInstance().runProcessWithProgressSynchronously(runnable, "Running PMD", true, project);
