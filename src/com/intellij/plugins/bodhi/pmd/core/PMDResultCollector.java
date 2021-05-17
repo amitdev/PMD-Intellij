@@ -1,6 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
 import com.intellij.openapi.project.Project;
+import com.intellij.plugins.bodhi.pmd.PMDConfigurationForm;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.tree.PMDBranchNode;
@@ -20,6 +21,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+
+
 /**
  * Responsible for running PMD and collecting the results which can be represented in
  * tree format.
@@ -29,15 +32,12 @@ import java.util.*;
  */
 public class PMDResultCollector {
 
-    private final Map<String, PMDBranchNode> ruleNameToNodeMap;
     private static Report report = new Report();
 
     /**
      * Creates an instance of PMDResultCollector.
      */
-    public PMDResultCollector() {
-        ruleNameToNodeMap = new LinkedHashMap<>();
-    } // linked to keep insertion order
+    public PMDResultCollector() {}
 
     /**
      * Clears the pmd results Report by assigning a new one
@@ -98,27 +98,46 @@ public class PMDResultCollector {
             pmdConfig.setRuleSets(ruleSets);
             pmdConfig.setReportFile(File.createTempFile("pmd", "report").getAbsolutePath());
 
-            pmdConfig.setShowSuppressedViolations(true); // try-out
+            pmdConfig.setShowSuppressedViolations(true);
             //AnalysisCache cache = new FileAnalysisCache(File.createTempFile("pmd-analysis", "cache"));
             //pmdConfig.setAnalysisCache(cache);
 
             PMDBranchNode errorsNode = comp.getResultPanel().getNewProcessingErrorsNode();
-            PMDResultRenderer renderer = new PMDResultRenderer(pmdRuleSetResults, errorsNode);
+            PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode);
+
+            String exportUrlFromForm = options.get(PMDConfigurationForm.STATISTICS_URL);
+            boolean exportStats = (PMDUtil.isValidUrl(exportUrlFromForm));
+            String exportUrl = exportUrlFromForm;
+            if (!exportStats || exportUrl.contains("localhost")) { // cmdline arg overrides localhost from form for testing
+                exportUrl = System.getProperty("pmdStatisticsUrl", exportUrl);
+                exportStats = (PMDUtil.isValidUrl(exportUrl));
+            }
 
             List<Renderer> renderers = new LinkedList<>();
-            renderers.add(renderer);
-
-            renderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFile()));
-            renderer.start();
+            renderers.add(treeRenderer);
+            treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFile()));
+            treeRenderer.start();
+            PMDJsonExportingRenderer exportingRenderer = null;
+            if (exportStats) {
+                exportingRenderer = new PMDJsonExportingRenderer(exportUrl);
+                renderers.add(exportingRenderer);
+                exportingRenderer.start();
+            }
 
             RuleContext ctx = new RuleContext();
 
             pmdConfig.setThreads(0); // threads == 0 : single threaded
             PMD.processFiles(pmdConfig, ruleSetFactory, files, ctx, renderers);
 
-            renderer.end();
-            renderer.flush();
-
+            treeRenderer.end();
+            treeRenderer.flush();
+            if (exportStats) {
+                exportingRenderer.end();
+                exportingRenderer.flush();
+                String exportErrMsg = exportingRenderer.exportJsonData();
+                comp.getResultPanel().getRootNode().setExportErrorMsg(exportErrMsg);
+                //treeRenderer.showExportMsg(exportErrMsg);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -181,16 +200,18 @@ public class PMDResultCollector {
 
     }
 
-    private class PMDResultRenderer extends AbstractIncrementingRenderer {
+    private class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
 
+        private final Map<String, PMDBranchNode> ruleNameToNodeMap;
         private final List<PMDBranchNode> pmdRuleResultNodes;
         private final PMDBranchNode processingErrorsNode;
         private final Set<String> filesWithError = new HashSet<>();
 
-        public PMDResultRenderer(List<PMDBranchNode> pmdRuleSetResults, PMDBranchNode errorsNode) {
+        public PMDResultAsTreeRenderer(List<PMDBranchNode> pmdRuleSetResults, PMDBranchNode errorsNode) {
             super("pmdplugin", "PMD plugin renderer");
             this.pmdRuleResultNodes = pmdRuleSetResults;
             processingErrorsNode = errorsNode;
+            ruleNameToNodeMap = new LinkedHashMap<>(); // linked to keep insertion order
         }
 
         @Override
@@ -260,5 +281,6 @@ public class PMDResultCollector {
         public String defaultFileExtension() {
             return "txt";
         }
+
     }
 }

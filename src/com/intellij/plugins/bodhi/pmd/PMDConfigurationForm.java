@@ -9,6 +9,7 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.plugins.bodhi.pmd.core.PMDJsonExportingRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.util.PlatformIcons;
@@ -47,9 +48,12 @@ public class PMDConfigurationForm {
     private boolean isModified;
     private Project project;
 
-    private static final Object[] columnNames = new String[] {"Option", "Value"};
-    private static final String[] optionNames = new String[] {"Target JDK", "Encoding"};
+    public static final String STATISTICS_URL = "Statistics URL";
+    private static final String[] columnNames = new String[] {"Option", "Value"};
+    private static final String[] optionNames = new String[] {"Target JDK", STATISTICS_URL};
     private static final String[] defaultValues = new String[] {"1.8", ""};
+    private static final String STAT_URL_MSG = "Fill in Statistics URL endpoint to export anonymous PMD-Plugin usage statistics";
+    private static final String STAT_URL_MSG_SUCCESS = "Could connect, will use Statistics URL endpoint to export anonymous PMD-Plugin usage statistics";
 
     public PMDConfigurationForm(final Project project) {
         this.project = project;
@@ -69,6 +73,8 @@ public class PMDConfigurationForm {
         table1.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
         ruleList.setModel(new MyListModel(new ArrayList<String>()));
         skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
+
+        table1.setToolTipText(STAT_URL_MSG);
     }
 
     /**
@@ -86,7 +92,7 @@ public class PMDConfigurationForm {
     public void setDataOnUI(PMDProjectComponent dataProjComp) {
         ruleList.setModel(new MyListModel(dataProjComp.getCustomRuleSetPaths()));
         if (dataProjComp.getOptions().isEmpty()) {
-            Object[][] dat = new Object[optionNames.length][2];
+            String[][] dat = new String[optionNames.length][2];
             for (int i = 0; i < optionNames.length; i++) {
                 dat[i][0] = optionNames[i];
                 dat[i][1] = defaultValues[i];
@@ -100,11 +106,15 @@ public class PMDConfigurationForm {
     }
 
     private Object[][] toArray(Map<String, String> options) {
-        Object[][] res = new Object[options.size()][2];
-        int i = 0;
-        for (Iterator<String> iterator = options.values().iterator(); iterator.hasNext();) {
+        String[][] res = new String[optionNames.length][2];
+//        int i = 0;
+//        for (Iterator<String> iterator = options.values().iterator(); iterator.hasNext();) {
+//            res[i][0] = optionNames[i];
+//            res[i++][1] = iterator.next();
+//        }
+        for (int i = 0; i < optionNames.length; i++) {
             res[i][0] = optionNames[i];
-            res[i++][1] = iterator.next();
+            res[i][1] = options.get(optionNames[i]);
         }
         return res;
     }
@@ -241,9 +251,47 @@ public class PMDConfigurationForm {
         public void setValueAt(Object aValue, int row, int column) {
             Object orig = getValueAt(row, column);
             super.setValueAt(aValue, row, column);
+            boolean origIsMod = isModified;
             isModified = isModified || !orig.equals(aValue);
+            // row 1: statistics URL
+            if (row == 1) {
+                validateStatUrl((String) aValue, row, column, orig, origIsMod);
+            }
+        }
+
+        /**
+         * Validate that statistics URL input is a valid URL and can be connected to.
+         * If so, it is accepted.
+         * If not, the change will be reverted and a tool tip message will show the reason.
+         * Better solution might be to have a modal dialog to enter the URL,
+         * however then the table setup should be quite changed.
+         */
+        private void validateStatUrl(String url, int row, int column, Object orig, boolean origIsMod) {
+            String statUrlMsg = STAT_URL_MSG_SUCCESS;
+            if (url.length() > 0) {
+                if (!PMDUtil.isValidUrl(url)) {
+                    //JOptionPane.showMessageDialog(rootPanel, "URL is not valid: '" + url + "'",
+                    //       "Invalid URL", JOptionPane.ERROR_MESSAGE); -- has problems
+                    statUrlMsg = "Previous input - Invalid URL: '" + url + "'";
+                    super.setValueAt(orig, row, column);
+                    isModified = origIsMod;
+                }
+                else {
+                    String content = "{\"test connection\"}\n";
+                    String exportMsg = PMDJsonExportingRenderer.tryJsonExport(content, url);
+                    if (exportMsg.length() > 0) {
+                        //JOptionPane.showMessageDialog(rootPanel, "Failure for '" + url + "': " + msg,
+                        //        "Endpoint unavailable", JOptionPane.WARNING_MESSAGE); -- has problems
+                        statUrlMsg = "Previous input - Failure for '" + url + "': " + exportMsg;
+                        super.setValueAt(orig, row, column);
+                        isModified = origIsMod;
+                    }
+                }
+            }
+            table1.setToolTipText(statUrlMsg);
         }
     }
+
     private class MyListModel extends AbstractListModel {
 
         private List<String> data;
