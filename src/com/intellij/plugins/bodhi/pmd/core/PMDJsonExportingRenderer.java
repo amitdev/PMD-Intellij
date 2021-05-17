@@ -67,7 +67,6 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
         jsonWriter.name("pmdVersion").value(PMDVersion.VERSION);
         jsonWriter.name("userNameHash").value(USER_NAME_HASH);
         jsonWriter.name("hostNameHash").value(HOST_NAME_HASH);
-        //jsonWriter.name("osName").value(System.getProperty("os.name"));
         jsonWriter.name("sessionId").value(SESSION_ID);
         jsonWriter.name("timestamp").value(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX").format(new Date()));
         jsonWriter.name("files").beginArray();
@@ -89,7 +88,6 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
                 }
                 filename = nextFilename;
                 jsonWriter.beginObject();
-                //jsonWriter.name("filename").value(filename);
                 String hashRootedPath = pathWithHashRoot(filename, rv);
                 jsonWriter.name("hashRootedPath").value(hashRootedPath);
                 jsonWriter.name("violations").beginArray();
@@ -218,8 +216,6 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
      */
     public String exportJsonData() {
         String content = getWriter().toString();
-        // for debugging
-        //content += System.lineSeparator() + "[DEBUG: exportUrlFromForm = '" + exportUrlFromForm + "']" + System.lineSeparator();
         return tryJsonExport(content, exportStatisticsUrl); // we assume it works
     }
 
@@ -239,7 +235,6 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
                     .socketTimeout(SOCKET_TIMEOUT)
                     .connectTimeout(CONNECT_TIMEOUT)
                     .execute();
-            //.returnContent(); // response content not needed
         } catch (SocketTimeoutException e) {
             // no-op, expected because no response back
         }

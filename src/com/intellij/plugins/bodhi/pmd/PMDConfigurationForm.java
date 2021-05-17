@@ -34,7 +34,7 @@ import java.util.*;
  * This class represents the UI for settings.
  *
  * @author bodhi
- * @version 1.0
+ * @version 1.1
  */
 public class PMDConfigurationForm {
     private JPanel rootPanel;
@@ -107,11 +107,6 @@ public class PMDConfigurationForm {
 
     private Object[][] toArray(Map<String, String> options) {
         String[][] res = new String[optionNames.length][2];
-//        int i = 0;
-//        for (Iterator<String> iterator = options.values().iterator(); iterator.hasNext();) {
-//            res[i][0] = optionNames[i];
-//            res[i++][1] = iterator.next();
-//        }
         for (int i = 0; i < optionNames.length; i++) {
             res[i][0] = optionNames[i];
             res[i][1] = options.get(optionNames[i]);
@@ -270,8 +265,6 @@ public class PMDConfigurationForm {
             String statUrlMsg = STAT_URL_MSG_SUCCESS;
             if (url.length() > 0) {
                 if (!PMDUtil.isValidUrl(url)) {
-                    //JOptionPane.showMessageDialog(rootPanel, "URL is not valid: '" + url + "'",
-                    //       "Invalid URL", JOptionPane.ERROR_MESSAGE); -- has problems
                     statUrlMsg = "Previous input - Invalid URL: '" + url + "'";
                     super.setValueAt(orig, row, column);
                     isModified = origIsMod;
@@ -280,8 +273,6 @@ public class PMDConfigurationForm {
                     String content = "{\"test connection\"}\n";
                     String exportMsg = PMDJsonExportingRenderer.tryJsonExport(content, url);
                     if (exportMsg.length() > 0) {
-                        //JOptionPane.showMessageDialog(rootPanel, "Failure for '" + url + "': " + msg,
-                        //        "Endpoint unavailable", JOptionPane.WARNING_MESSAGE); -- has problems
                         statUrlMsg = "Previous input - Failure for '" + url + "': " + exportMsg;
                         super.setValueAt(orig, row, column);
                         isModified = origIsMod;

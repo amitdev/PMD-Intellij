@@ -136,7 +136,6 @@ public class PMDResultCollector {
                 exportingRenderer.flush();
                 String exportErrMsg = exportingRenderer.exportJsonData();
                 comp.getResultPanel().getRootNode().setExportErrorMsg(exportErrMsg);
-                //treeRenderer.showExportMsg(exportErrMsg);
             }
         } catch (Exception e) {
             e.printStackTrace();
