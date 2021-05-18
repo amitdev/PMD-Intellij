@@ -27,8 +27,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.*;
+import java.util.Map;
 
 /**
  * This class represents the UI for settings.
@@ -262,7 +264,7 @@ public class PMDConfigurationForm {
          * however then the table setup should be quite changed.
          */
         private void validateStatUrl(String url, int row, int column, Object orig, boolean origIsMod) {
-            String statUrlMsg = STAT_URL_MSG_SUCCESS;
+            String statUrlMsg;
             if (url.length() > 0) {
                 if (!PMDUtil.isValidUrl(url)) {
                     statUrlMsg = "Previous input - Invalid URL: '" + url + "'";
@@ -277,7 +279,13 @@ public class PMDConfigurationForm {
                         super.setValueAt(orig, row, column);
                         isModified = origIsMod;
                     }
+                    else {
+                        statUrlMsg = STAT_URL_MSG_SUCCESS;
+                    }
                 }
+            }
+            else {
+                statUrlMsg = STAT_URL_MSG;
             }
             table1.setToolTipText(statUrlMsg);
         }
