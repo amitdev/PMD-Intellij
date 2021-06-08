@@ -3,9 +3,9 @@
   <name>PMDPlugin</name>
   <description>A plugin to run static analysis using PMD in intelliJ.</description>
 
-  <change-notes> Update to PMD version 6.33.0 and better reporting of suppressed violations.</change-notes>
+  <change-notes> Update to PMD version 6.35.0 and optional anonymous status reporting.</change-notes>
 
-  <version>1.8.16</version>
+  <version>1.8.17</version>
   <vendor>Amit Dev</vendor>
 
   <idea-version since-build="201.0"/>
