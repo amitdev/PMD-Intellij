@@ -286,6 +286,11 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         for (String key : state.getOptions().keySet()) {
             options.put(key, state.getOptions().get(key));
         }
+        // replace unused 'Encoding' by 'Statistics URL'
+        if (options.remove("Encoding") != null) {
+            options.put(PMDConfigurationForm.STATISTICS_URL, "");
+        }
+
         this.skipTestSources = state.isSkipTestSources();
         this.scanFilesBeforeCheckin = state.isScanFilesBeforeCheckin();
     }

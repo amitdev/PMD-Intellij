@@ -14,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.regex.Matcher;
@@ -214,5 +216,27 @@ public class PMDUtil {
         int end = ruleFileName.indexOf('.');
         if (end == -1) end = ruleFileName.length();
         return ruleFileName.substring(start, end);
+    }
+
+    /**
+     * Verify if url is non-empty and starts with http, specifies a host and is not malformed.
+     * @param url the url to verify
+     * @return whether url is non-empty and starts with http, specifies a host and is not malformed.
+     */
+    public static boolean isValidUrl(String url) {
+        if (url == null || url.length() == 0 || !url.startsWith("http")) {
+            return false;
+        }
+        boolean isValid = true;
+        try {
+            URL myURL = new URL(url);
+            String host = myURL.getHost();
+            if (host == null || host.length() == 0) {
+                isValid = false;
+            }
+        } catch (MalformedURLException e) {
+            isValid = false;
+        }
+        return isValid;
     }
 }

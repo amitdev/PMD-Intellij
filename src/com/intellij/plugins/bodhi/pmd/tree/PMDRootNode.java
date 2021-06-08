@@ -23,6 +23,8 @@ public class PMDRootNode extends PMDBranchNode {
 
     private int fileCount = -1;
     private int ruleSetCount = -1;
+    private String exportErrorMessage = null;
+
     private volatile boolean running = false;
 
     /**
@@ -61,6 +63,10 @@ public class PMDRootNode extends PMDBranchNode {
         running = r;
     }
 
+    public void setExportErrorMsg(String exportErrMsg) {
+        exportErrorMessage = exportErrMsg;
+    }
+
     public void render(PMDCellRenderer cellRenderer, boolean expanded) {
         cellRenderer.append(getNodeName());
         if (fileCount == 0) {
@@ -93,6 +99,15 @@ public class PMDRootNode extends PMDBranchNode {
             result += " using " + ruleSetCount + " rule set";
             if (ruleSetCount != 1) result += "s";
         }
+        if (exportErrorMessage != null) {
+            if (exportErrorMessage.length() == 0) {
+                result += " - exported";
+            }
+            else {
+                result += " - WARN: export failed: " + exportErrorMessage;
+            }
+        }
         cellRenderer.append(result + ")", GRAYED_ATTRIBUTES);
     }
+
 }
