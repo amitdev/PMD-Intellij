@@ -49,7 +49,8 @@ public class PMDSuppressedNode extends PMDLeafNode {
 
     private boolean containsNoReasonDescription(String userMessage) {
         return userMessage == null || userMessage.isEmpty() || userMessage.length() < 3
-                || (userMessage.contains("NOSONAR") && userMessage.length() < 13);
+                || (userMessage.contains("NOSONAR") && userMessage.length() < 13
+                || userMessage.contains("TODO"));
     }
 
     @Override
