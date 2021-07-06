@@ -31,10 +31,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeModel;
-import javax.swing.tree.TreePath;
+import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -220,7 +217,7 @@ public class PMDResultPanel extends JPanel {
                             public void run() {
                                 int offset = editor.getDocument().getLineEndOffset(result.getBeginLine()-1);
                                 //Append PMD special comment to end of line.
-                                editor.getDocument().insertString(offset, PMD_SUPPRESSION + " - TODO explain reason for suppression");
+                                editor.getDocument().insertString(offset, " " + PMD_SUPPRESSION + " - suppressed " + result.getRuleName() + " - TODO explain reason for suppression");
                             }
                         });
                     }
