@@ -115,27 +115,27 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         actionGroup.removeAll(); // start clean
         boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
         for (final String ruleSetPath : customRuleSetPaths) {
+            String ruleSetName;
             try {
                 RuleSet ruleSet = PMDResultCollector.loadRuleSet(ruleSetPath);
-                String ruleSetName = ruleSet.getName(); // from the xml
-                String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
-                String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
-                String actionText = ruleSetName;
-                if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
-                    actionText += " (" + extFileName + ")";
-                }
-                AnAction action = new AnAction(actionText) {
-                    public void actionPerformed(AnActionEvent e) {
-                        PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
-                        setLastRunActionAndRules(e, ruleSetPath, true);
-                    }
-                };
-                actionGroup.add(action);
+                ruleSetName = ruleSet.getName(); // from the xml
             } catch (PMDResultCollector.InvalidRuleSetException e) {
-                JOptionPane.showMessageDialog(resultPanel,
-                        "The ruleset file is not available or not a valid PMD ruleset:\n" + e.getMessage(),
-                        "Invalid File", JOptionPane.ERROR_MESSAGE);
+                String msg = (e.getCause() == null) ? e.getMessage(): e.getCause().getMessage();
+                ruleSetName = msg.substring(0, Math.min(25, msg.length()));
             }
+            String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
+            String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
+            String actionText = ruleSetName;
+            if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
+                actionText += " (" + extFileName + ")";
+            }
+            AnAction action = new AnAction(actionText) {
+                public void actionPerformed(AnActionEvent e) {
+                    PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
+                    setLastRunActionAndRules(e, ruleSetPath, true);
+                }
+            };
+            actionGroup.add(action);
         }
     }
 
