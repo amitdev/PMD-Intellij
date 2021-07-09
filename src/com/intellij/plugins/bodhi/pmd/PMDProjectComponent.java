@@ -112,7 +112,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      */
     void updateCustomRulesMenu() {
         PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
-        actionGroup.removeAll(); // start clean
+        List<AnAction> newActionList = new ArrayList<>();
         boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
         for (final String ruleSetPath : customRuleSetPaths) {
             String ruleSetName;
@@ -135,8 +135,12 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
                     setLastRunActionAndRules(e, ruleSetPath, true);
                 }
             };
-            actionGroup.add(action);
+            newActionList.add(action);
         }
+        // Hopefully solve issue #98: empty PMDCustom actions menu, clean and add in one go.
+        // Testing indicates it helps.
+        actionGroup.removeAll();
+        actionGroup.addAll(newActionList);
     }
 
     public void disposeComponent() {
