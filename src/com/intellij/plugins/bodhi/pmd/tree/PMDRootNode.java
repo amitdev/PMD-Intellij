@@ -1,6 +1,8 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
 import com.intellij.plugins.bodhi.pmd.PMDResultPanel;
+
+import static com.intellij.ui.SimpleTextAttributes.ERROR_ATTRIBUTES;
 import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 
 /**
@@ -24,6 +26,7 @@ public class PMDRootNode extends PMDBranchNode {
     private int fileCount = -1;
     private int ruleSetCount = -1;
     private String exportErrorMessage = null;
+    private String ruleSetErrorMsg = null;
 
     private volatile boolean running = false;
 
@@ -67,6 +70,8 @@ public class PMDRootNode extends PMDBranchNode {
         exportErrorMessage = exportErrMsg;
     }
 
+    public void setRuleSetErrorMsg(String msg) { ruleSetErrorMsg = msg; }
+
     public void render(PMDCellRenderer cellRenderer, boolean expanded) {
         cellRenderer.append(getNodeName());
         if (fileCount == 0) {
@@ -108,6 +113,11 @@ public class PMDRootNode extends PMDBranchNode {
             }
         }
         cellRenderer.append(result + ")", GRAYED_ATTRIBUTES);
+
+        if (ruleSetErrorMsg != null) {
+            cellRenderer.append("  - ruleset ERROR: " + ruleSetErrorMsg, ERROR_ATTRIBUTES);
+        }
     }
+
 
 }

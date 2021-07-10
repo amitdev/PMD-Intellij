@@ -127,7 +127,12 @@ public class PMDResultCollector {
             RuleContext ctx = new RuleContext();
 
             pmdConfig.setThreads(0); // threads == 0 : single threaded
-            PMD.processFiles(pmdConfig, ruleSetFactory, files, ctx, renderers);
+            try {
+                PMD.processFiles(pmdConfig, ruleSetFactory, files, ctx, renderers);
+            }
+            catch(Exception e) {
+                comp.getResultPanel().getRootNode().setRuleSetErrorMsg(e.getMessage());
+            }
 
             treeRenderer.end();
             treeRenderer.flush();

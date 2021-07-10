@@ -27,10 +27,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * This class represents the UI for settings.
@@ -157,8 +155,12 @@ public class PMDConfigurationForm {
             String fileName = panel.getText();
             String err;
             if ( (err = PMDResultCollector.isValidRuleSet(fileName)).length() > 0) {
-                JOptionPane.showMessageDialog(panel, "The selected file is not a valid PMD ruleset : "+err,
-                        "Invalid File",JOptionPane.ERROR_MESSAGE);
+                // make sense of error
+                int lastPartToShow = err.indexOf("valid file or URL");
+                int lastPos = (lastPartToShow > 0) ? lastPartToShow + 17 : Math.min(err.length(), 170);
+                String errTxt = err.substring(0, lastPos); // prevent excessive useless length
+                JOptionPane.showMessageDialog(panel, "The selected file/URL is not valid. PMD: " + errTxt,
+                        "Invalid File/URL", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             MyListModel listModel = (MyListModel) ruleList.getModel();

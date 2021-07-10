@@ -112,31 +112,35 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      */
     void updateCustomRulesMenu() {
         PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
-        actionGroup.removeAll(); // start clean
+        List<AnAction> newActionList = new ArrayList<>();
         boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
         for (final String ruleSetPath : customRuleSetPaths) {
+            String ruleSetName;
             try {
                 RuleSet ruleSet = PMDResultCollector.loadRuleSet(ruleSetPath);
-                String ruleSetName = ruleSet.getName(); // from the xml
-                String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
-                String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
-                String actionText = ruleSetName;
-                if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
-                    actionText += " (" + extFileName + ")";
-                }
-                AnAction action = new AnAction(actionText) {
-                    public void actionPerformed(AnActionEvent e) {
-                        PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
-                        setLastRunActionAndRules(e, ruleSetPath, true);
-                    }
-                };
-                actionGroup.add(action);
+                ruleSetName = ruleSet.getName(); // from the xml
             } catch (PMDResultCollector.InvalidRuleSetException e) {
-                JOptionPane.showMessageDialog(resultPanel,
-                        "The ruleset file is not available or not a valid PMD ruleset:\n" + e.getMessage(),
-                        "Invalid File", JOptionPane.ERROR_MESSAGE);
+                String msg = (e.getCause() == null) ? e.getMessage(): e.getCause().getMessage();
+                ruleSetName = msg.substring(0, Math.min(25, msg.length()));
             }
+            String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
+            String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
+            String actionText = ruleSetName;
+            if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
+                actionText += " (" + extFileName + ")";
+            }
+            AnAction action = new AnAction(actionText) {
+                public void actionPerformed(AnActionEvent e) {
+                    PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
+                    setLastRunActionAndRules(e, ruleSetPath, true);
+                }
+            };
+            newActionList.add(action);
         }
+        // Hopefully solve issue #98: empty PMDCustom actions menu, clean and add in one go.
+        // Testing indicates it helps.
+        actionGroup.removeAll();
+        actionGroup.addAll(newActionList);
     }
 
     public void disposeComponent() {
