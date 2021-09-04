@@ -49,7 +49,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     private static final String COMPONENT_NAME = "PMDProjectComponent";
 
-    private Project currentProject;
+    private final Project currentProject;
     private PMDResultPanel resultPanel;
     private ToolWindow resultWindow;
     private String lastRunRuleSetPaths;
@@ -57,7 +57,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private AnActionEvent lastRunActionEvent;
     private Set<String> customRuleSetPaths = new LinkedHashSet<>(); // avoid duplicates, maintain order
     private Map<String, String> options = new HashMap<>();
-    private ToolWindowManager toolWindowManager;
+    private final ToolWindowManager toolWindowManager;
     private boolean skipTestSources;
     private boolean scanFilesBeforeCheckin;
 
@@ -95,7 +95,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     private boolean hasDuplicateBareFileName(Iterable<String> paths)    {
         boolean duplicate = false;
-        List fileNames = new ArrayList();
+        List<String> fileNames = new ArrayList<>();
         for (String path : paths) {
             String fileName = PMDUtil.getBareFileNameFromPath(path);
             if (fileNames.contains(fileName)) {
@@ -244,11 +244,11 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     }
 
     public List<String> getCustomRuleSetPaths() {
-        return new ArrayList(customRuleSetPaths);
+        return new ArrayList<>(customRuleSetPaths);
     }
 
     public void setCustomRuleSets(List<String> customRuleSetPaths) {
-        this.customRuleSetPaths = new LinkedHashSet(customRuleSetPaths);
+        this.customRuleSetPaths = new LinkedHashSet<>(customRuleSetPaths);
     }
 
     public Map<String, String> getOptions() {
@@ -284,9 +284,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     public void loadState(PersistentData state) {
         customRuleSetPaths.clear();
         options.clear();
-        for (String item : state.getCustomRuleSets()) {
-            customRuleSetPaths.add(item);
-        }
+        customRuleSetPaths.addAll(state.getCustomRuleSets());
         for (String key : state.getOptions().keySet()) {
             options.put(key, state.getOptions().get(key));
         }
