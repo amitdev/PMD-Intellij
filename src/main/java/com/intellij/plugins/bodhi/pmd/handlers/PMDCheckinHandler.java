@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.handlers;
 
+import com.intellij.AbstractBundle;
 import com.intellij.CommonBundle;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -37,7 +38,7 @@ import java.util.ResourceBundle;
 public class PMDCheckinHandler extends CheckinHandler {
 
     private static final Log log = LogFactory.getLog(PMDCheckinHandler.class);
-    private static final String BUNDLE = "com.intellij.plugins.bodhi.pmd.PMD-Intellij";
+    private static final String BUNDLE = "messages.PMD-Intellij";
 
     @NonNls
     private final CheckinProjectPanel checkinProjectPanel;
@@ -81,17 +82,13 @@ public class PMDCheckinHandler extends CheckinHandler {
 
     @NotNull
     private String message(@PropertyKey(resourceBundle = BUNDLE) String key, Object... params) {
-        return CommonBundle.message(ResourceBundle.getBundle(BUNDLE), key, params);
+        return AbstractBundle.message(ResourceBundle.getBundle(BUNDLE), key, params);
     }
 
     @Override
     public ReturnResult beforeCheckin(@Nullable CommitExecutor executor,
                                       PairConsumer<Object, Object> additionalDataConsumer) {
         Project project = checkinProjectPanel.getProject();
-        if (project == null) {
-            log.error("Could not get project for check-in panel, skipping");
-            return ReturnResult.COMMIT;
-        }
 
         PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
         if (plugin == null) {
@@ -180,7 +177,9 @@ public class PMDCheckinHandler extends CheckinHandler {
             resultPanel.addNode(rootNode, ruleSetNode);
         }
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
-        toolWindow.activate(null);
+        if (toolWindow != null) {
+            toolWindow.activate(null);
+        }
         plugin.setLastRunActionAndRules(null, StringUtils.join(plugin.getCustomRuleSetPaths(), PMDInvoker.RULE_DELIMITER), true);
     }
 }

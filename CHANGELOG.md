@@ -3,6 +3,9 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+### Changed
+- Fixed #101: bundle loading error during vcs commit
+
 ## [1.8.20]
 ### Added
 - Update to PMD version 6.38.0
