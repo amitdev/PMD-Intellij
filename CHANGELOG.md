@@ -3,6 +3,7 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [1.8.21]
 ### Changed
 - Fixed #101: bundle loading error during vcs commit
 
