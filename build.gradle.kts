@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
-val pmdVersion = "6.38.0"
+val pmdVersion = "6.44.0"
 
 plugins {
     id("java")

@@ -7,21 +7,16 @@ import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.tree.PMDBranchNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
 import net.sourceforge.pmd.*;
-import net.sourceforge.pmd.lang.Language;
 import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.LanguageVersion;
 import net.sourceforge.pmd.renderers.AbstractIncrementingRenderer;
 import net.sourceforge.pmd.renderers.Renderer;
 import net.sourceforge.pmd.util.IOUtil;
-import net.sourceforge.pmd.util.ResourceLoader;
-import net.sourceforge.pmd.util.datasource.DataSource;
-import net.sourceforge.pmd.util.datasource.FileDataSource;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-
-
 
 /**
  * Responsible for running PMD and collecting the results which can be represented in
@@ -61,84 +56,38 @@ public class PMDResultCollector {
      * @return list of results
      */
     public List<PMDBranchNode> runPMDAndGetResults(List<File> files, String ruleSets, PMDProjectComponent comp) {
-        List<DataSource> fileDataSources = new ArrayList<>(files.size());
-        for (File file : files) {
-            fileDataSources.add(new FileDataSource(file));
-        }
-        return runPMDAndGenerateReport(fileDataSources, ruleSets, comp);
-    }
-
-    /**
-     * Runs PMD on given set of files and generates the Report.
-     *
-     * @param files The list of files to run PMD
-     * @param ruleSets The ruleSets(s) to run
-     * @return The pmd Report
-     */
-    private List<PMDBranchNode> runPMDAndGenerateReport(List<DataSource> files, String ruleSets, PMDProjectComponent comp) {
         Map<String, String> options = comp.getOptions();
         Project project = comp.getCurrentProject();
 
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
-        PMDConfiguration pmdConfig = new PMDConfiguration();
-        Language lang = LanguageRegistry.getLanguage("Java");
-        String type;
-        if ( (type = options.get("Target JDK")) != null) {
-            LanguageVersion srcType;
-            if ( (srcType = lang.getVersion(type)) != null) {
-                pmdConfig.getLanguageVersionDiscoverer().setDefaultLanguageVersion(srcType);
-            }
-        }
 
         final List<PMDBranchNode> pmdRuleSetResults = new ArrayList<>();
         try {
-            pmdConfig.prependClasspath(PMDUtil.getFullClassPathForAllModules(project));
-
-            RuleSetFactory ruleSetFactory = RulesetsFactoryUtils.getRulesetFactory(pmdConfig, new ResourceLoader());
-            pmdConfig.setRuleSets(ruleSets);
-            pmdConfig.setReportFile(File.createTempFile("pmd", "report").getAbsolutePath());
-
-            pmdConfig.setShowSuppressedViolations(true);
-            //AnalysisCache cache = new FileAnalysisCache(File.createTempFile("pmd-analysis", "cache"));
-            //pmdConfig.setAnalysisCache(cache);
+            PMDConfiguration pmdConfig = getPmdConfig(ruleSets, options, project);
 
             PMDBranchNode errorsNode = comp.getResultPanel().getNewProcessingErrorsNode();
             PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode);
-
-            String exportUrlFromForm = options.get(PMDConfigurationForm.STATISTICS_URL);
-            boolean exportStats = (PMDUtil.isValidUrl(exportUrlFromForm));
-            String exportUrl = exportUrlFromForm;
-            if (!exportStats || exportUrl.contains("localhost")) { // cmdline arg overrides localhost from form for testing
-                exportUrl = System.getProperty("pmdStatisticsUrl", exportUrl);
-                exportStats = (PMDUtil.isValidUrl(exportUrl));
-            }
+            treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFile()));
+            treeRenderer.start();
 
             List<Renderer> renderers = new LinkedList<>();
             renderers.add(treeRenderer);
-            treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFile()));
-            treeRenderer.start();
-            PMDJsonExportingRenderer exportingRenderer = null;
-            if (exportStats) {
-                exportingRenderer = new PMDJsonExportingRenderer(exportUrl);
-                renderers.add(exportingRenderer);
-                exportingRenderer.start();
+
+            PMDJsonExportingRenderer exportingRenderer = addExportRenderer(options);
+            if (exportingRenderer != null) renderers.add(exportingRenderer);
+
+            try (PmdAnalysis pmd = PmdAnalysis.create(pmdConfig)) {
+                files.forEach(file -> pmd.files().addFile(file.toPath()));
+                pmd.addRenderers(renderers);
+                pmd.performAnalysis();
             }
 
-            RuleContext ctx = new RuleContext();
-
-            pmdConfig.setThreads(0); // threads == 0 : single threaded
-            try {
-                PMD.processFiles(pmdConfig, ruleSetFactory, files, ctx, renderers);
-            }
-            catch(Exception e) {
-                comp.getResultPanel().getRootNode().setRuleSetErrorMsg(e.getMessage());
+            for (Renderer renderer : renderers) {
+                renderer.end();
+                renderer.flush();
             }
 
-            treeRenderer.end();
-            treeRenderer.flush();
-            if (exportStats) {
-                exportingRenderer.end();
-                exportingRenderer.flush();
+            if (exportingRenderer != null) {
                 String exportErrMsg = exportingRenderer.exportJsonData();
                 comp.getResultPanel().getRootNode().setExportErrorMsg(exportErrMsg);
             }
@@ -148,14 +97,39 @@ public class PMDResultCollector {
         return pmdRuleSetResults;
     }
 
-    private String shortMessage(String message)
-    {
-        String shortMessage = message;
-        if (shortMessage.length() > 180)
-        {
-            shortMessage = message.substring(0, 180) + "...";
+    private PMDJsonExportingRenderer addExportRenderer(Map<String, String> options) throws IOException {
+        PMDJsonExportingRenderer exportingRenderer = null;
+        String exportUrlFromForm = options.get(PMDConfigurationForm.STATISTICS_URL);
+        boolean exportStats = (PMDUtil.isValidUrl(exportUrlFromForm));
+        String exportUrl = exportUrlFromForm;
+        if (!exportStats || exportUrl.contains("localhost")) { // cmdline arg overrides localhost from form for testing
+            exportUrl = System.getProperty("pmdStatisticsUrl", exportUrl);
+            exportStats = (PMDUtil.isValidUrl(exportUrl));
         }
-        return shortMessage;
+        if (exportStats) {
+            exportingRenderer = new PMDJsonExportingRenderer(exportUrl);
+            exportingRenderer.start();
+            return exportingRenderer;
+        }
+        return null;
+    }
+
+    @NotNull
+    private PMDConfiguration getPmdConfig(String ruleSets, Map<String, String> options, Project project) throws IOException {
+        PMDConfiguration pmdConfig = new PMDConfiguration();
+        String type = options.get("Target JDK");
+        if (type != null) {
+            LanguageVersion version = LanguageRegistry.findLanguageByTerseName("java").getVersion(type);
+            if (version != null)
+                pmdConfig.setDefaultLanguageVersion(version);
+        }
+        pmdConfig.prependAuxClasspath(PMDUtil.getFullClassPathForAllModules(project));
+
+        pmdConfig.addRuleSet(ruleSets);
+        pmdConfig.setReportFile(File.createTempFile("pmd", "report").getAbsolutePath());
+        pmdConfig.setShowSuppressedViolations(true);
+        pmdConfig.setThreads(0);
+        return pmdConfig;
     }
 
     /**
@@ -166,30 +140,29 @@ public class PMDResultCollector {
      */
     public static String isValidRuleSet(String path) {
         Thread.currentThread().setContextClassLoader(PMDResultCollector.class.getClassLoader());
-        RuleSetFactory ruleSetFactory = new RuleSetFactory();
+
         try {
-            RuleSet rs = ruleSetFactory.createRuleSet(path);
+            RuleSet rs = new RuleSetLoader().loadFromResource(path);
             if (rs.getRules().size() != 0) {
                 return "";
             }
-        } catch (RuleSetNotFoundException | RuntimeException e) {
+        } catch (RuleSetLoadException e) {
             return e.getMessage();
         }
-        return "Invalid File";
+        return "No rules found";
     }
 
     public static RuleSet loadRuleSet(String path) throws InvalidRuleSetException {
         Thread.currentThread().setContextClassLoader(PMDResultCollector.class.getClassLoader());
-        RuleSetFactory ruleSetFactory = new RuleSetFactory();
         try {
-            RuleSet rs = ruleSetFactory.createRuleSet(path);
+            RuleSet rs = new RuleSetLoader().loadFromResource(path);
             if (rs.getRules().size() != 0) {
                 return rs;
             }
-        } catch (RuntimeException | RuleSetNotFoundException e) {
-            throw  new InvalidRuleSetException(e);
+        } catch (RuleSetLoadException e) {
+            throw new InvalidRuleSetException(e);
         }
-        throw new InvalidRuleSetException("Invalid File");
+        throw new InvalidRuleSetException("No rules found");
     }
 
     public static class InvalidRuleSetException extends Exception {
@@ -204,7 +177,7 @@ public class PMDResultCollector {
 
     }
 
-    private class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
+    private static class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
 
         private final Map<String, PMDBranchNode> ruleNameToNodeMap;
         private final List<PMDBranchNode> pmdRuleResultNodes;
@@ -253,7 +226,7 @@ public class PMDResultCollector {
         }
 
         @Override
-        public void end() throws IOException {
+        public void end() {
             renderSuppressedViolations();
             renderErrors();
         }
