@@ -3,6 +3,7 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [1.8.22]
 ### Added
 - Update to PMD version 6.44.0
 
