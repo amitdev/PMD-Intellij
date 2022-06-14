@@ -45,7 +45,8 @@ public class PMDInvoker {
             fileHasExtension("java"),
             fileHasExtension("xml"),
             fileHasExtension("cls"),
-            fileHasExtension("trigger"));
+            fileHasExtension("trigger"),
+            fileHasExtension("page"));
 
     /**
      * Prevents instantiation by other classes.
