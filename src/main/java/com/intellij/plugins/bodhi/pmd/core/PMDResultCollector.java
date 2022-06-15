@@ -81,11 +81,6 @@ public class PMDResultCollector {
                 pmd.performAnalysis();
             }
 
-            for (Renderer renderer : renderers) {
-                renderer.end();
-                renderer.flush();
-            }
-
             if (exportingRenderer != null) {
                 String exportErrMsg = exportingRenderer.exportJsonData();
                 comp.getResultPanel().getRootNode().setExportErrorMsg(exportErrMsg);
