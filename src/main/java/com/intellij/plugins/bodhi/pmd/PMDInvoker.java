@@ -18,6 +18,7 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.tree.PMDBranchNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRootNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -143,7 +144,9 @@ public class PMDInvoker {
      */
     public void processFiles(Project project, final String ruleSetPaths, final List<File> files, final boolean isCustomRuleSet, final PMDProjectComponent projectComponent) {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
-        toolWindow.activate(null);
+        if (toolWindow != null) {
+            toolWindow.activate(null);
+        }
 
         //Save all files
         ApplicationManager.getApplication().saveAll();
@@ -169,7 +172,9 @@ public class PMDInvoker {
                     PMDResultCollector collector = new PMDResultCollector();
 
                     //Get the tree nodes from result collector
-                    List<PMDBranchNode> resultRuleNodes = collector.runPMDAndGetResults(files, ruleSetPath, projectComponent);
+                    List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(files, ruleSetPath, projectComponent);
+                    // sort rules by priority, rule and suppressed nodes are comparable
+                    resultRuleNodes.sort(null);
 
                     if (resultRuleNodes.size() != 0) {
                         String ruleSetName;

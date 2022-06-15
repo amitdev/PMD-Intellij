@@ -13,6 +13,7 @@ import com.intellij.plugins.bodhi.pmd.core.PMDJsonExportingRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.util.PlatformIcons;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -46,7 +47,7 @@ public class PMDConfigurationForm {
     private JCheckBox skipTestsCheckBox;
 
     private boolean isModified;
-    private Project project;
+    private final Project project;
 
     public static final String STATISTICS_URL = "Statistics URL";
     private static final String[] columnNames = new String[] {"Option", "Value"};
@@ -63,8 +64,8 @@ public class PMDConfigurationForm {
         actionGroup.removeAll();
         //Add the toolbar actions associated to this form to it
         actionGroup.add(new AddRuleSetAction("Add", "Add a custom ruleset", PlatformIcons.ADD_ICON));
-        actionGroup.add(new EditRuleSetAction("Edit", "Edit selected ruleset", IconLoader.getIcon("/actions/editSource.png")));
-        actionGroup.add(new DeleteRuleSetAction("Delete", "Remove selected ruleset", IconLoader.getIcon("/general/remove.png")));
+        actionGroup.add(new EditRuleSetAction("Edit", "Edit selected ruleset", IconLoader.getIcon("/actions/editSource.png", PMDConfigurationForm.class)));
+        actionGroup.add(new DeleteRuleSetAction("Delete", "Remove selected ruleset", IconLoader.getIcon("/general/remove.png", PMDConfigurationForm.class)));
         ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("modify actions", actionGroup, true);
         toolbar.getComponent().setVisible(true);
         buttonPanel.setLayout(new BorderLayout());
@@ -167,7 +168,7 @@ public class PMDConfigurationForm {
             if (listModel.data.contains(fileName)) {
                 return;
             }
-            if (defaultValue.length() > 0) {
+            if (defaultValue != null && defaultValue.trim().length() > 0) {
                 listModel.set(ruleList.getSelectedIndex(), fileName);
                 return;
             }
@@ -187,7 +188,7 @@ public class PMDConfigurationForm {
             registerCustomShortcutSet(new CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, KeyEvent.ALT_DOWN_MASK)), rootPanel);
         }
 
-        public void actionPerformed(AnActionEvent e) {
+        public void actionPerformed(@NotNull AnActionEvent e) {
             String defaultValue = "";
             modifyRuleSet(defaultValue, e);
         }
@@ -202,13 +203,13 @@ public class PMDConfigurationForm {
             registerCustomShortcutSet(CommonShortcuts.ALT_ENTER, rootPanel);
         }
 
-        public void actionPerformed(AnActionEvent e) {
+        public void actionPerformed(@NotNull AnActionEvent e) {
             String defaultValue;
             defaultValue = (String) ruleList.getSelectedValue();
             modifyRuleSet(defaultValue, e);
         }
 
-        public void update(AnActionEvent e) {
+        public void update(@NotNull AnActionEvent e) {
             super.update(e);
             e.getPresentation().setEnabled(!ruleList.getSelectionModel().isSelectionEmpty());
         }
@@ -223,7 +224,7 @@ public class PMDConfigurationForm {
             registerCustomShortcutSet(CommonShortcuts.getDelete(), rootPanel);
         }
 
-        public void actionPerformed(AnActionEvent e) {
+        public void actionPerformed(@NotNull AnActionEvent e) {
             int index = ruleList.getSelectedIndex();
             if (index != -1) {
                 ((MyListModel)ruleList.getModel()).remove(index);
@@ -232,7 +233,7 @@ public class PMDConfigurationForm {
             ruleList.repaint();
         }
 
-        public void update(AnActionEvent e) {
+        public void update(@NotNull AnActionEvent e) {
             super.update(e);
             e.getPresentation().setEnabled(ruleList.getSelectedIndex() != -1);
         }
@@ -295,7 +296,7 @@ public class PMDConfigurationForm {
 
     private class MyListModel extends AbstractListModel {
 
-        private List<String> data;
+        private final List<String> data;
 
         public MyListModel(List<String> data) {
             this.data = data;
@@ -337,17 +338,12 @@ public class PMDConfigurationForm {
      * select a ruleset file.
      */
     static class BrowsePanel extends JPanel {
-        private JLabel label;
-        private JTextField path;
-        private JButton open;
-
-        private Project project;
+        private final JTextField path;
 
         public BrowsePanel(String defaultValue, final DialogBuilder db, final Project project) {
             super();
-            this.project = project;
             setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
-            label = new JLabel("Choose RuleSet: ");
+            JLabel label = new JLabel("Choose RuleSet: ");
             label.setMinimumSize(new Dimension(100, 20));
             label.setMaximumSize(new Dimension(120, 20));
             label.setPreferredSize(new Dimension(100, 20));
@@ -358,7 +354,7 @@ public class PMDConfigurationForm {
             path.setPreferredSize(new Dimension(200, 20));
             add(path);
             add(Box.createHorizontalStrut(5));
-            open = new JButton("Browse");
+            JButton open = new JButton("Browse");
             label.setMinimumSize(new Dimension(50, 20));
             label.setMaximumSize(new Dimension(150, 20));
             open.setPreferredSize(new Dimension(80, 20));
@@ -381,7 +377,7 @@ public class PMDConfigurationForm {
             db.setCenterPanel(this);
 
             path.getDocument().addDocumentListener(new DocumentAdapter() {
-                protected void textChanged(DocumentEvent e) {
+                protected void textChanged(@NotNull DocumentEvent e) {
                     try {
                         Document doc = e.getDocument();
                         db.setOkActionEnabled(doc.getText(0, doc.getLength()).trim().length() > 0);

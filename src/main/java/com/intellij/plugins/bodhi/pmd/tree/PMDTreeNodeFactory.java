@@ -4,6 +4,7 @@ import com.intellij.plugins.bodhi.pmd.PMDResultPanel;
 import com.intellij.plugins.bodhi.pmd.core.PMDProcessingError;
 import com.intellij.plugins.bodhi.pmd.core.PMDSuppressedViolation;
 import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
+import net.sourceforge.pmd.Rule;
 
 /**
  * A Factory that creates different types of tree nodes used by PMD plugin.
@@ -39,6 +40,36 @@ public class PMDTreeNodeFactory {
      */
     public PMDBranchNode createBranchNode(String name) {
         return new PMDBranchNode(name);
+    }
+
+    /**
+     * Creates a rule branch tree node object
+     *
+     * @param rule the branch node rule
+     * @return The created node
+     */
+    public PMDRuleBranchNode createRuleBranchNode(Rule rule) {
+        return new PMDRuleBranchNode(rule);
+    }
+
+    /**
+     * Creates a suppressed branch tree node object
+     *
+     * @param name the branch node name
+     * @return The created node
+     */
+    public PMDSuppressedBranchNode createSuppressedBranchNode(String name) {
+        return new PMDSuppressedBranchNode(name);
+    }
+
+    /**
+     * Creates a processing error branch tree node object
+     *
+     * @param name the branch node name
+     * @return The created node
+     */
+    public PMDErrorBranchNode createErrorBranchNode(String name) {
+        return new PMDErrorBranchNode(name);
     }
 
     /**

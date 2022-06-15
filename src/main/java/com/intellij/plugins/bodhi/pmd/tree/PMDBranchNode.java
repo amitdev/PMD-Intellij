@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
+import javax.swing.tree.TreeNode;
 import java.util.Enumeration;
 import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 
@@ -16,9 +17,9 @@ public class PMDBranchNode extends BasePMDNode {
 
     private String nodeName;
     private String toolTip;
-    private volatile int violationCount = 0;
-    private volatile int suppressedCount = 0;
-    private volatile int errorCount = 0;
+    private int violationCount = 0;
+    private int suppressedCount = 0;
+    private int errorCount = 0;
     private static final char CUSTOM_RULE_DELIM = ';';
 
     /**
@@ -44,7 +45,7 @@ public class PMDBranchNode extends BasePMDNode {
         violationCount = 0;
         suppressedCount = 0;
         errorCount = 0;
-        Enumeration children = children();
+        Enumeration<TreeNode> children = children();
         while (children.hasMoreElements()) {
             Object child = children.nextElement();
             if (child instanceof BasePMDNode) {
@@ -143,4 +144,5 @@ public class PMDBranchNode extends BasePMDNode {
     public boolean canNavigateToSource() {
         return false;
     }
+
 }

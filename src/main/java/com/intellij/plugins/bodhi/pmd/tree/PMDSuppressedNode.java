@@ -12,7 +12,7 @@ import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
  */
 public class PMDSuppressedNode extends PMDLeafNode {
 
-    private PMDSuppressedViolation pmdSuppressedViolation;
+    private final PMDSuppressedViolation pmdSuppressedViolation;
 
     /**
      * Create a node with the given suppressed pmd violation.
@@ -48,7 +48,7 @@ public class PMDSuppressedNode extends PMDLeafNode {
     }
 
     private boolean containsNoReasonDescription(String userMessage) {
-        return userMessage == null || userMessage.isEmpty() || userMessage.length() < 3
+        return userMessage == null || userMessage.length() < 3
                 || (userMessage.contains("NOSONAR") && userMessage.length() < 13
                 || userMessage.contains("TODO"));
     }
@@ -60,14 +60,14 @@ public class PMDSuppressedNode extends PMDLeafNode {
         if (pmdSuppressedViolation.suppressedByNOPMD()) {
             // NOPMD should be followed by a reason explaining the suppression
             if (containsNoReasonDescription(userMessage)) {
-                cellRenderer.setIcon(PMDCellRenderer.WARN);
+                cellRenderer.setIcon(Severity.MAJOR.getIcon());
             }
             else {
-                cellRenderer.setIcon(PMDCellRenderer.INFO);
+                cellRenderer.setIcon(Severity.INFO.getIcon());
             }
         }
         else { // suppressed by Annotation has no option to describe the reason, should be documented in // comment
-            cellRenderer.setIcon(PMDCellRenderer.INFO);
+            cellRenderer.setIcon(Severity.INFO.getIcon());
         }
         cellRenderer.append("suppressed: ", GRAYED_ATTRIBUTES);
         cellRenderer.append(pmdSuppressedViolation.getPMDViolation().getRuleName() + " ");

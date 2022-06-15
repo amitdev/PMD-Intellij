@@ -17,6 +17,7 @@ import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.tree.PMDBranchNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRootNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
 import com.intellij.util.PairConsumer;
 import com.intellij.util.ui.UIUtil;
@@ -117,14 +118,14 @@ public class PMDCheckinHandler extends CheckinHandler {
         PMDResultCollector collector = new PMDResultCollector();
         List<File> files = new ArrayList<>(checkinProjectPanel.getFiles());
 
-        List<PMDBranchNode> ruleSetResultNodes = collector.runPMDAndGetResults(files, ruleSetPath, plugin);
+        List<PMDRuleSetEntryNode> ruleSetResultNodes = collector.runPMDAndGetResults(files, ruleSetPath, plugin);
         if (!ruleSetResultNodes.isEmpty()) {
             ruleSetResultNode = createRuleSetNodeWithResults(ruleSetPath, ruleSetResultNodes);
         }
         return ruleSetResultNode;
     }
 
-    private PMDBranchNode createRuleSetNodeWithResults(String ruleSetPath, List<PMDBranchNode> ruleResultNodes) {
+    private PMDBranchNode createRuleSetNodeWithResults(String ruleSetPath, List<PMDRuleSetEntryNode> ruleResultNodes) {
         ruleSetPath = PMDUtil.getFileNameFromPath(ruleSetPath) + ";" + ruleSetPath;
         PMDBranchNode ruleSetNode = PMDTreeNodeFactory.getInstance().createBranchNode(ruleSetPath);
 

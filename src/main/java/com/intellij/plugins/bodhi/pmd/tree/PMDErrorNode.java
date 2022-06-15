@@ -11,7 +11,7 @@ import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
  */
 public class PMDErrorNode extends PMDLeafNode {
 
-    private PMDProcessingError pmdProcessingError;
+    private final PMDProcessingError pmdProcessingError;
 
     public PMDErrorNode(PMDProcessingError error) {
         pmdProcessingError = error;
@@ -24,7 +24,7 @@ public class PMDErrorNode extends PMDLeafNode {
 
     @Override
     public void render(PMDCellRenderer cellRenderer, boolean expanded) {
-        cellRenderer.setIcon(PMDCellRenderer.ERROR);
+        cellRenderer.setIcon(Severity.BLOCKER.getIcon());
         // Show error position greyed, like idea shows.
         cellRenderer.append(pmdProcessingError.getPositionText(), GRAYED_ATTRIBUTES);
         cellRenderer.append(pmdProcessingError.getErrorMsg()); // includes file name

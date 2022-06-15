@@ -12,7 +12,7 @@ import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
  */
 public class PMDViolationNode extends PMDLeafNode {
 
-    private PMDViolation pmdViolation;
+    private final PMDViolation pmdViolation;
 
     /**
      * Create a node with the given pmd violation.
@@ -42,7 +42,7 @@ public class PMDViolationNode extends PMDLeafNode {
     }
 
     public void render(PMDCellRenderer cellRenderer, boolean expanded) {
-        cellRenderer.setIconForViolationPrio(pmdViolation);
+        cellRenderer.setIconForRulePriority(pmdViolation.getRulePriority());
         //Show violation position greyed, like idea shows.
         cellRenderer.append(pmdViolation.getPositionText(), GRAYED_ATTRIBUTES);
         cellRenderer.append(pmdViolation.getClassAndMethodMsg());

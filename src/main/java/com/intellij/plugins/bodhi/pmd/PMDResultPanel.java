@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd;
 
+import com.intellij.CommonBundle;
 import com.intellij.ide.*;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -24,6 +25,7 @@ import com.intellij.usageView.UsageViewBundle;
 import com.intellij.util.ui.tree.TreeUtil;
 import net.sourceforge.pmd.Report;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -52,12 +54,12 @@ import java.util.*;
  */
 public class PMDResultPanel extends JPanel {
 
-    private JTree resultTree;
-    private PMDProjectComponent projectComponent;
+    private final JTree resultTree;
+    private final PMDProjectComponent projectComponent;
     private PMDRootNode rootNode;
-    private PMDBranchNode processingErrorsNode;
+    private PMDErrorBranchNode processingErrorsNode;
     private boolean scrolling;
-    private PMDPopupMenu popupMenu;
+    private final PMDPopupMenu popupMenu;
     public static final String PMD_SUPPRESSION = "//NOPMD";
 
     /**
@@ -122,7 +124,9 @@ public class PMDResultPanel extends JPanel {
                     for (PMDViolation result : unique.values()) {
                         //Suppress the violation
                         final Editor editor = openEditor(result);
-                        executeWrite(editor, result);
+                        if (editor != null) {
+                            executeWrite(editor, result);
+                        }
                     }
                 } else if (e.getActionCommand().equals(PMDPopupMenu.DETAILS)) {
                     Set<String> urls = new HashSet<>();
@@ -278,11 +282,11 @@ public class PMDResultPanel extends JPanel {
             }
 
             public String getNextOccurenceActionName() {
-                return null;
+                return UsageViewBundle.message("action.next.occurrence");
             }
 
             public String getPreviousOccurenceActionName() {
-                return null;
+                return UsageViewBundle.message("action.previous.occurrence");
             }
         };
 
@@ -303,13 +307,13 @@ public class PMDResultPanel extends JPanel {
                 return null;
             }
 
-            public void addSettingsChangedListener(ChangeListener listener) throws TooManyListenersException {
+            public void addSettingsChangedListener(ChangeListener listener) {
             }
 
             public void removeSettingsChangedListener(ChangeListener listener) {
             }
 
-            public String getReportText() {
+            public @NotNull String getReportText() {
                 Report r = PMDResultCollector.getReport();
                 HTMLRenderer renderer = new HTMLRenderer();
                 StringWriter w = new StringWriter();
@@ -322,11 +326,11 @@ public class PMDResultPanel extends JPanel {
                 return "";
             }
 
-            public String getDefaultFilePath() {
+            @NotNull public String getDefaultFilePath() {
                 return "report.html";
             }
 
-            public void exportedTo(String filePath) {
+            public void exportedTo(@NotNull String filePath) {
             }
 
             public boolean canExport() {
@@ -351,7 +355,7 @@ public class PMDResultPanel extends JPanel {
      * @param treeNode The tree node having the violation/suppressed/error
      */
     public void highlightFindingInEditor(DefaultMutableTreeNode treeNode) {
-        if (treeNode != null && treeNode instanceof Navigatable) {
+        if (treeNode instanceof Navigatable) {
             ((Navigatable)treeNode).navigate(true);
         }
     }
@@ -429,10 +433,11 @@ public class PMDResultPanel extends JPanel {
     /**
      * Creates and returns the processingErrors branch node.
      *
-     * @return the new processingErrors brnach node
+     * @return the new processingErrors branch node
      */
-    public PMDBranchNode getNewProcessingErrorsNode() {
-        return processingErrorsNode = new PMDBranchNode("Processing errors");
+    public PMDErrorBranchNode getNewProcessingErrorsNode() {
+        processingErrorsNode = new PMDErrorBranchNode("Processing errors");
+        return processingErrorsNode;
     }
 
     /**
@@ -449,7 +454,7 @@ public class PMDResultPanel extends JPanel {
      */
     private class ReRunAction extends AnAction {
         public ReRunAction() {
-            super(UsageViewBundle.message("action.rerun"), UsageViewBundle.message("action.description.rerun"), IconLoader.getIcon("/actions/refreshUsages.png"));
+            super(CommonBundle.message("action.rerun"), UsageViewBundle.message("action.description.rerun"), IconLoader.getIcon("/actions/refreshUsages.png", ReRunAction.class));
             registerCustomShortcutSet(CommonShortcuts.getRerun(), PMDResultPanel.this);
         }
 
@@ -471,18 +476,20 @@ public class PMDResultPanel extends JPanel {
     /**
      * Inner class for close action.
      */
-    private class CloseAction extends AnAction {
+    private static class CloseAction extends AnAction {
         private static final String ACTION_CLOSE = "action.close";
 
         private CloseAction() {
-            super(UsageViewBundle.message(ACTION_CLOSE), null, IconLoader.getIcon("/actions/cancel.png"));
+            super(CommonBundle.message(ACTION_CLOSE), null, IconLoader.getIcon("/actions/cancel.png", CloseAction.class));
         }
 
         public void actionPerformed(AnActionEvent e) {
             Project project = e.getData(PlatformDataKeys.PROJECT);
             if (project != null) {
                 ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
-                toolWindow.activate(null);
+                if (toolWindow != null) {
+                    toolWindow.activate(null);
+                }
                 PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
                 plugin.closeResultWindow();
             }

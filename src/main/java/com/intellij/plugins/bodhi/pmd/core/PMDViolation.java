@@ -1,6 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
 import net.sourceforge.pmd.Rule;
+import net.sourceforge.pmd.RulePriority;
 import net.sourceforge.pmd.RuleViolation;
 
 import java.io.File;
@@ -130,5 +131,9 @@ public class PMDViolation implements HasPositionInFile {
 
     public String toString() {
         return getPackageName() + "." + getClassName() + "." + getMethodName() + " at (" + getBeginLine() + "," + getBeginColumn() + ")";
+    }
+
+    public RulePriority getRulePriority() {
+        return getRule().getPriority();
     }
 }
