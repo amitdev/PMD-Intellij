@@ -15,12 +15,11 @@ import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
  */
 public class PMDBranchNode extends BasePMDNode {
 
-    private String nodeName;
+    private final String nodeName;
     private String toolTip;
     private int violationCount = 0;
     private int suppressedCount = 0;
     private int errorCount = 0;
-    private static final char CUSTOM_RULE_DELIM = ';';
 
     /**
      * Create a node with the given value as node name.
@@ -29,12 +28,6 @@ public class PMDBranchNode extends BasePMDNode {
      */
     public PMDBranchNode(String nodeName) {
         this.nodeName = nodeName;
-        //For custom rule sets, delimiter is used to separate name and tooltip
-        int i = nodeName.indexOf(CUSTOM_RULE_DELIM);
-        if (i != -1) {
-            this.nodeName = nodeName.substring(0, i);
-            setToolTip(nodeName.substring(i+1));
-        }
     }
 
     /**

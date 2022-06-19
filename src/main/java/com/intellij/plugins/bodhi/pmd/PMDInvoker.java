@@ -178,14 +178,10 @@ public class PMDInvoker {
                     resultRuleNodes.sort(null);
 
                     if (resultRuleNodes.size() != 0) {
-                        String ruleSetName;
-                        if (isCustomRuleSet) {
-                            //For custom rulesets, using a separate format for rendering
-                            ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath) + ";" + ruleSetPath;
-                        } else {
-                            ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
-                        }
+                        String ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
+                        String  desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
                         PMDBranchNode ruleSetNode = resultPanel.addCreateBranchNodeAtRoot(ruleSetName);
+                        ruleSetNode.setToolTip(desc);
                         //Add all rule nodes to the tree
                         for (PMDBranchNode resultRuleNode : resultRuleNodes) {
                             resultPanel.addNode(ruleSetNode, resultRuleNode);

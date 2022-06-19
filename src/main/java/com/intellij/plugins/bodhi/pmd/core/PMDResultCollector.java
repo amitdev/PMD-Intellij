@@ -29,6 +29,11 @@ public class PMDResultCollector {
     private static Report report = new Report();
 
     /**
+     * lazily loaded path to ruleset map, should only contain valid rule sets
+     */
+    private static final Map<String, RuleSet> pathToRuleSet = new HashMap<>();
+
+    /**
      * Creates an instance of PMDResultCollector.
      */
     public PMDResultCollector() {}
@@ -126,10 +131,10 @@ public class PMDResultCollector {
     }
 
     /**
-     * Verifies whether the rule set specified at the path is a valid PMD rule set.
+     * Verifies whether the rule set specified at the path is a valid PMD rule set. Always loads from file.
      *
      * @param path path of the rule set
-     * @return true if valid rule set, false otherwise.
+     * @return empty String for valid, an error message for invalid.
      */
     public static String isValidRuleSet(String path) {
         Thread.currentThread().setContextClassLoader(PMDResultCollector.class.getClassLoader());
@@ -137,12 +142,58 @@ public class PMDResultCollector {
         try {
             RuleSet rs = new RuleSetLoader().loadFromResource(path);
             if (rs.getRules().size() != 0) {
+                pathToRuleSet.put(path, rs);
                 return "";
             }
         } catch (RuleSetLoadException e) {
             return e.getMessage();
         }
         return "No rules found";
+    }
+
+    /**
+     * Return the name of the RuleSet or an error message when the RuleSet is not valid
+     * @param ruleSetPath the path of the rule set
+     * @return the name of the RuleSet or an error message when the RuleSet is not valid
+     */
+    public static String getRuleSetName(String ruleSetPath) {
+        String ruleSetName;
+        try {
+            ruleSetName = PMDResultCollector.getRuleSet(ruleSetPath).getName(); // from the xml
+        } catch (InvalidRuleSetException e) {
+            String msg = (e.getCause() == null) ? e.getMessage(): e.getCause().getMessage();
+            ruleSetName = msg.substring(0, Math.min(25, msg.length()));
+        }
+        return ruleSetName;
+    }
+
+    /**
+     * Return the description of the RuleSet or "<invalid>" message when the RuleSet is not valid
+     * @param ruleSetPath the path of the rule set
+     * @return the description of the RuleSet or "<invalid>" message when the RuleSet is not valid
+     */
+    public static String getRuleSetDescription(String ruleSetPath) {
+        String ruleSetDesc;
+        try {
+            ruleSetDesc = PMDResultCollector.getRuleSet(ruleSetPath).getDescription(); // from the xml
+        } catch (InvalidRuleSetException e) {
+            ruleSetDesc = "<invalid>";
+        }
+        return ruleSetDesc;
+    }
+
+    /**
+     * Get a ruleSet from memory, or load it from resource when not loaded yet
+     * @param path the path of the ruleSet
+     */
+    public static RuleSet getRuleSet(String path) throws InvalidRuleSetException {
+        RuleSet rs = pathToRuleSet.get(path);
+        if (rs == null) {
+            rs = loadRuleSet(path);
+            // no exception, loading succeeds
+            pathToRuleSet.put(path, rs);
+        }
+        return rs;
     }
 
     public static RuleSet loadRuleSet(String path) throws InvalidRuleSetException {
