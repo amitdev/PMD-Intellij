@@ -16,9 +16,7 @@ import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.plugins.bodhi.pmd.tree.PMDBranchNode;
-import com.intellij.plugins.bodhi.pmd.tree.PMDRootNode;
-import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
+import com.intellij.plugins.bodhi.pmd.tree.*;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -177,13 +175,13 @@ public class PMDInvoker {
                     // sort rules by priority, rule and suppressed nodes are comparable
                     resultRuleNodes.sort(null);
 
-                    if (resultRuleNodes.size() != 0) {
+                    if (!resultRuleNodes.isEmpty()) {
                         String ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
                         String  desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
-                        PMDBranchNode ruleSetNode = resultPanel.addCreateBranchNodeAtRoot(ruleSetName);
+                        PMDRuleSetNode ruleSetNode = resultPanel.addCreateRuleSetNodeAtRoot(ruleSetName);
                         ruleSetNode.setToolTip(desc);
                         //Add all rule nodes to the tree
-                        for (PMDBranchNode resultRuleNode : resultRuleNodes) {
+                        for (PMDRuleSetEntryNode resultRuleNode : resultRuleNodes) {
                             resultPanel.addNode(ruleSetNode, resultRuleNode);
                         }
                         rootNode.calculateCounts();

@@ -48,4 +48,6 @@ public abstract class BasePMDNode extends DefaultMutableTreeNode implements PMDT
     public abstract int getSuppressedCount();
 
     public abstract int getErrorCount();
+
+    public abstract int getSevViolationCount(Severity sev);
 }

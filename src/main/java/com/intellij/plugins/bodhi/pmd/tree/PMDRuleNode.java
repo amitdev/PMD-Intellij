@@ -12,7 +12,7 @@ import java.util.Objects;
  *
  * @author jborgers
  */
-public class PMDRuleBranchNode extends PMDRuleSetEntryNode {
+public class PMDRuleNode extends PMDRuleSetEntryNode {
 
     private final RulePriority priority;
     private final RuleKey ruleKey;
@@ -23,14 +23,14 @@ public class PMDRuleBranchNode extends PMDRuleSetEntryNode {
      *
      * @param rule    The PMD rule to set.
      */
-    public PMDRuleBranchNode(Rule rule) {
+    public PMDRuleNode(Rule rule) {
         super(rule.getName());
         priority = rule.getPriority();
         this.ruleKey = new RuleKey(rule);
     }
 
     @Override
-    public void render(PMDCellRenderer cellRenderer, boolean expanded) {
+    public synchronized void render(PMDCellRenderer cellRenderer, boolean expanded) {
         cellRenderer.setIconForRulePriority(priority);
         super.render(cellRenderer, expanded);
     }
@@ -39,7 +39,7 @@ public class PMDRuleBranchNode extends PMDRuleSetEntryNode {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        PMDRuleBranchNode that = (PMDRuleBranchNode) o;
+        PMDRuleNode that = (PMDRuleNode) o;
         return Objects.equals(ruleKey, that.ruleKey);
     }
 
@@ -50,8 +50,8 @@ public class PMDRuleBranchNode extends PMDRuleSetEntryNode {
 
     @Override
     public int compareTo(@NotNull PMDRuleSetEntryNode o) {
-        if (o instanceof PMDRuleBranchNode) {
-            return ruleKey.compareTo(((PMDRuleBranchNode) o).ruleKey);
+        if (o instanceof PMDRuleNode) {
+            return ruleKey.compareTo(((PMDRuleNode) o).ruleKey);
         }
         return -1; // always before suppressed
     }

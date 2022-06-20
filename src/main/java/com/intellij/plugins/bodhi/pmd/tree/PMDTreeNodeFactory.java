@@ -33,13 +33,13 @@ public class PMDTreeNodeFactory {
     }
 
     /**
-     * Creates a branch tree node object
+     * Creates a rule set tree node object
      *
-     * @param name the branch node name
+     * @param name the rule set node name
      * @return The created node
      */
-    public PMDBranchNode createBranchNode(String name) {
-        return new PMDBranchNode(name);
+    public PMDRuleSetNode createRuleSetNode(String name) {
+        return new PMDRuleSetNode(name);
     }
 
     /**
@@ -48,8 +48,8 @@ public class PMDTreeNodeFactory {
      * @param rule the branch node rule
      * @return The created node
      */
-    public PMDRuleBranchNode createRuleBranchNode(Rule rule) {
-        return new PMDRuleBranchNode(rule);
+    public PMDRuleNode createRuleNode(Rule rule) {
+        return new PMDRuleNode(rule);
     }
 
     /**

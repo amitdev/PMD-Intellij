@@ -53,4 +53,9 @@ public class PMDViolationNode extends PMDLeafNode {
     public int getViolationCount() {
         return 1;
     }
+
+    @Override
+    public int getSevViolationCount(Severity sev) {
+        return (sev.getRulePriority() == pmdViolation.getRulePriority()) ? 1 : 0;
+    }
 }

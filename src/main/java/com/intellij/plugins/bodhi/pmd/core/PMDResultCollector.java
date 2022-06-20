@@ -200,7 +200,7 @@ public class PMDResultCollector {
         Thread.currentThread().setContextClassLoader(PMDResultCollector.class.getClassLoader());
         try {
             RuleSet rs = new RuleSetLoader().loadFromResource(path);
-            if (rs.getRules().size() != 0) {
+            if (!rs.getRules().isEmpty()) {
                 return rs;
             }
         } catch (RuleSetLoadException e) {
@@ -223,7 +223,7 @@ public class PMDResultCollector {
 
     private static class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
 
-        private final Map<RuleKey, PMDRuleBranchNode> ruleKeyToNodeMap;
+        private final Map<RuleKey, PMDRuleNode> ruleKeyToNodeMap;
         private final List<PMDRuleSetEntryNode> pmdRuleResultNodes;
         private final PMDErrorBranchNode processingErrorsNode;
         private final Set<String> filesWithError = new HashSet<>();
@@ -243,15 +243,15 @@ public class PMDResultCollector {
                 PMDResultCollector.report.addRuleViolation(iRuleViolation);
                 Rule rule = iRuleViolation.getRule();
                 RuleKey key = new RuleKey(rule);
-                PMDRuleBranchNode ruleNode = ruleKeyToNodeMap.get(key);
+                PMDRuleNode ruleNode = ruleKeyToNodeMap.get(key);
                 if (ruleNode == null) {
-                    ruleNode = nodeFactory.createRuleBranchNode(rule);
+                    ruleNode = nodeFactory.createRuleNode(rule);
                     ruleNode.setToolTip(rule.getDescription());
                     ruleKeyToNodeMap.put(key, ruleNode);
                 }
                 ruleNode.add(nodeFactory.createViolationLeafNode(new PMDViolation(iRuleViolation)));
             }
-            for (PMDRuleBranchNode ruleNode : ruleKeyToNodeMap.values()) {
+            for (PMDRuleNode ruleNode : ruleKeyToNodeMap.values()) {
                 if (ruleNode.getChildCount() > 0 && !pmdRuleResultNodes.contains(ruleNode)) {
                     pmdRuleResultNodes.add(ruleNode);
                 }

@@ -1,7 +1,10 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
 import javax.swing.tree.TreeNode;
+import java.util.EnumMap;
 import java.util.Enumeration;
+import java.util.Map;
+
 import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 
 /**
@@ -13,13 +16,14 @@ import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
  * @author bodhi
  * @version 1.2
  */
-public class PMDBranchNode extends BasePMDNode {
+public abstract class PMDBranchNode extends BasePMDNode {
 
     private final String nodeName;
     private String toolTip;
     private int violationCount = 0;
     private int suppressedCount = 0;
     private int errorCount = 0;
+    private final Map<Severity, Integer> sevToViolationCount = new EnumMap<>(Severity.class);
 
     /**
      * Create a node with the given value as node name.
@@ -31,13 +35,24 @@ public class PMDBranchNode extends BasePMDNode {
     }
 
     /**
+     * initialize violations counts for all severities with 0
+     */
+    private void initSevToViolationCount() {
+        for (Severity sev : Severity.values()) {
+            sevToViolationCount.put(sev, 0);
+        }
+    }
+
+    /**
      * Calculate the number of violations, suppressed violations and processing errors from the child nodes.
+     * In addition, the number of violation counts per severity level.
      * The leaf nodes will answer with 0 or 1, and the branch nodes will aggregate/calculate recursively.
      */
-    public void calculateCounts() {
+    public synchronized void calculateCounts() {
         violationCount = 0;
         suppressedCount = 0;
         errorCount = 0;
+        initSevToViolationCount();
         Enumeration<TreeNode> children = children();
         while (children.hasMoreElements()) {
             Object child = children.nextElement();
@@ -49,6 +64,9 @@ public class PMDBranchNode extends BasePMDNode {
                 violationCount += node.getViolationCount();
                 suppressedCount += node.getSuppressedCount();
                 errorCount += node.getErrorCount();
+                for (Severity sev : Severity.values()) {
+                    sevToViolationCount.put(sev, sevToViolationCount.get(sev) + node.getSevViolationCount(sev));
+                }
             }
         }
     }
@@ -67,7 +85,7 @@ public class PMDBranchNode extends BasePMDNode {
      *
      * @return the violation count
      */
-    public int getViolationCount() {
+    public synchronized int getViolationCount() {
         if (violationCount == 0) {
             calculateCounts();
         }
@@ -79,7 +97,7 @@ public class PMDBranchNode extends BasePMDNode {
      *
      * @return the violation count
      */
-    public int getSuppressedCount() {
+    public synchronized int getSuppressedCount() {
         return suppressedCount;
     }
 
@@ -88,8 +106,13 @@ public class PMDBranchNode extends BasePMDNode {
      *
      * @return the violation count
      */
-    public int getErrorCount() {
+    public synchronized int getErrorCount() {
         return errorCount;
+    }
+
+    @Override
+    public synchronized int getSevViolationCount(Severity sev) {
+        return sevToViolationCount.get(sev);
     }
 
     /**
@@ -105,7 +128,7 @@ public class PMDBranchNode extends BasePMDNode {
         return toolTip;
     }
 
-    public void render(PMDCellRenderer cellRenderer, boolean expanded) {
+    public synchronized void render(PMDCellRenderer cellRenderer, boolean expanded) {
         cellRenderer.append(getNodeName());
         if (violationCount > 0 ) {
             cellRenderer.append(getCountMsg("violation", violationCount), GRAYED_ATTRIBUTES);

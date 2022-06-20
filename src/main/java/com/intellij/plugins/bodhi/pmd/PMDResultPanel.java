@@ -391,13 +391,13 @@ public class PMDResultPanel extends JPanel {
     }
 
     /**
-     * Adds a branch node to the tree as a direct child of the root, and return it
+     * Adds a rule set node to the tree as a direct child of the root, and return it
      *
      * @param name the rule name
      * @return the created rule set node
      */
-    public PMDBranchNode addCreateBranchNodeAtRoot(String name) {
-        return (PMDBranchNode)addNode(rootNode, new PMDBranchNode(name));
+    public PMDRuleSetNode addCreateRuleSetNodeAtRoot(String name) {
+        return (PMDRuleSetNode)addNode(rootNode, new PMDRuleSetNode(name));
     }
 
     /**

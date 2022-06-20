@@ -5,13 +5,13 @@ package com.intellij.plugins.bodhi.pmd.tree;
  *
  * @author jborgers
  */
-public class PMDErrorBranchNode extends PMDBranchNode{
+public class PMDErrorBranchNode extends PMDBranchNode {
     public PMDErrorBranchNode(String name) {
         super(name);
     }
 
     @Override
-    public void render(PMDCellRenderer cellRenderer, boolean expanded) {
+    public synchronized void render(PMDCellRenderer cellRenderer, boolean expanded) {
         cellRenderer.setIcon(Severity.BLOCKER.getIcon());
         super.render(cellRenderer, expanded);
     }

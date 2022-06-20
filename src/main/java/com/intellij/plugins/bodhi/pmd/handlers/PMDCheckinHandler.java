@@ -15,10 +15,7 @@ import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDResultPanel;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.plugins.bodhi.pmd.tree.PMDBranchNode;
-import com.intellij.plugins.bodhi.pmd.tree.PMDRootNode;
-import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
-import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
+import com.intellij.plugins.bodhi.pmd.tree.*;
 import com.intellij.util.PairConsumer;
 import com.intellij.util.ui.UIUtil;
 import org.apache.commons.lang.StringUtils;
@@ -103,9 +100,9 @@ public class PMDCheckinHandler extends CheckinHandler {
 
         PMDResultCollector.clearReport();
 
-        List<PMDBranchNode> ruleSetResultNodes = new ArrayList<>();
+        List<PMDRuleSetNode> ruleSetResultNodes = new ArrayList<>();
         for (String ruleSetPath : plugin.getCustomRuleSetPaths()) {
-            PMDBranchNode ruleSetResultNode = scanFiles(ruleSetPath, plugin);
+            PMDRuleSetNode ruleSetResultNode = scanFiles(ruleSetPath, plugin);
             if (ruleSetResultNode != null) {
                 ruleSetResultNodes.add(ruleSetResultNode);
             }
@@ -113,8 +110,8 @@ public class PMDCheckinHandler extends CheckinHandler {
         return processScanResults(ruleSetResultNodes, project);
     }
 
-    private PMDBranchNode scanFiles(String ruleSetPath, PMDProjectComponent plugin) {
-        PMDBranchNode ruleSetResultNode = null;
+    private PMDRuleSetNode scanFiles(String ruleSetPath, PMDProjectComponent plugin) {
+        PMDRuleSetNode ruleSetResultNode = null;
         PMDResultCollector collector = new PMDResultCollector();
         List<File> files = new ArrayList<>(checkinProjectPanel.getFiles());
 
@@ -125,18 +122,18 @@ public class PMDCheckinHandler extends CheckinHandler {
         return ruleSetResultNode;
     }
 
-    private PMDBranchNode createRuleSetNodeWithResults(String ruleSetPath, List<PMDRuleSetEntryNode> ruleResultNodes) {
+    private PMDRuleSetNode createRuleSetNodeWithResults(String ruleSetPath, List<PMDRuleSetEntryNode> ruleResultNodes) {
         ruleSetPath = PMDUtil.getFileNameFromPath(ruleSetPath) + ";" + ruleSetPath;
-        PMDBranchNode ruleSetNode = PMDTreeNodeFactory.getInstance().createBranchNode(ruleSetPath);
+        PMDRuleSetNode ruleSetNode = PMDTreeNodeFactory.getInstance().createRuleSetNode(ruleSetPath);
 
-        for (PMDBranchNode ruleResultNode : ruleResultNodes) {
+        for (PMDRuleSetEntryNode ruleResultNode : ruleResultNodes) {
             ruleSetNode.add(ruleResultNode);
         }
         return ruleSetNode;
     }
 
     @NotNull
-    private ReturnResult processScanResults(List<PMDBranchNode> ruleSetResultNodes, Project project) {
+    private ReturnResult processScanResults(List<PMDRuleSetNode> ruleSetResultNodes, Project project) {
         int violations = toViolations(ruleSetResultNodes);
         if (violations > 0) {
             int answer = promptUser(project, violations);
@@ -151,9 +148,9 @@ public class PMDCheckinHandler extends CheckinHandler {
         return ReturnResult.COMMIT;
     }
 
-    private int toViolations(List<PMDBranchNode> ruleSetResultNodes) {
+    private int toViolations(List<PMDRuleSetNode> ruleSetResultNodes) {
         int violations = 0;
-        for (PMDBranchNode ruleSetResultNode : ruleSetResultNodes) {
+        for (PMDRuleSetNode ruleSetResultNode : ruleSetResultNodes) {
             violations += ruleSetResultNode.getViolationCount();
         }
         return violations;
@@ -168,7 +165,7 @@ public class PMDCheckinHandler extends CheckinHandler {
                 message("handler.before.checkin.error.title"), buttons, 0, UIUtil.getWarningIcon());
     }
 
-    private void showToolWindow(List<PMDBranchNode> ruleSetResultNodes, Project project) {
+    private void showToolWindow(List<PMDRuleSetNode> ruleSetResultNodes, Project project) {
         PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
         PMDResultPanel resultPanel = plugin.getResultPanel();
         plugin.setupToolWindow();
