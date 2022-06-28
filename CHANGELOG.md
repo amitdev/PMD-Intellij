@@ -3,6 +3,7 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [1.8.23]
 ### Added
 - Update to PMD version 6.47.0
 - Support for sorting violations by severity
