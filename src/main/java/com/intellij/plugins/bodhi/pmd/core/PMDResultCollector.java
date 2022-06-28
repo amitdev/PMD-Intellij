@@ -4,8 +4,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.plugins.bodhi.pmd.PMDConfigurationForm;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
-import com.intellij.plugins.bodhi.pmd.tree.PMDBranchNode;
-import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
+import com.intellij.plugins.bodhi.pmd.tree.*;
 import net.sourceforge.pmd.*;
 import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.LanguageVersion;
@@ -28,6 +27,11 @@ import java.util.*;
 public class PMDResultCollector {
 
     private static Report report = new Report();
+
+    /**
+     * lazily loaded path to ruleset map, should only contain valid rule sets
+     */
+    private static final Map<String, RuleSet> pathToRuleSet = new HashMap<>();
 
     /**
      * Creates an instance of PMDResultCollector.
@@ -55,17 +59,17 @@ public class PMDResultCollector {
      * @param ruleSets The ruleSet(s) to run
      * @return list of results
      */
-    public List<PMDBranchNode> runPMDAndGetResults(List<File> files, String ruleSets, PMDProjectComponent comp) {
+    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSets, PMDProjectComponent comp) {
         Map<String, String> options = comp.getOptions();
         Project project = comp.getCurrentProject();
 
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
 
-        final List<PMDBranchNode> pmdRuleSetResults = new ArrayList<>();
+        final List<PMDRuleSetEntryNode> pmdRuleSetResults = new ArrayList<>();
         try {
             PMDConfiguration pmdConfig = getPmdConfig(ruleSets, options, project);
 
-            PMDBranchNode errorsNode = comp.getResultPanel().getNewProcessingErrorsNode();
+            PMDErrorBranchNode errorsNode = comp.getResultPanel().getNewProcessingErrorsNode();
             PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode);
             treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFile()));
             treeRenderer.start();
@@ -80,11 +84,6 @@ public class PMDResultCollector {
                 files.forEach(file -> pmd.files().addFile(file.toPath()));
                 pmd.addRenderers(renderers);
                 pmd.performAnalysis();
-            }
-
-            for (Renderer renderer : renderers) {
-                renderer.end();
-                renderer.flush();
             }
 
             if (exportingRenderer != null) {
@@ -109,9 +108,8 @@ public class PMDResultCollector {
         if (exportStats) {
             exportingRenderer = new PMDJsonExportingRenderer(exportUrl);
             exportingRenderer.start();
-            return exportingRenderer;
         }
-        return null;
+        return exportingRenderer;
     }
 
     @NotNull
@@ -133,10 +131,10 @@ public class PMDResultCollector {
     }
 
     /**
-     * Verifies whether the rule set specified at the path is a valid PMD rule set.
+     * Verifies whether the rule set specified at the path is a valid PMD rule set. Always loads from file.
      *
      * @param path path of the rule set
-     * @return true if valid rule set, false otherwise.
+     * @return empty String for valid, an error message for invalid.
      */
     public static String isValidRuleSet(String path) {
         Thread.currentThread().setContextClassLoader(PMDResultCollector.class.getClassLoader());
@@ -144,6 +142,7 @@ public class PMDResultCollector {
         try {
             RuleSet rs = new RuleSetLoader().loadFromResource(path);
             if (rs.getRules().size() != 0) {
+                pathToRuleSet.put(path, rs);
                 return "";
             }
         } catch (RuleSetLoadException e) {
@@ -152,11 +151,56 @@ public class PMDResultCollector {
         return "No rules found";
     }
 
+    /**
+     * Return the name of the RuleSet or an error message when the RuleSet is not valid
+     * @param ruleSetPath the path of the rule set
+     * @return the name of the RuleSet or an error message when the RuleSet is not valid
+     */
+    public static String getRuleSetName(String ruleSetPath) {
+        String ruleSetName;
+        try {
+            ruleSetName = PMDResultCollector.getRuleSet(ruleSetPath).getName(); // from the xml
+        } catch (InvalidRuleSetException e) {
+            String msg = (e.getCause() == null) ? e.getMessage(): e.getCause().getMessage();
+            ruleSetName = msg.substring(0, Math.min(25, msg.length()));
+        }
+        return ruleSetName;
+    }
+
+    /**
+     * Return the description of the RuleSet or "<invalid>" message when the RuleSet is not valid
+     * @param ruleSetPath the path of the rule set
+     * @return the description of the RuleSet or "<invalid>" message when the RuleSet is not valid
+     */
+    public static String getRuleSetDescription(String ruleSetPath) {
+        String ruleSetDesc;
+        try {
+            ruleSetDesc = PMDResultCollector.getRuleSet(ruleSetPath).getDescription(); // from the xml
+        } catch (InvalidRuleSetException e) {
+            ruleSetDesc = "<invalid>";
+        }
+        return ruleSetDesc;
+    }
+
+    /**
+     * Get a ruleSet from memory, or load it from resource when not loaded yet
+     * @param path the path of the ruleSet
+     */
+    public static RuleSet getRuleSet(String path) throws InvalidRuleSetException {
+        RuleSet rs = pathToRuleSet.get(path);
+        if (rs == null) {
+            rs = loadRuleSet(path);
+            // no exception, loading succeeds
+            pathToRuleSet.put(path, rs);
+        }
+        return rs;
+    }
+
     public static RuleSet loadRuleSet(String path) throws InvalidRuleSetException {
         Thread.currentThread().setContextClassLoader(PMDResultCollector.class.getClassLoader());
         try {
             RuleSet rs = new RuleSetLoader().loadFromResource(path);
-            if (rs.getRules().size() != 0) {
+            if (!rs.getRules().isEmpty()) {
                 return rs;
             }
         } catch (RuleSetLoadException e) {
@@ -179,34 +223,35 @@ public class PMDResultCollector {
 
     private static class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
 
-        private final Map<String, PMDBranchNode> ruleNameToNodeMap;
-        private final List<PMDBranchNode> pmdRuleResultNodes;
-        private final PMDBranchNode processingErrorsNode;
+        private final Map<RuleKey, PMDRuleNode> ruleKeyToNodeMap;
+        private final List<PMDRuleSetEntryNode> pmdRuleResultNodes;
+        private final PMDErrorBranchNode processingErrorsNode;
         private final Set<String> filesWithError = new HashSet<>();
 
-        public PMDResultAsTreeRenderer(List<PMDBranchNode> pmdRuleSetResults, PMDBranchNode errorsNode) {
+        public PMDResultAsTreeRenderer(List<PMDRuleSetEntryNode> pmdRuleSetResults, PMDErrorBranchNode errorsNode) {
             super("pmdplugin", "PMD plugin renderer");
             this.pmdRuleResultNodes = pmdRuleSetResults;
             processingErrorsNode = errorsNode;
-            ruleNameToNodeMap = new LinkedHashMap<>(); // linked to keep insertion order
+            ruleKeyToNodeMap = new TreeMap<>(); // order by priority and then name
         }
 
         @Override
-        public void renderFileViolations(Iterator<RuleViolation> violations) throws IOException {
+        public void renderFileViolations(Iterator<RuleViolation> violations) {
             PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
             while (violations.hasNext()) {
                 RuleViolation iRuleViolation = violations.next();
                 PMDResultCollector.report.addRuleViolation(iRuleViolation);
-                String name = iRuleViolation.getRule().getName();
-                PMDBranchNode ruleNode = ruleNameToNodeMap.get(name);
+                Rule rule = iRuleViolation.getRule();
+                RuleKey key = new RuleKey(rule);
+                PMDRuleNode ruleNode = ruleKeyToNodeMap.get(key);
                 if (ruleNode == null) {
-                    ruleNode = nodeFactory.createBranchNode(name);
-                    ruleNode.setToolTip(iRuleViolation.getRule().getDescription());
-                    ruleNameToNodeMap.put(name, ruleNode);
+                    ruleNode = nodeFactory.createRuleNode(rule);
+                    ruleNode.setToolTip(rule.getDescription());
+                    ruleKeyToNodeMap.put(key, ruleNode);
                 }
                 ruleNode.add(nodeFactory.createViolationLeafNode(new PMDViolation(iRuleViolation)));
             }
-            for (PMDBranchNode ruleNode : ruleNameToNodeMap.values()) {
+            for (PMDRuleNode ruleNode : ruleKeyToNodeMap.values()) {
                 if (ruleNode.getChildCount() > 0 && !pmdRuleResultNodes.contains(ruleNode)) {
                     pmdRuleResultNodes.add(ruleNode);
                 }
@@ -234,8 +279,8 @@ public class PMDResultCollector {
         private void renderSuppressedViolations() {
             if (!suppressed.isEmpty()) {
                 PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
-                PMDBranchNode suppressedByNoPmdNode = nodeFactory.createBranchNode("Suppressed violations by //NOPMD");
-                PMDBranchNode suppressedByAnnotationNode = nodeFactory.createBranchNode("Suppressed violations by Annotation");
+                PMDSuppressedBranchNode suppressedByNoPmdNode = nodeFactory.createSuppressedBranchNode("Suppressed violations by //NOPMD");
+                PMDSuppressedBranchNode suppressedByAnnotationNode = nodeFactory.createSuppressedBranchNode("Suppressed violations by Annotation");
                 for (Report.SuppressedViolation suppressed : suppressed) {
                     if (suppressed.suppressedByAnnotation()) {
                         suppressedByAnnotationNode.add(nodeFactory.createSuppressedLeafNode(new PMDSuppressedViolation(suppressed)));

@@ -33,6 +33,11 @@ public abstract class PMDLeafNode extends BasePMDNode {
         return 0;
     }
 
+    @Override
+    public int getSevViolationCount(Severity sev) {
+        return 0;
+    }
+
     /**
      * Open editor and select/navigate to the correct line and column in the file.
      *

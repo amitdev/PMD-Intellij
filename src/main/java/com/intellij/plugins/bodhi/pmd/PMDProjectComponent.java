@@ -18,11 +18,9 @@ import com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
-import net.sourceforge.pmd.RuleSet;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
 import java.util.*;
 
 /**
@@ -115,14 +113,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         List<AnAction> newActionList = new ArrayList<>();
         boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
         for (final String ruleSetPath : customRuleSetPaths) {
-            String ruleSetName;
-            try {
-                RuleSet ruleSet = PMDResultCollector.loadRuleSet(ruleSetPath);
-                ruleSetName = ruleSet.getName(); // from the xml
-            } catch (PMDResultCollector.InvalidRuleSetException e) {
-                String msg = (e.getCause() == null) ? e.getMessage(): e.getCause().getMessage();
-                ruleSetName = msg.substring(0, Math.min(25, msg.length()));
-            }
+            String ruleSetName = PMDResultCollector.getRuleSetName(ruleSetPath);
             String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
             String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
             String actionText = ruleSetName;
