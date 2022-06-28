@@ -3,12 +3,12 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 fun properties(key: String) = project.findProperty(key).toString()
 
-val pmdVersion = "6.44.0"
+val pmdVersion = "6.47.0"
 
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "1.5.10"
-    id("org.jetbrains.intellij") version "1.0"
+    id("org.jetbrains.kotlin.jvm") version "1.6.20"
+    id("org.jetbrains.intellij") version "1.5.3"
     id("org.jetbrains.changelog") version "1.1.2"
 }
 
@@ -54,13 +54,13 @@ changelog {
 }
 
 tasks {
-    // Set the compatibility versions to 1.8
+    // Set the compatibility versions to 11
     withType<JavaCompile> {
-        sourceCompatibility = "1.8"
-        targetCompatibility = "1.8"
+        sourceCompatibility = "11"
+        targetCompatibility = "11"
     }
     withType<KotlinCompile> {
-        kotlinOptions.jvmTarget = "1.8"
+        kotlinOptions.jvmTarget = "11"
     }
 
     patchPluginXml {
