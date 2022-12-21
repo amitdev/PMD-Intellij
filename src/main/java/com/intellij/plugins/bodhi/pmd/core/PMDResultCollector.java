@@ -8,7 +8,6 @@ import com.intellij.plugins.bodhi.pmd.tree.*;
 import net.sourceforge.pmd.*;
 import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.LanguageVersion;
-import net.sourceforge.pmd.renderers.AbstractIncrementingRenderer;
 import net.sourceforge.pmd.renderers.Renderer;
 import net.sourceforge.pmd.util.IOUtil;
 import org.jetbrains.annotations.NotNull;
@@ -56,10 +55,10 @@ public class PMDResultCollector {
      * Runs the given ruleSet(s) on given set of files and returns the result.
      *
      * @param files The files to run PMD on
-     * @param ruleSets The ruleSet(s) to run
+     * @param ruleSetPath The path of the ruleSet to run
      * @return list of results
      */
-    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSets, PMDProjectComponent comp) {
+    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSetPath, PMDProjectComponent comp) {
         Map<String, String> options = comp.getOptions();
         Project project = comp.getCurrentProject();
 
@@ -67,10 +66,10 @@ public class PMDResultCollector {
 
         final List<PMDRuleSetEntryNode> pmdRuleSetResults = new ArrayList<>();
         try {
-            PMDConfiguration pmdConfig = getPmdConfig(ruleSets, options, project);
+            PMDConfiguration pmdConfig = getPmdConfig(ruleSetPath, options, project);
 
             PMDErrorBranchNode errorsNode = comp.getResultPanel().getNewProcessingErrorsNode();
-            PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode);
+            PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode, ruleSetPath);
             treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFile()));
             treeRenderer.start();
 
@@ -221,88 +220,4 @@ public class PMDResultCollector {
 
     }
 
-    private static class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
-
-        private final Map<RuleKey, PMDRuleNode> ruleKeyToNodeMap;
-        private final List<PMDRuleSetEntryNode> pmdRuleResultNodes;
-        private final PMDErrorBranchNode processingErrorsNode;
-        private final Set<String> filesWithError = new HashSet<>();
-
-        public PMDResultAsTreeRenderer(List<PMDRuleSetEntryNode> pmdRuleSetResults, PMDErrorBranchNode errorsNode) {
-            super("pmdplugin", "PMD plugin renderer");
-            this.pmdRuleResultNodes = pmdRuleSetResults;
-            processingErrorsNode = errorsNode;
-            ruleKeyToNodeMap = new TreeMap<>(); // order by priority and then name
-        }
-
-        @Override
-        public void renderFileViolations(Iterator<RuleViolation> violations) {
-            PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
-            while (violations.hasNext()) {
-                RuleViolation iRuleViolation = violations.next();
-                PMDResultCollector.report.addRuleViolation(iRuleViolation);
-                Rule rule = iRuleViolation.getRule();
-                RuleKey key = new RuleKey(rule);
-                PMDRuleNode ruleNode = ruleKeyToNodeMap.get(key);
-                if (ruleNode == null) {
-                    ruleNode = nodeFactory.createRuleNode(rule);
-                    ruleNode.setToolTip(rule.getDescription());
-                    ruleKeyToNodeMap.put(key, ruleNode);
-                }
-                ruleNode.add(nodeFactory.createViolationLeafNode(new PMDViolation(iRuleViolation)));
-            }
-            for (PMDRuleNode ruleNode : ruleKeyToNodeMap.values()) {
-                if (ruleNode.getChildCount() > 0 && !pmdRuleResultNodes.contains(ruleNode)) {
-                    pmdRuleResultNodes.add(ruleNode);
-                }
-            }
-        }
-
-        private void renderErrors() {
-            if (!errors.isEmpty()) {
-                PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
-                for (Report.ProcessingError error : errors) {
-                    if (!filesWithError.contains(error.getFile())) {
-                        processingErrorsNode.add(nodeFactory.createErrorLeafNode(new PMDProcessingError(error)));
-                        filesWithError.add(error.getFile());
-                    }
-                }
-            }
-        }
-
-        @Override
-        public void end() {
-            renderSuppressedViolations();
-            renderErrors();
-        }
-
-        private void renderSuppressedViolations() {
-            if (!suppressed.isEmpty()) {
-                PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
-                PMDSuppressedBranchNode suppressedByNoPmdNode = nodeFactory.createSuppressedBranchNode("Suppressed violations by //NOPMD");
-                PMDSuppressedBranchNode suppressedByAnnotationNode = nodeFactory.createSuppressedBranchNode("Suppressed violations by Annotation");
-                for (Report.SuppressedViolation suppressed : suppressed) {
-                    if (suppressed.suppressedByAnnotation()) {
-                        suppressedByAnnotationNode.add(nodeFactory.createSuppressedLeafNode(new PMDSuppressedViolation(suppressed)));
-                    }
-                    else {
-                        suppressedByNoPmdNode.add(nodeFactory.createSuppressedLeafNode(new PMDSuppressedViolation(suppressed)));
-                    }
-                }
-                suppressedByAnnotationNode.calculateCounts();
-                if (suppressedByAnnotationNode.getSuppressedCount() > 0) {
-                    pmdRuleResultNodes.add(suppressedByAnnotationNode);
-                }
-                suppressedByNoPmdNode.calculateCounts();
-                if (suppressedByNoPmdNode.getSuppressedCount() > 0) {
-                    pmdRuleResultNodes.add(suppressedByNoPmdNode);
-                }
-            }
-        }
-
-        public String defaultFileExtension() {
-            return "txt";
-        }
-
-    }
 }

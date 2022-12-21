@@ -3,8 +3,11 @@ package com.intellij.plugins.bodhi.pmd.tree;
 import com.intellij.plugins.bodhi.pmd.PMDResultPanel;
 import com.intellij.plugins.bodhi.pmd.core.PMDProcessingError;
 import com.intellij.plugins.bodhi.pmd.core.PMDSuppressedViolation;
+import com.intellij.plugins.bodhi.pmd.core.PMDUselessSuppression;
 import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
 import net.sourceforge.pmd.Rule;
+
+import javax.swing.tree.MutableTreeNode;
 
 /**
  * A Factory that creates different types of tree nodes used by PMD plugin.
@@ -63,6 +66,15 @@ public class PMDTreeNodeFactory {
     }
 
     /**
+     * Creates a useless suppression branch tree node object
+     *
+     * @param name the branch node name
+     * @return The created node
+     */
+    public PMDUselessSuppressionBranchNode createUselessSuppressionBranchNode(String name) {
+        return new PMDUselessSuppressionBranchNode(name);
+    }
+    /**
      * Creates a processing error branch tree node object
      *
      * @param name the branch node name
@@ -93,6 +105,16 @@ public class PMDTreeNodeFactory {
     }
 
     /**
+     * Creates a tree leaf node object for the useless suppression
+     *
+     * @param uselessSuppression the useless suppression that will be wrapped.
+     * @return The created tree node
+     */
+    public PMDUselessSuppressionNode createUselessSuppressionLeafNode(PMDUselessSuppression uselessSuppression) {
+        return new PMDUselessSuppressionNode(uselessSuppression);
+    }
+
+    /**
      * Creates a tree leaf node object for the processing error
      *
      * @param error the PMDProcessingError that will be wrapped.
@@ -111,6 +133,7 @@ public class PMDTreeNodeFactory {
     public PMDRootNode createRootNode(PMDResultPanel resultPanel) {
         return new PMDRootNode(resultPanel);
     }
+
 
 
 }

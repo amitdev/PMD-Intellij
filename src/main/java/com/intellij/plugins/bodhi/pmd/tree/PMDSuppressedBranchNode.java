@@ -6,11 +6,16 @@ import org.jetbrains.annotations.NotNull;
  * PMD branch tree node for suppressed rules. It has a Severity.INFO icon and can be sorted after rules and then by name.
  *
  * @author jborgers
- */public class PMDSuppressedBranchNode extends PMDRuleSetEntryNode {
+ */
+public class PMDSuppressedBranchNode extends PMDRuleSetEntryNode {
     public PMDSuppressedBranchNode(String name) {
         super(name);
     }
 
+    @Override
+    public String getToolTip() {
+        return "Violations which are actually suppressed.";
+    }
     @Override
     public void render(PMDCellRenderer cellRenderer, boolean expanded) {
         cellRenderer.setIcon(Severity.INFO.getIcon());
