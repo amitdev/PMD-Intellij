@@ -3,6 +3,7 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [1.8.25]
 ### Added
 - Update to PMD version 6.52.0 (#120)
 - Support for detecting redundant support warnings(#116, #117)
