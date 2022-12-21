@@ -6,7 +6,7 @@
 ## Overview
 
 <!-- Plugin description -->
-An IntelliJ Idea plugin that performs static analysis using [PMD](http://pmd.github.io).
+An IntelliJ Idea plugin that performs static analysis using [PMD](https://pmd.github.io).
 <!-- Plugin description end -->
 
 Download it from [here](https://plugins.jetbrains.com/plugin/1137-pmdplugin) or via the plugin manager.
