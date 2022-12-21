@@ -1,6 +1,7 @@
 <idea-plugin>
 
   <name>PMD</name>
+  <id>PMDPlugin</id>
 
   <vendor>Amit Dev</vendor>
 
