@@ -34,7 +34,9 @@ import java.util.regex.Pattern;
  * @author jborgers
  */
 public class UselessSuppressionsHelper {
-    static final Pattern NEXT_METHOD_NAME_PATTERN = Pattern.compile("\\R*\\s*[\\w\\s]+\\s+([\\w]+)\\(");
+    static final Pattern NEXT_METHOD_NAME_PATTERN =
+            Pattern.compile("\\R*\\s*(\\/\\/.*|\\/\\*[.*\\n\\r]*\\*\\/)*\\R+\\s*[\\w\\s]+\\s+([\\w]+)\\(");
+    // two types of comments: \R*\s*(\/\/.*|\/\*[.*\n\r]*\*\/)*\R+\s*[\w\s]+\s+([\w]+)\(
     static final Pattern NEXT_FIELD_NAME_PATTERN = Pattern.compile("\\R*\\s*[\\w\\s<>,?]+\\s+([\\w]+)\\s*[=;]");
     static final String NO_METHOD = "<nom>";
     final Map<String, Set<String>> classMethodToRuleNameOfSuppressedViolationsMap = new HashMap<>();
@@ -165,11 +167,11 @@ public class UselessSuppressionsHelper {
 
     /**
      * Find out context of annotation from the document. Implemented with text matching.
-     * Limitation: Cannot deal with comments containing code, and not with all cases.
+     * Limitation: Cannot deal with all cases, best effort.
      * TODO use proper parsing with PSIDocumentManager
      *
      * @param annotationViolation the annotation found as violation
-     * @return
+     * @return the annotation context result
      */
     ViolatingAnnotationHolder getAnnotationContext(PMDViolation annotationViolation) {
         final VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(
@@ -211,16 +213,18 @@ public class UselessSuppressionsHelper {
         String methodName = NO_METHOD; // for class level annotations
         Matcher methodMatcher = NEXT_METHOD_NAME_PATTERN.matcher(afterAnno);
         if (methodMatcher.find()) {
-            methodName = methodMatcher.group(1);
-            // it may be on a field
-            String afterAnnoBeforeMethod = "";
-            int methodPos = afterAnno.indexOf(methodName + "(");
-            if (methodPos >= 0) {
-                afterAnnoBeforeMethod = afterAnno.substring(0, methodPos);
-            }
-            Matcher fieldMatcher = NEXT_FIELD_NAME_PATTERN.matcher(afterAnnoBeforeMethod);
-            if (fieldMatcher.find()) {
-                methodName = NO_METHOD; // on field, map to class for now
+            if (methodMatcher.groupCount() > 1) {
+                methodName = methodMatcher.group(2);
+                // it may be on a field
+                String afterAnnoBeforeMethod = "";
+                int methodPos = afterAnno.indexOf(methodName + "(");
+                if (methodPos >= 0) {
+                    afterAnnoBeforeMethod = afterAnno.substring(0, methodPos);
+                }
+                Matcher fieldMatcher = NEXT_FIELD_NAME_PATTERN.matcher(afterAnnoBeforeMethod);
+                if (fieldMatcher.find()) {
+                    methodName = NO_METHOD; // on field, map to class for now
+                }
             }
         }
         return methodName;
