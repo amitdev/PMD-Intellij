@@ -75,9 +75,10 @@ public class UselessSuppressionsHelper {
     }
 
     void storeRuleNameForMethod(RuleViolation violation) {
-        if (!violation.getMethodName().isEmpty()) {
+        String methodName = violation.getMethodName();
+        if (methodName != null && !methodName.isEmpty()) {
             // store for method
-            String methodKey = violation.getPackageName() + "-" + violation.getClassName() + "-" + violation.getMethodName();
+            String methodKey = violation.getPackageName() + "-" + violation.getClassName() + "-" + methodName;
             Set<String> violationMethodRuleNames = classMethodToRuleNameOfViolationsMap.get(methodKey);
             if (violationMethodRuleNames == null) {
                 violationMethodRuleNames = new HashSet<>();
