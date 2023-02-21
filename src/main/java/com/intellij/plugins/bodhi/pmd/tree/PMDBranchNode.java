@@ -23,6 +23,7 @@ public abstract class PMDBranchNode extends BasePMDNode {
     private int violationCount = 0;
     private int suppressedCount = 0;
     private int errorCount = 0;
+    private int uselessSuppressionCount = 0;
     private final Map<Severity, Integer> sevToViolationCount = new EnumMap<>(Severity.class);
 
     /**
@@ -44,7 +45,7 @@ public abstract class PMDBranchNode extends BasePMDNode {
     }
 
     /**
-     * Calculate the number of violations, suppressed violations and processing errors from the child nodes.
+     * Calculate the number of violations, suppressed violations, processing errors and useless suppressions from the child nodes.
      * In addition, the number of violation counts per severity level.
      * The leaf nodes will answer with 0 or 1, and the branch nodes will aggregate/calculate recursively.
      */
@@ -52,6 +53,7 @@ public abstract class PMDBranchNode extends BasePMDNode {
         violationCount = 0;
         suppressedCount = 0;
         errorCount = 0;
+        uselessSuppressionCount = 0;
         initSevToViolationCount();
         Enumeration<TreeNode> children = children();
         while (children.hasMoreElements()) {
@@ -64,6 +66,7 @@ public abstract class PMDBranchNode extends BasePMDNode {
                 violationCount += node.getViolationCount();
                 suppressedCount += node.getSuppressedCount();
                 errorCount += node.getErrorCount();
+                uselessSuppressionCount += node.getUselessSuppressionCount();
                 for (Severity sev : Severity.values()) {
                     sevToViolationCount.put(sev, sevToViolationCount.get(sev) + node.getSevViolationCount(sev));
                 }
@@ -110,6 +113,15 @@ public abstract class PMDBranchNode extends BasePMDNode {
         return errorCount;
     }
 
+    /**
+     * The useless suppressed violation (child) count of this node.
+     *
+     * @return the useless suppression count
+     */
+    public synchronized int getUselessSuppressionCount() {
+        return uselessSuppressionCount;
+    }
+
     @Override
     public synchronized int getSevViolationCount(Severity sev) {
         return sevToViolationCount.get(sev);
@@ -139,7 +151,10 @@ public abstract class PMDBranchNode extends BasePMDNode {
         if (errorCount > 0) {
             cellRenderer.append(getCountMsg("processing error", errorCount), GRAYED_ATTRIBUTES);
         }
-        if (violationCount == 0 && suppressedCount == 0 && errorCount == 0) {
+        if (uselessSuppressionCount > 0) {
+            cellRenderer.append(getCountMsg("useless suppressions", uselessSuppressionCount), GRAYED_ATTRIBUTES);
+        }
+        if (violationCount == 0 && suppressedCount == 0 && errorCount == 0 && uselessSuppressionCount == 0) {
             cellRenderer.append(getCountMsg("violation", violationCount), GRAYED_ATTRIBUTES);
         }
     }

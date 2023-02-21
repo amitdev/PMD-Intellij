@@ -137,7 +137,7 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
                 }
             }
             uselessSuppressionNode.calculateCounts();
-            if (uselessSuppressionNode.getViolationCount() > 0) {
+            if (uselessSuppressionNode.getUselessSuppressionCount() > 0) {
                 pmdRuleResultNodes.add(uselessSuppressionNode);
             }
         }

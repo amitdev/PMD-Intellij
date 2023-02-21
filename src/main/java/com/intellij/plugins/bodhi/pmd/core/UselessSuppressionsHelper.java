@@ -35,9 +35,9 @@ import java.util.regex.Pattern;
  */
 public class UselessSuppressionsHelper {
     static final Pattern NEXT_METHOD_NAME_PATTERN =
-            Pattern.compile("\\R*\\s*(\\/\\/.*|\\/\\*[.*\\n\\r]*\\*\\/)*\\R+\\s*[\\w\\s]+\\s+([\\w]+)\\(");
-    // two types of comments: \R*\s*(\/\/.*|\/\*[.*\n\r]*\*\/)*\R+\s*[\w\s]+\s+([\w]+)\(
-    static final Pattern NEXT_FIELD_NAME_PATTERN = Pattern.compile("\\R*\\s*[\\w\\s<>,?]+\\s+([\\w]+)\\s*[=;]");
+            Pattern.compile("\\R*\\s*(\\/\\/.*\\R|\\/\\*[.\\n\\r]*\\*\\/)*\\R*\\s*[\\w\\s]+\\s+([\\w]+)\\(");
+    // two types of comments: \R*\s*(\/\/.*\R|\/\*[.\n\r]*\*\/)*\R*\s*
+    static final Pattern NEXT_FIELD_NAME_PATTERN = Pattern.compile("\\R*\\s*\\R*\\s*(\\/\\/.*\\R|\\/\\*[.\\n\\r]*\\*\\/)*\\R*\\s*[\\w\\s<>,?]+\\s+([\\w]+)\\s*[=;]");
     static final String NO_METHOD = "<nom>";
     final Map<String, Set<String>> classMethodToRuleNameOfSuppressedViolationsMap = new HashMap<>();
     final Map<String, Set<String>> classMethodToRuleNameOfViolationsMap = new HashMap<>();

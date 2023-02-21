@@ -33,6 +33,10 @@ public abstract class PMDLeafNode extends BasePMDNode {
         return 0;
     }
 
+    public int getUselessSuppressionCount() {
+        return 0;
+    }
+
     @Override
     public int getSevViolationCount(Severity sev) {
         return 0;

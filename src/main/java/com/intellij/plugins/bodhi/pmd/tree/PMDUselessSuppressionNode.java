@@ -48,13 +48,9 @@ public class PMDUselessSuppressionNode extends PMDLeafNode {
     }
 
     @Override
-    public int getViolationCount() {
+    public int getUselessSuppressionCount() {
         return 1;
     }
 
-    @Override
-    public int getSevViolationCount(Severity sev) {
-        return (sev.getRulePriority() == Severity.MAJOR.getRulePriority()) ? 1 : 0;
-    }
 }
 
