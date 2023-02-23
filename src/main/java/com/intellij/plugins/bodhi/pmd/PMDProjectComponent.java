@@ -35,7 +35,7 @@ import java.util.*;
   name = "PDMPlugin",
   storages = {
     @Storage(
-      file = "$PROJECT_FILE$"
+      "pmd-idea.xml"
     )}
 )
 public class PMDProjectComponent implements ProjectComponent, PersistentStateComponent<PersistentData> {
