@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  *
@@ -35,7 +36,7 @@ import java.util.*;
   name = "PDMPlugin",
   storages = {
     @Storage(
-      file = "$PROJECT_FILE$"
+      value = "$PROJECT_FILE$"
     )}
 )
 public class PMDProjectComponent implements ProjectComponent, PersistentStateComponent<PersistentData> {
@@ -48,6 +49,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private static final String COMPONENT_NAME = "PMDProjectComponent";
 
     private final Project currentProject;
+    private static final AtomicInteger numProjectsOpen = new AtomicInteger();
     private PMDResultPanel resultPanel;
     private ToolWindow resultWindow;
     private String lastRunRuleSetPaths;
@@ -67,6 +69,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     public PMDProjectComponent(Project project) {
         this.currentProject = project;
         toolWindowManager = ToolWindowManager.getInstance(currentProject);
+        numProjectsOpen.incrementAndGet();
     }
 
     public void initComponent() {
@@ -107,34 +110,49 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     /**
      * Reflect customRuleSetPaths into actionGroup (ActionManager singleton instance)
+     * Better solution is an ActionManager for each project and
+     * one shared configuration/settings for all projects, as expected by user
+     * Now for > 1 projects open, merge the rule sets of shared actions (menu) and current project
      */
     void updateCustomRulesMenu() {
-        PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
-        List<AnAction> newActionList = new ArrayList<>();
-        boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
-        for (final String ruleSetPath : customRuleSetPaths) {
-            String ruleSetName = PMDResultCollector.getRuleSetName(ruleSetPath);
-            String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
-            String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
-            String actionText = ruleSetName;
-            if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
-                actionText += " (" + extFileName + ")";
-            }
-            AnAction action = new AnAction(actionText) {
-                public void actionPerformed(AnActionEvent e) {
-                    PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
-                    setLastRunActionAndRules(e, ruleSetPath, true);
+            PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
+            if (numProjectsOpen.get() != 1) {
+                // merge actions from menu and from settings to not lose any when switching between projects
+                AnAction[] currentActions = actionGroup.getChildren(null);
+                Set<String> ruleSetPathsFromMenu = new HashSet<>();
+                for (AnAction action : currentActions) {
+                    if (action.getSynonyms().size() == 1) {
+                        String ruleSetPath = action.getSynonyms().get(0).get();
+                        ruleSetPathsFromMenu.add(ruleSetPath);
+                    }
                 }
-            };
-            newActionList.add(action);
-        }
-        // Hopefully solve issue #98: empty PMDCustom actions menu, clean and add in one go.
-        // Testing indicates it helps.
-        actionGroup.removeAll();
-        actionGroup.addAll(newActionList);
+                customRuleSetPaths.addAll(ruleSetPathsFromMenu);
+            }
+            List<AnAction> newActionList = new ArrayList<>();
+            boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
+            for (final String ruleSetPath : customRuleSetPaths) {
+                String ruleSetName = PMDResultCollector.getRuleSetName(ruleSetPath);
+                String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
+                String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
+                String actionText = ruleSetName;
+                if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
+                    actionText += " (" + extFileName + ")";
+                }
+                AnAction action = new AnAction(actionText) {
+                    public void actionPerformed(AnActionEvent e) {
+                        PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
+                        setLastRunActionAndRules(e, ruleSetPath, true);
+                    }
+                };
+                action.addSynonym(() -> ruleSetPath);
+                newActionList.add(action);
+            }
+            actionGroup.removeAll();
+            actionGroup.addAll(newActionList);
     }
 
     public void disposeComponent() {
+        numProjectsOpen.decrementAndGet();
     }
 
     @NonNls

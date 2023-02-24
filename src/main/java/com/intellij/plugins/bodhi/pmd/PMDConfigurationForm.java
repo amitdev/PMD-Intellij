@@ -166,6 +166,7 @@ public class PMDConfigurationForm {
             }
             MyListModel listModel = (MyListModel) ruleList.getModel();
             if (listModel.data.contains(fileName)) {
+                listModel.set(ruleList.getSelectedIndex(), fileName); // trigger menu update
                 return;
             }
             if (defaultValue != null && defaultValue.trim().length() > 0) {
