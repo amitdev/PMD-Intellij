@@ -34,10 +34,9 @@ import java.util.regex.Pattern;
  * @author jborgers
  */
 public class UselessSuppressionsHelper {
-    static final Pattern NEXT_METHOD_NAME_PATTERN =
-            Pattern.compile("\\R*\\s*(\\/\\/.*\\R|\\/\\*[.\\n\\r]*\\*\\/)*\\R*\\s*[\\w\\s]+\\s+([\\w]+)\\(");
-    // two types of comments: \R*\s*(\/\/.*\R|\/\*[.\n\r]*\*\/)*\R*\s*
-    static final Pattern NEXT_FIELD_NAME_PATTERN = Pattern.compile("\\R*\\s*\\R*\\s*(\\/\\/.*\\R|\\/\\*[.\\n\\r]*\\*\\/)*\\R*\\s*[\\w\\s<>,?]+\\s+([\\w]+)\\s*[=;]");
+    static final Pattern NEXT_METHOD_NAME_PATTERN = Pattern.compile("\\R*^\\s*[\\w\\s<>]+\\s+([\\w]+)\\(");
+    static final Pattern NEXT_FIELD_NAME_PATTERN = Pattern.compile("\\R*\\s*[\\w\\s<>,?]+\\s+([\\w]+)\\s*[=;]");
+    static final Pattern COMMENT_PATTERN = Pattern.compile("(\\/\\/.*|\\/\\*(?s:.)*?\\*\\/)"); // Matches single-line and multi-line comments
     static final String NO_METHOD = "<nom>";
     final Map<String, Set<String>> classMethodToRuleNameOfSuppressedViolationsMap = new HashMap<>();
     final Map<String, Set<String>> classMethodToRuleNameOfViolationsMap = new HashMap<>();
@@ -202,24 +201,25 @@ public class UselessSuppressionsHelper {
      * Limitation: Cannot deal with comments containing code, and not with all cases.
      * TODO use proper parsing with PSIDocumentManager
      *
-     * @param afterAnno document after the annotation
+     * @param code document after the annotation
      * @return name of the method, or NO_METHOD when annotation is on class or field
      */
-    String findMethodName(String afterAnno) {
-        int classIndex = afterAnno.indexOf(" class ");
-        if (classIndex > 0) { // on class or has a subclass, remove afterAnno it
-            afterAnno = afterAnno.substring(0, classIndex);
+    String findMethodName(String code) {
+        code = removeComments(code);
+        int classIndex = code.indexOf(" class ");
+        if (classIndex > 0) { // on class or has a subclass, remove code it
+            code = code.substring(0, classIndex);
         }
         String methodName = NO_METHOD; // for class level annotations
-        Matcher methodMatcher = NEXT_METHOD_NAME_PATTERN.matcher(afterAnno);
+        Matcher methodMatcher = NEXT_METHOD_NAME_PATTERN.matcher(code);
         if (methodMatcher.find()) {
-            if (methodMatcher.groupCount() > 1) {
-                methodName = methodMatcher.group(2);
+            if (methodMatcher.groupCount() > 0) {
+                methodName = methodMatcher.group(1);
                 // it may be on a field
                 String afterAnnoBeforeMethod = "";
-                int methodPos = afterAnno.indexOf(methodName + "(");
+                int methodPos = code.indexOf(methodName + "(");
                 if (methodPos >= 0) {
-                    afterAnnoBeforeMethod = afterAnno.substring(0, methodPos);
+                    afterAnnoBeforeMethod = code.substring(0, methodPos);
                 }
                 Matcher fieldMatcher = NEXT_FIELD_NAME_PATTERN.matcher(afterAnnoBeforeMethod);
                 if (fieldMatcher.find()) {
@@ -228,6 +228,12 @@ public class UselessSuppressionsHelper {
             }
         }
         return methodName;
+    }
+
+    private String removeComments(String code) {
+        Matcher matcher = COMMENT_PATTERN.matcher(code);
+        // Remove the comments from the code string
+        return matcher.replaceAll("");
     }
 
     static class ViolatingAnnotationHolder {
