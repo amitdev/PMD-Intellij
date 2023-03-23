@@ -52,7 +52,7 @@ public class PMDConfigurationForm {
     public static final String STATISTICS_URL = "Statistics URL";
     private static final String[] columnNames = new String[] {"Option", "Value"};
     private static final String[] optionNames = new String[] {"Target JDK", STATISTICS_URL};
-    private static final String[] defaultValues = new String[] {"11", ""};
+    private static final String[] defaultValues = new String[] {"17", ""};
     private static final String STAT_URL_MSG = "Fill in Statistics URL endpoint to export anonymous PMD-Plugin usage statistics";
     private static final String STAT_URL_MSG_SUCCESS = "Could connect, will use Statistics URL endpoint to export anonymous PMD-Plugin usage statistics";
 
@@ -166,6 +166,7 @@ public class PMDConfigurationForm {
             }
             MyListModel listModel = (MyListModel) ruleList.getModel();
             if (listModel.data.contains(fileName)) {
+                listModel.set(ruleList.getSelectedIndex(), fileName); // trigger menu update
                 return;
             }
             if (defaultValue != null && defaultValue.trim().length() > 0) {

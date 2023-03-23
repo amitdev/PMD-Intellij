@@ -21,7 +21,7 @@ public class PMDRootNode extends PMDBranchNode {
     /**
      * The panel where tree resides
      */
-    private PMDResultPanel resultPanel;
+    private final PMDResultPanel resultPanel;
 
     private int fileCount = -1;
     private int ruleSetCount = -1;
@@ -82,27 +82,22 @@ public class PMDRootNode extends PMDBranchNode {
             cellRenderer.append(" Processing...");
             return;
         }
-        String result = " (" + getViolationCount() + " violation";
-        if (getViolationCount() != 1) result += "s";
+        String result = " (" + countInText(getViolationCount(), " violation");
         if (getSuppressedCount() > 0) {
-            result += ", " + getSuppressedCount() + " suppressed violation";
-            if (getSuppressedCount() > 1) {
-                result += "s";
-            }
+            result += ", " + countInText(getSuppressedCount(), " suppressed violation");
         }
         if (getErrorCount() > 0) {
-            result += ", " + getErrorCount() + " processing error";
-            if (getErrorCount() > 1) {
-                result += "s";
-            }
+            result += ", " + countInText(getErrorCount(), " processing error");
+        }
+        int uSupCount = getUselessSuppressionCount();
+        if (uSupCount > 0) {
+            result += ", " + countInText(uSupCount, " useless suppression");
         }
         if (fileCount > -1) {
-            result += " in " + fileCount + " scanned file";
-            if (fileCount != 1) result += "s";
+            result += " in " + countInText(fileCount, " scanned file");
         }
         if (ruleSetCount > -1) {
-            result += " using " + ruleSetCount + " rule set";
-            if (ruleSetCount != 1) result += "s";
+            result += " using " + countInText(ruleSetCount, " rule set");
         }
         if (exportErrorMessage != null) {
             if (exportErrorMessage.length() == 0) {
@@ -119,5 +114,7 @@ public class PMDRootNode extends PMDBranchNode {
         }
     }
 
-
+    private String countInText(int count, String text) {
+        return count + text + ((count != 1) ? "s" : "");
+    }
 }

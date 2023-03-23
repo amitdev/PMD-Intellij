@@ -38,7 +38,10 @@ public class PMDRuleSetNode extends PMDBranchNode {
         if (getErrorCount() > 0) {
             cellRenderer.append(getCountMsg("processing error", getErrorCount()), GRAYED_ATTRIBUTES);
         }
-        if (getViolationCount() == 0 && getSuppressedCount() == 0 && getErrorCount() == 0) {
+        if (getUselessSuppressionCount() > 0) {
+            cellRenderer.append(getCountMsg("useless suppression", getUselessSuppressionCount()), GRAYED_ATTRIBUTES);
+        }
+        if (getViolationCount() == 0 && getSuppressedCount() == 0 && getErrorCount() == 0 && getUselessSuppressionCount() == 0) {
             cellRenderer.append(getCountMsg("violation", getViolationCount()), GRAYED_ATTRIBUTES);
         }
     }

@@ -12,25 +12,25 @@ import net.sourceforge.pmd.Report;
 public class PMDProcessingError implements HasPositionInFile {
 
     private final Report.ProcessingError processingError;
-    private final String causeDetailMsg;
     private int beginLine = 0;
     private int beginColumn = 0;
     private final String positionText;
 
     public PMDProcessingError(Report.ProcessingError error) {
         processingError = error;
-        causeDetailMsg = error.getError().getCause().getMessage();
-        int atLinePos = causeDetailMsg.indexOf(" at line ");
-        int columnPos = causeDetailMsg.indexOf(", column ");
-        int dotPos = causeDetailMsg.indexOf(".", columnPos);
-        if (atLinePos > 0 && columnPos > atLinePos) {
-            String line = causeDetailMsg.substring(atLinePos + 9, columnPos);
-            String col = causeDetailMsg.substring(columnPos + 9, dotPos);
+        String causeDetailMsg = error.getError().getCause().getMessage();
+        // assumes format by PMD: 'Line \d+, Column \d+:'
+        int atLinePos = causeDetailMsg.indexOf("Line ");
+        int columnPos = causeDetailMsg.indexOf(", Column ");
+        int colonPos = causeDetailMsg.indexOf(":", columnPos);
+        if (atLinePos > -1 && columnPos > atLinePos && colonPos > columnPos) {
             try {
+                String line = causeDetailMsg.substring(atLinePos + 5, columnPos);
+                String col = causeDetailMsg.substring(columnPos + 9, colonPos);
                 beginLine = Integer.parseInt(line);
                 beginColumn = Integer.parseInt(col);
             }
-            catch(NumberFormatException e) { // no beginLine, beginColumn
+            catch(NumberFormatException | StringIndexOutOfBoundsException e) { // no beginLine, beginColumn
             }
         }
         positionText = "(" + beginLine + ", " + beginColumn + ") ";

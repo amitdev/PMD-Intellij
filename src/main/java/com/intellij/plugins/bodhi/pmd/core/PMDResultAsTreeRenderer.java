@@ -10,6 +10,8 @@ import net.sourceforge.pmd.Report;
 import net.sourceforge.pmd.Rule;
 import net.sourceforge.pmd.RuleViolation;
 import net.sourceforge.pmd.renderers.AbstractIncrementingRenderer;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.util.*;
 
@@ -21,6 +23,7 @@ import java.util.*;
  */
 public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
 
+    private static final Log log = LogFactory.getLog(PMDResultAsTreeRenderer.class);
     private final List<PMDRuleSetEntryNode> pmdRuleResultNodes;
     private final PMDErrorBranchNode processingErrorsNode;
     private final Set<String> filesWithError = new HashSet<>();
@@ -38,18 +41,24 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
     public void renderFileViolations(Iterator<RuleViolation> violations) {
         PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
         while (violations.hasNext()) {
-            RuleViolation ruleViolation = violations.next();
-            PMDResultCollector.getReport().addRuleViolation(ruleViolation);
-            Rule rule = ruleViolation.getRule();
-            RuleKey key = new RuleKey(rule);
-            PMDRuleNode ruleNode = ruleKeyToNodeMap.get(key);
-            if (ruleNode == null) {
-                ruleNode = nodeFactory.createRuleNode(rule);
-                ruleNode.setToolTip(rule.getDescription());
-                ruleKeyToNodeMap.put(key, ruleNode);
+            try {
+                RuleViolation ruleViolation = violations.next();
+                PMDResultCollector.getReport().addRuleViolation(ruleViolation);
+                Rule rule = ruleViolation.getRule();
+                RuleKey key = new RuleKey(rule);
+                PMDRuleNode ruleNode = ruleKeyToNodeMap.get(key);
+                if (ruleNode == null) {
+                    ruleNode = nodeFactory.createRuleNode(rule);
+                    ruleNode.setToolTip(rule.getDescription());
+                    ruleKeyToNodeMap.put(key, ruleNode);
+                }
+                ruleNode.add(nodeFactory.createViolationLeafNode(new PMDViolation(ruleViolation)));
+                uselessSupHelper.storeRuleNameForMethod(ruleViolation);
             }
-            ruleNode.add(nodeFactory.createViolationLeafNode(new PMDViolation(ruleViolation)));
-            uselessSupHelper.storeRuleNameForMethod(ruleViolation);
+            catch(Exception e) {
+                // report and swallow so following violations will still be rendered
+                log.error("Exception caught and swallowed: ", e);
+            }
         }
         for (PMDRuleNode ruleNode : ruleKeyToNodeMap.values()) {
             if (ruleNode.getChildCount() > 0 && !pmdRuleResultNodes.contains(ruleNode)) {
@@ -62,9 +71,15 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
         if (!errors.isEmpty()) {
             PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
             for (Report.ProcessingError error : errors) {
-                if (!filesWithError.contains(error.getFile())) {
-                    processingErrorsNode.add(nodeFactory.createErrorLeafNode(new PMDProcessingError(error)));
-                    filesWithError.add(error.getFile());
+                try {
+                    if (!filesWithError.contains(error.getFile())) {
+                        processingErrorsNode.add(nodeFactory.createErrorLeafNode(new PMDProcessingError(error)));
+                        filesWithError.add(error.getFile());
+                    }
+                }
+                catch(Exception e) {
+                    // report and swallow so following processing error will still be rendered
+                    log.error("Exception caught and swallowed: ", e);
                 }
             }
         }
@@ -83,11 +98,17 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
             PMDSuppressedBranchNode suppressedByNoPmdNode = nodeFactory.createSuppressedBranchNode("Suppressed violations by //NOPMD");
             PMDSuppressedBranchNode suppressedByAnnotationNode = nodeFactory.createSuppressedBranchNode("Suppressed violations by Annotation");
             for (Report.SuppressedViolation suppressed : suppressed) {
-                if (suppressed.suppressedByAnnotation()) {
-                    suppressedByAnnotationNode.add(nodeFactory.createSuppressedLeafNode(new PMDSuppressedViolation(suppressed)));
-                    uselessSupHelper.storeRuleNameForMethod(suppressed);
-                } else {
-                    suppressedByNoPmdNode.add(nodeFactory.createSuppressedLeafNode(new PMDSuppressedViolation(suppressed)));
+                try {
+                    if (suppressed.suppressedByAnnotation()) {
+                        suppressedByAnnotationNode.add(nodeFactory.createSuppressedLeafNode(new PMDSuppressedViolation(suppressed)));
+                        uselessSupHelper.storeRuleNameForMethod(suppressed);
+                    } else {
+                        suppressedByNoPmdNode.add(nodeFactory.createSuppressedLeafNode(new PMDSuppressedViolation(suppressed)));
+                    }
+                }
+                catch(Exception e) {
+                    // report and swallow so following suppressed violations will still be rendered
+                    log.error("Exception caught and swallowed: ", e);
                 }
             }
             suppressedByAnnotationNode.calculateCounts();
@@ -107,10 +128,16 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
             PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
             PMDUselessSuppressionBranchNode uselessSuppressionNode = nodeFactory.createUselessSuppressionBranchNode("Useless suppressions");
             for (PMDUselessSuppression uselessSuppression : uselessSuppressions) {
-                uselessSuppressionNode.add(nodeFactory.createUselessSuppressionLeafNode(uselessSuppression));
+                try {
+                    uselessSuppressionNode.add(nodeFactory.createUselessSuppressionLeafNode(uselessSuppression));
+                }
+                catch(Exception e) {
+                    // report and swallow so following useless suppressions will still be rendered
+                    log.error("Exception caught and swallowed: ", e);
+                }
             }
             uselessSuppressionNode.calculateCounts();
-            if (uselessSuppressionNode.getViolationCount() > 0) {
+            if (uselessSuppressionNode.getUselessSuppressionCount() > 0) {
                 pmdRuleResultNodes.add(uselessSuppressionNode);
             }
         }

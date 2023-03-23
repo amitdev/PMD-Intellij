@@ -34,8 +34,9 @@ import java.util.regex.Pattern;
  * @author jborgers
  */
 public class UselessSuppressionsHelper {
-    static final Pattern NEXT_METHOD_NAME_PATTERN = Pattern.compile("\\R*\\s*[\\w\\s]+\\s+([\\w]+)\\(");
+    static final Pattern NEXT_METHOD_NAME_PATTERN = Pattern.compile("\\R*^\\s*[\\w\\s<>]+\\s+([\\w]+)\\(");
     static final Pattern NEXT_FIELD_NAME_PATTERN = Pattern.compile("\\R*\\s*[\\w\\s<>,?]+\\s+([\\w]+)\\s*[=;]");
+    static final Pattern COMMENT_PATTERN = Pattern.compile("(\\/\\/.*|\\/\\*(?s:.)*?\\*\\/)"); // Matches single-line and multi-line comments
     static final String NO_METHOD = "<nom>";
     final Map<String, Set<String>> classMethodToRuleNameOfSuppressedViolationsMap = new HashMap<>();
     final Map<String, Set<String>> classMethodToRuleNameOfViolationsMap = new HashMap<>();
@@ -75,9 +76,10 @@ public class UselessSuppressionsHelper {
     }
 
     void storeRuleNameForMethod(RuleViolation violation) {
-        if (!violation.getMethodName().isEmpty()) {
+        String methodName = violation.getMethodName();
+        if (methodName != null && !methodName.isEmpty()) {
             // store for method
-            String methodKey = violation.getPackageName() + "-" + violation.getClassName() + "-" + violation.getMethodName();
+            String methodKey = violation.getPackageName() + "-" + violation.getClassName() + "-" + methodName;
             Set<String> violationMethodRuleNames = classMethodToRuleNameOfViolationsMap.get(methodKey);
             if (violationMethodRuleNames == null) {
                 violationMethodRuleNames = new HashSet<>();
@@ -164,11 +166,11 @@ public class UselessSuppressionsHelper {
 
     /**
      * Find out context of annotation from the document. Implemented with text matching.
-     * Limitation: Cannot deal with comments containing code, and not with all cases.
+     * Limitation: Cannot deal with all cases, best effort.
      * TODO use proper parsing with PSIDocumentManager
      *
      * @param annotationViolation the annotation found as violation
-     * @return
+     * @return the annotation context result
      */
     ViolatingAnnotationHolder getAnnotationContext(PMDViolation annotationViolation) {
         final VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(
@@ -199,30 +201,39 @@ public class UselessSuppressionsHelper {
      * Limitation: Cannot deal with comments containing code, and not with all cases.
      * TODO use proper parsing with PSIDocumentManager
      *
-     * @param afterAnno document after the annotation
+     * @param code document after the annotation
      * @return name of the method, or NO_METHOD when annotation is on class or field
      */
-    String findMethodName(String afterAnno) {
-        int classIndex = afterAnno.indexOf(" class ");
-        if (classIndex > 0) { // on class or has a subclass, remove afterAnno it
-            afterAnno = afterAnno.substring(0, classIndex);
+    String findMethodName(String code) {
+        code = removeComments(code);
+        int classIndex = code.indexOf(" class ");
+        if (classIndex > 0) { // on class or has a subclass, remove code it
+            code = code.substring(0, classIndex);
         }
         String methodName = NO_METHOD; // for class level annotations
-        Matcher methodMatcher = NEXT_METHOD_NAME_PATTERN.matcher(afterAnno);
+        Matcher methodMatcher = NEXT_METHOD_NAME_PATTERN.matcher(code);
         if (methodMatcher.find()) {
-            methodName = methodMatcher.group(1);
-            // it may be on a field
-            String afterAnnoBeforeMethod = "";
-            int methodPos = afterAnno.indexOf(methodName + "(");
-            if (methodPos >= 0) {
-                afterAnnoBeforeMethod = afterAnno.substring(0, methodPos);
-            }
-            Matcher fieldMatcher = NEXT_FIELD_NAME_PATTERN.matcher(afterAnnoBeforeMethod);
-            if (fieldMatcher.find()) {
-                methodName = NO_METHOD; // on field, map to class for now
+            if (methodMatcher.groupCount() > 0) {
+                methodName = methodMatcher.group(1);
+                // it may be on a field
+                String afterAnnoBeforeMethod = "";
+                int methodPos = code.indexOf(methodName + "(");
+                if (methodPos >= 0) {
+                    afterAnnoBeforeMethod = code.substring(0, methodPos);
+                }
+                Matcher fieldMatcher = NEXT_FIELD_NAME_PATTERN.matcher(afterAnnoBeforeMethod);
+                if (fieldMatcher.find()) {
+                    methodName = NO_METHOD; // on field, map to class for now
+                }
             }
         }
         return methodName;
+    }
+
+    private String removeComments(String code) {
+        Matcher matcher = COMMENT_PATTERN.matcher(code);
+        // Remove the comments from the code string
+        return matcher.replaceAll("");
     }
 
     static class ViolatingAnnotationHolder {
