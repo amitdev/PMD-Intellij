@@ -3,6 +3,10 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+### Added
+- Update to PMD version 6.55.0 (#131)
+- Bug fixes (#105, #121, #122, #123, #125, #126, #128)
+
 ## [1.8.25]
 ### Added
 - Update to PMD version 6.52.0 (#120)
