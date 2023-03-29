@@ -2,6 +2,7 @@ package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -93,14 +94,14 @@ public class PMDInvoker {
             VirtualFile[] selectedFiles;
             switch (actionEvent.getPlace()) {
                 case ActionPlaces.CHANGES_VIEW_POPUP:
-                    selectedFiles = VcsContextFactory.SERVICE.getInstance().createContextOn(actionEvent).getSelectedFiles();
+                    selectedFiles = actionEvent.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
                     break;
                 case ActionPlaces.MAIN_MENU:
                     VirtualFile[] contentRoots = ProjectRootManager.getInstance(project).getContentRoots();
                     selectedFiles = VfsUtil.getCommonAncestors(contentRoots);
                     break;
                 default:
-                    selectedFiles = actionEvent.getData(PlatformDataKeys.VIRTUAL_FILE_ARRAY);
+                    selectedFiles = actionEvent.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
                     break;
             }
 
