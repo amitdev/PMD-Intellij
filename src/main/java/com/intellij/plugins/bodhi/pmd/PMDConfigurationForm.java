@@ -6,7 +6,6 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.plugins.bodhi.pmd.core.PMDJsonExportingRenderer;
@@ -64,8 +63,8 @@ public class PMDConfigurationForm {
         actionGroup.removeAll();
         //Add the toolbar actions associated to this form to it
         actionGroup.add(new AddRuleSetAction("Add", "Add a custom ruleset", PlatformIcons.ADD_ICON));
-        actionGroup.add(new EditRuleSetAction("Edit", "Edit selected ruleset", IconLoader.getIcon("/actions/editSource.png", PMDConfigurationForm.class)));
-        actionGroup.add(new DeleteRuleSetAction("Delete", "Remove selected ruleset", IconLoader.getIcon("/general/remove.png", PMDConfigurationForm.class)));
+        actionGroup.add(new EditRuleSetAction("Edit", "Edit selected ruleset", PlatformIcons.EDIT));
+        actionGroup.add(new DeleteRuleSetAction("Delete", "Remove selected ruleset", PlatformIcons.DELETE_ICON));
         ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("modify actions", actionGroup, true);
         toolbar.getComponent().setVisible(true);
         buttonPanel.setLayout(new BorderLayout());

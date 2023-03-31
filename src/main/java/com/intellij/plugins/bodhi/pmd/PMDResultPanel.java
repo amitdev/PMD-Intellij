@@ -1,6 +1,7 @@
 package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.CommonBundle;
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.*;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -10,7 +11,6 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
@@ -454,7 +454,7 @@ public class PMDResultPanel extends JPanel {
      */
     private class ReRunAction extends AnAction {
         public ReRunAction() {
-            super(CommonBundle.message("action.rerun"), UsageViewBundle.message("action.description.rerun"), IconLoader.getIcon("/actions/refreshUsages.png", ReRunAction.class));
+            super(CommonBundle.message("action.rerun"), UsageViewBundle.message("action.description.rerun"), AllIcons.Actions.Rerun);
             registerCustomShortcutSet(CommonShortcuts.getRerun(), PMDResultPanel.this);
         }
 
@@ -480,7 +480,7 @@ public class PMDResultPanel extends JPanel {
         private static final String ACTION_CLOSE = "action.close";
 
         private CloseAction() {
-            super(CommonBundle.message(ACTION_CLOSE), null, IconLoader.getIcon("/actions/cancel.png", CloseAction.class));
+            super(CommonBundle.message(ACTION_CLOSE), null, AllIcons.Actions.Cancel);
         }
 
         public void actionPerformed(AnActionEvent e) {

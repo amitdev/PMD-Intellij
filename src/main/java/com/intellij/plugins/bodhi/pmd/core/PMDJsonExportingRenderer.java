@@ -7,9 +7,14 @@ import net.sourceforge.pmd.RuleViolation;
 import net.sourceforge.pmd.renderers.AbstractIncrementingRenderer;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.fluent.Request;
+import org.apache.http.client.config.RequestConfig;
+//import org.apache.http.client.fluent.Request;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,6 +27,10 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.UUID;
 
+/**
+ * For exporting anonymized PMD results to a server in JSON format.
+ * Can be tested e.g. with nc -lvk 8080.
+ */
 public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
     private static final String NAME = "json exporter";
     private static final int FORMAT_VERSION = 0;
@@ -227,15 +236,19 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
      */
     public static String tryJsonExport(String content, String url) {
         String msg = "";
+        HttpPost httpPost = new HttpPost(url);
         StringEntity contentEntity = new StringEntity(content,
                 ContentType.create("application/json", "UTF-8"));
-        try {
-            Request.Post(url)
-                    .body(contentEntity)
-                    .socketTimeout(SOCKET_TIMEOUT)
-                    .connectTimeout(CONNECT_TIMEOUT)
-                    .execute();
-        } catch (SocketTimeoutException e) {
+            httpPost.setEntity(contentEntity);
+            httpPost.setHeader("Accept", "application/json");
+            httpPost.setHeader("Content-type", "application/json");
+
+            RequestConfig requestConfig = RequestConfig.custom()
+                    .setConnectionRequestTimeout(CONNECT_TIMEOUT).setConnectTimeout(CONNECT_TIMEOUT)
+                    .setSocketTimeout(SOCKET_TIMEOUT).build();
+            try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build();
+                 CloseableHttpResponse response = (CloseableHttpResponse) client.execute(httpPost)) {
+            } catch (SocketTimeoutException e) {
             // no-op, expected because no response back
         }
         catch (IOException e) {

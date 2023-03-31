@@ -106,7 +106,7 @@ public class PMDResultCollector {
         }
         if (exportStats) {
             exportingRenderer = new PMDJsonExportingRenderer(exportUrl);
-            exportingRenderer.start();
+            // exportingRenderer.start(); is already called from PmdAnalysis for all renderers, issue #114
         }
         return exportingRenderer;
     }

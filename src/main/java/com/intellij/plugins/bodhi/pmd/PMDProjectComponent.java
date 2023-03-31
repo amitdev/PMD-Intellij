@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd;
 
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -39,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
       value = "$PROJECT_FILE$"
     )}
 )
-public class PMDProjectComponent implements ProjectComponent, PersistentStateComponent<PersistentData> {
+public class PMDProjectComponent implements ProjectComponent, PersistentStateComponent<PersistentData>, Disposable {
 
     /**
      * The Tool ID of the results panel.
@@ -151,7 +152,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
             actionGroup.addAll(newActionList);
     }
 
-    public void disposeComponent() {
+    public void dispose() {
         numProjectsOpen.decrementAndGet();
     }
 
@@ -171,7 +172,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private void registerToolWindow() {
         if (toolWindowManager.getToolWindow(TOOL_ID) == null) {
             resultWindow = toolWindowManager.registerToolWindow(TOOL_ID, true, ToolWindowAnchor.BOTTOM);
-            Content content = ContentFactory.SERVICE.getInstance().createContent(resultPanel, "", false);
+            Content content = ContentFactory.getInstance().createContent(resultPanel, "", false);
             resultWindow.getContentManager().addContent(content);
             resultWindow.setType(ToolWindowType.DOCKED, null);
         }

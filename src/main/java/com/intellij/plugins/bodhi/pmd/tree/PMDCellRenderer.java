@@ -1,6 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
-import com.intellij.openapi.util.IconLoader;
+import com.intellij.icons.AllIcons;
 import com.intellij.ui.ColoredTreeCellRenderer;
 import net.sourceforge.pmd.RulePriority;
 import org.jetbrains.annotations.NotNull;
@@ -23,8 +23,8 @@ public class PMDCellRenderer extends ColoredTreeCellRenderer {
 
     //Try to load idea specific icons for the tree.
     static {
-        CLOSED_ICON = IconLoader.getIcon("/nodes/TreeClosed.png", PMDCellRenderer.class);
-        OPEN_ICON = IconLoader.getIcon("/nodes/TreeOpen.png", PMDCellRenderer.class);
+        CLOSED_ICON = AllIcons.Nodes.Folder;
+        OPEN_ICON = AllIcons.Nodes.Folder;
     }
 
     public void customizeCellRenderer(@NotNull JTree tree,
