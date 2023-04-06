@@ -3,6 +3,7 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [1.8.27]
 ### Added
 - Support for idea 2022.x and 2023.x
 
