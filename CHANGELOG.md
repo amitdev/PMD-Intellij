@@ -3,6 +3,9 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+### Added
+- Support for idea 2022.x and 2023.x
+
 ## [1.8.26]
 ### Added
 - Update to PMD version 6.55.0 (#131)
