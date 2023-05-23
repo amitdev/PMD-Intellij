@@ -437,8 +437,13 @@ public class PMDResultPanel extends JPanel {
      */
     public PMDErrorBranchNode getProcessingErrorsNode() {
         if (processingErrorsNode == null) {
-            processingErrorsNode = new PMDErrorBranchNode("Processing errors");
+            createProcessingErrorNode();
         }
+        return processingErrorsNode;
+    }
+
+    public PMDErrorBranchNode createProcessingErrorNode() {
+        processingErrorsNode = new PMDErrorBranchNode("Processing errors");
         return processingErrorsNode;
     }
 
