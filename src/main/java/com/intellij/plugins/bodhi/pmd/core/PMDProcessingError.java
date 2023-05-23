@@ -18,19 +18,22 @@ public class PMDProcessingError implements HasPositionInFile {
 
     public PMDProcessingError(Report.ProcessingError error) {
         processingError = error;
-        String causeDetailMsg = error.getError().getCause().getMessage();
-        // assumes format by PMD: 'Line \d+, Column \d+:'
-        int atLinePos = causeDetailMsg.indexOf("Line ");
-        int columnPos = causeDetailMsg.indexOf(", Column ");
-        int colonPos = causeDetailMsg.indexOf(":", columnPos);
-        if (atLinePos > -1 && columnPos > atLinePos && colonPos > columnPos) {
-            try {
-                String line = causeDetailMsg.substring(atLinePos + 5, columnPos);
-                String col = causeDetailMsg.substring(columnPos + 9, colonPos);
-                beginLine = Integer.parseInt(line);
-                beginColumn = Integer.parseInt(col);
-            }
-            catch(NumberFormatException | StringIndexOutOfBoundsException e) { // no beginLine, beginColumn
+        Throwable cause = error.getError().getCause(); // fix #137
+        if (cause != null) {
+            String causeDetailMsg = cause.getMessage();
+            // assumes format by PMD: 'Line \d+, Column \d+:'
+            int atLinePos = causeDetailMsg.indexOf("Line ");
+            int columnPos = causeDetailMsg.indexOf(", Column ");
+            int colonPos = causeDetailMsg.indexOf(":", columnPos);
+            if (atLinePos > -1 && columnPos > atLinePos && colonPos > columnPos) {
+                try {
+                    String line = causeDetailMsg.substring(atLinePos + 5, columnPos);
+                    String col = causeDetailMsg.substring(columnPos + 9, colonPos);
+                    beginLine = Integer.parseInt(line);
+                    beginColumn = Integer.parseInt(col);
+                }
+                catch(NumberFormatException | StringIndexOutOfBoundsException e) { // no beginLine, beginColumn
+                }
             }
         }
         positionText = "(" + beginLine + ", " + beginColumn + ") ";
@@ -41,7 +44,14 @@ public class PMDProcessingError implements HasPositionInFile {
      * @return the simple class name and the throwable detail message.
      */
     public String getMsg() {
-        return processingError.getMsg();
+        // PMDException (deprecated) has a cause
+        Throwable error = processingError.getError();
+        if (error.getCause() != null) {
+            // a proper PMDException indicating for instance wrong java version
+            return processingError.getMsg(); // error class simple name and message
+        }
+        // error in PMD, for instance a NullPointerException, build our own message
+        return error.getClass().getSimpleName() + ": Error while parsing " + processingError.getFile();
     }
 
     /**
@@ -73,11 +83,20 @@ public class PMDProcessingError implements HasPositionInFile {
      * Returns the detail message of the cause of this throwable or {@code null} if the
      * cause is nonexistent or unknown.  (The cause is the throwable that
      * caused this throwable to get thrown.)
-     * @return the detail mesage of the cause throwable.
+     * When cause == null, it returns throw location of the throwable itself.
+     * @return the detail message of the cause throwable.
      */
     public String getCauseMsg() {
-        return processingError.getError().getCause().getMessage();
-    }
+        Throwable error = processingError.getError();
+        Throwable cause = error.getCause();
+        if (cause != null) {
+            return cause.getMessage();
+        }
+        else {
+            // if no cause, it may be a bug in PMD, get first stack element
+            return error.getStackTrace()[0].toString();
+        }
+      }
 
     /**
      * Returns the position text to render.

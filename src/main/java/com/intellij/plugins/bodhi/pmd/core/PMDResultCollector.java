@@ -68,7 +68,7 @@ public class PMDResultCollector {
         try {
             PMDConfiguration pmdConfig = getPmdConfig(ruleSetPath, options, project);
 
-            PMDErrorBranchNode errorsNode = comp.getResultPanel().getNewProcessingErrorsNode();
+            PMDErrorBranchNode errorsNode = comp.getResultPanel().getProcessingErrorsNode();
             PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode, ruleSetPath);
             treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFile()));
             treeRenderer.start();
@@ -95,7 +95,7 @@ public class PMDResultCollector {
         return pmdRuleSetResults;
     }
 
-    private PMDJsonExportingRenderer addExportRenderer(Map<String, String> options) throws IOException {
+    private PMDJsonExportingRenderer addExportRenderer(Map<String, String> options) {
         PMDJsonExportingRenderer exportingRenderer = null;
         String exportUrlFromForm = options.get(PMDConfigurationForm.STATISTICS_URL);
         boolean exportStats = (PMDUtil.isValidUrl(exportUrlFromForm));

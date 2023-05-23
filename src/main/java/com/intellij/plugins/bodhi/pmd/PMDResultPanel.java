@@ -431,12 +431,14 @@ public class PMDResultPanel extends JPanel {
     }
 
     /**
-     * Creates and returns the processingErrors branch node.
+     * Returns the single processingErrors branch node. Created if needed.
      *
-     * @return the new processingErrors branch node
+     * @return the processingErrors branch node
      */
-    public PMDErrorBranchNode getNewProcessingErrorsNode() {
-        processingErrorsNode = new PMDErrorBranchNode("Processing errors");
+    public PMDErrorBranchNode getProcessingErrorsNode() {
+        if (processingErrorsNode == null) {
+            processingErrorsNode = new PMDErrorBranchNode("Processing errors");
+        }
         return processingErrorsNode;
     }
 
