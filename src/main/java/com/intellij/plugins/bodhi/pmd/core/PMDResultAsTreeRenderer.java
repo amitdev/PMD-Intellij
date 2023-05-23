@@ -26,7 +26,6 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
     private static final Log log = LogFactory.getLog(PMDResultAsTreeRenderer.class);
     private final List<PMDRuleSetEntryNode> pmdRuleResultNodes;
     private final PMDErrorBranchNode processingErrorsNode;
-    private final Set<String> filesWithError = new HashSet<>();
     private final UselessSuppressionsHelper uselessSupHelper;
     private final Map<RuleKey, PMDRuleNode> ruleKeyToNodeMap = new TreeMap<>(); // order by priority and then name
 
@@ -72,9 +71,9 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
             PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
             for (Report.ProcessingError error : errors) {
                 try {
-                    if (!filesWithError.contains(error.getFile())) {
+                    if (!processingErrorsNode.hasFile(error.getFile())) {
                         processingErrorsNode.add(nodeFactory.createErrorLeafNode(new PMDProcessingError(error)));
-                        filesWithError.add(error.getFile());
+                        processingErrorsNode.registerFile(error.getFile());
                     }
                 }
                 catch(Exception e) {
