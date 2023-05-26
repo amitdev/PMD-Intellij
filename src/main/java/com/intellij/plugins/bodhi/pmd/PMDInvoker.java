@@ -160,6 +160,7 @@ public class PMDInvoker {
                 PMDResultPanel resultPanel = projectComponent.getResultPanel();
 
                 PMDRootNode rootNode = resultPanel.getRootNode();
+                resultPanel.createProcessingErrorNode();
                 PMDResultCollector.clearReport();
                 rootNode.setFileCount(files.size());
                 rootNode.setRuleSetCount(ruleSetPathArray.length);

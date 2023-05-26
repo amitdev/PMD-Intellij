@@ -27,7 +27,7 @@ public class PMDErrorNode extends PMDLeafNode {
         cellRenderer.setIcon(Severity.BLOCKER.getIcon());
         // Show error position greyed, like idea shows.
         cellRenderer.append(pmdProcessingError.getPositionText(), GRAYED_ATTRIBUTES);
-        cellRenderer.append(pmdProcessingError.getErrorMsg()); // includes file name
+        cellRenderer.append(pmdProcessingError.getMsg()); // includes simple class and file name
     }
 
     @Override
