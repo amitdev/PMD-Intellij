@@ -16,6 +16,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
+import com.intellij.plugins.bodhi.pmd.core.PMDProgressRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.tree.*;
 import org.jetbrains.annotations.NotNull;
@@ -167,15 +168,15 @@ public class PMDInvoker {
                 rootNode.setFileCount(files.size());
                 rootNode.setRuleSetCount(ruleSetPathArray.length);
                 rootNode.setRunning(true);
+                PMDProgressRenderer progressRenderer = new PMDProgressRenderer(progress, files.size() * ruleSetPathArray.length);
                 for (String ruleSetPath : ruleSetPathArray) {
-                    //TODO: even better progress
                     progress.setText("Running : " + ruleSetPath + " on " + files.size() + " file(s)");
 
                     //Create a result collector to get results
                     PMDResultCollector collector = new PMDResultCollector();
 
                     //Get the tree nodes from result collector
-                    List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(files, ruleSetPath, projectComponent);
+                    List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(files, ruleSetPath, projectComponent, progressRenderer);
                     // sort rules by priority, rule and suppressed nodes are comparable
                     resultRuleNodes.sort(null);
 
