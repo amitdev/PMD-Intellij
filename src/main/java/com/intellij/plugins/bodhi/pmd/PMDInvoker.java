@@ -8,9 +8,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
-import com.intellij.openapi.vcs.actions.VcsContextFactory;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
@@ -18,6 +18,7 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.tree.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -152,8 +153,9 @@ public class PMDInvoker {
         ApplicationManager.getApplication().saveAll();
 
         //Run PMD asynchronously
-        Runnable runnable = new Runnable() {
-            public void run() {
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running PMD", false) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
                 //Show a progress indicator.
                 ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
                 String[] ruleSetPathArray = ruleSetPaths.split(RULE_DELIMITER);
@@ -195,7 +197,6 @@ public class PMDInvoker {
                 rootNode.setRunning(false);
                 resultPanel.reloadResultTree();
             }
-        };
-        ProgressManager.getInstance().runProcessWithProgressSynchronously(runnable, "Running PMD", true, project);
+        });
     }
 }
