@@ -154,7 +154,7 @@ public class PMDInvoker {
         ApplicationManager.getApplication().saveAll();
 
         //Run PMD asynchronously
-        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running PMD", false) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running PMD", true) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 //Show a progress indicator.
@@ -191,6 +191,9 @@ public class PMDInvoker {
                         }
                         rootNode.calculateCounts();
                         resultPanel.reloadResultTree();
+                    }
+                    if (progress.isCanceled()) {
+                        break;
                     }
                 }
                 resultPanel.addProcessingErrorsNodeToRootIfHasAny(); // as last node
