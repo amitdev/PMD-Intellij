@@ -8,16 +8,18 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
-import com.intellij.openapi.vcs.actions.VcsContextFactory;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
+import com.intellij.plugins.bodhi.pmd.core.PMDProgressRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.tree.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -152,8 +154,9 @@ public class PMDInvoker {
         ApplicationManager.getApplication().saveAll();
 
         //Run PMD asynchronously
-        Runnable runnable = new Runnable() {
-            public void run() {
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running PMD", true) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
                 //Show a progress indicator.
                 ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
                 String[] ruleSetPathArray = ruleSetPaths.split(RULE_DELIMITER);
@@ -165,15 +168,15 @@ public class PMDInvoker {
                 rootNode.setFileCount(files.size());
                 rootNode.setRuleSetCount(ruleSetPathArray.length);
                 rootNode.setRunning(true);
+                PMDProgressRenderer progressRenderer = new PMDProgressRenderer(progress, files.size() * ruleSetPathArray.length);
                 for (String ruleSetPath : ruleSetPathArray) {
-                    //TODO: even better progress
                     progress.setText("Running : " + ruleSetPath + " on " + files.size() + " file(s)");
 
                     //Create a result collector to get results
                     PMDResultCollector collector = new PMDResultCollector();
 
                     //Get the tree nodes from result collector
-                    List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(files, ruleSetPath, projectComponent);
+                    List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(files, ruleSetPath, projectComponent, progressRenderer);
                     // sort rules by priority, rule and suppressed nodes are comparable
                     resultRuleNodes.sort(null);
 
@@ -189,13 +192,15 @@ public class PMDInvoker {
                         rootNode.calculateCounts();
                         resultPanel.reloadResultTree();
                     }
+                    if (progress.isCanceled()) {
+                        break;
+                    }
                 }
                 resultPanel.addProcessingErrorsNodeToRootIfHasAny(); // as last node
                 rootNode.calculateCounts();
                 rootNode.setRunning(false);
                 resultPanel.reloadResultTree();
             }
-        };
-        ProgressManager.getInstance().runProcessWithProgressSynchronously(runnable, "Running PMD", true, project);
+        });
     }
 }

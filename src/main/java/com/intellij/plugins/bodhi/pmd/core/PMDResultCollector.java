@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
+import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.plugins.bodhi.pmd.PMDConfigurationForm;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
@@ -54,11 +55,24 @@ public class PMDResultCollector {
     /**
      * Runs the given ruleSet(s) on given set of files and returns the result.
      *
-     * @param files The files to run PMD on
-     * @param ruleSetPath The path of the ruleSet to run
+     * @param files            The files to run PMD on
+     * @param ruleSetPath      The path of the ruleSet to run
+     * @param progressRenderer
      * @return list of results
      */
     public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSetPath, PMDProjectComponent comp) {
+        return this.runPMDAndGetResults(files, ruleSetPath, comp, null);
+    }
+
+    /**
+     * Runs the given ruleSet(s) on given set of files and returns the result.
+     *
+     * @param files       The files to run PMD on
+     * @param ruleSetPath The path of the ruleSet to run
+     * @param progress    Object to report progress to
+     * @return list of results
+     */
+    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSetPath, PMDProjectComponent comp, PMDProgressRenderer progressRenderer) {
         Map<String, String> options = comp.getOptions();
         Project project = comp.getCurrentProject();
 
@@ -78,6 +92,7 @@ public class PMDResultCollector {
 
             PMDJsonExportingRenderer exportingRenderer = addExportRenderer(options);
             if (exportingRenderer != null) renderers.add(exportingRenderer);
+            if (progressRenderer != null) renderers.add(progressRenderer    );
 
             try (PmdAnalysis pmd = PmdAnalysis.create(pmdConfig)) {
                 files.forEach(file -> pmd.files().addFile(file.toPath()));
