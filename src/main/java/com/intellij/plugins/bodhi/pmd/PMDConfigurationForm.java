@@ -50,8 +50,8 @@ public class PMDConfigurationForm {
 
     public static final String STATISTICS_URL = "Statistics URL";
     private static final String[] columnNames = new String[] {"Option", "Value"};
-    private static final String[] optionNames = new String[] {"Target JDK", STATISTICS_URL};
-    private static final String[] defaultValues = new String[] {"17", ""};
+    private static final String[] optionNames = new String[] {"Target JDK", STATISTICS_URL, "Threads"};
+    private static final String[] defaultValues = new String[] {"17", "", "1"};
     private static final String STAT_URL_MSG = "Fill in Statistics URL endpoint to export anonymous PMD-Plugin usage statistics";
     private static final String STAT_URL_MSG_SUCCESS = "Could connect, will use Statistics URL endpoint to export anonymous PMD-Plugin usage statistics";
 
@@ -253,9 +253,11 @@ public class PMDConfigurationForm {
             super.setValueAt(aValue, row, column);
             boolean origIsMod = isModified;
             isModified = isModified || !orig.equals(aValue);
-            // row 1: statistics URL
-            if (row == 1) {
-                validateStatUrl((String) aValue, row, column, orig, origIsMod);
+            switch (row) {
+                // row 1: statistics URL
+                case 1: validateStatUrl((String) aValue, row, column, orig, origIsMod);
+                // row 2: threads
+                case 2: validateThreads((String) aValue, row, column, orig, origIsMod);
             }
         }
 
@@ -291,6 +293,23 @@ public class PMDConfigurationForm {
                 statUrlMsg = STAT_URL_MSG;
             }
             table1.setToolTipText(statUrlMsg);
+        }
+
+        private void validateThreads(String threads, int row, int column, Object orig, boolean origIsMod) {
+            boolean ok = true;
+            try {
+                int asInt = Integer.parseInt(threads);
+                if (asInt < 1) {
+                    ok = false;
+                }
+            } catch (NumberFormatException ne) {
+                ok = false;
+            }
+            if (!ok) {
+                super.setValueAt(orig, row, column);
+                table1.setToolTipText("Must be an positive integer");
+                isModified = origIsMod;
+            }
         }
     }
 

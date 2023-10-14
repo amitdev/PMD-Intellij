@@ -125,7 +125,13 @@ public class PMDResultCollector {
         pmdConfig.addRuleSet(ruleSets);
         pmdConfig.setReportFile(File.createTempFile("pmd", "report").getAbsolutePath());
         pmdConfig.setShowSuppressedViolations(true);
-        pmdConfig.setThreads(0);
+
+        String threads = options.get("Threads");
+        if (threads == null || threads.equals("1")) {
+            pmdConfig.setThreads(0); // 0 is a special value invoking in single thread mood
+        } else {
+            pmdConfig.setThreads(Integer.parseInt(threads));
+        }
         return pmdConfig;
     }
 
