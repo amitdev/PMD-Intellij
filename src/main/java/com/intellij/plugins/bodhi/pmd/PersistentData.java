@@ -11,9 +11,12 @@ public class PersistentData {
     private Map<String, String> options;
     private boolean skipTestSources = DEFAULT_SKIP_TEST_SRC;
     private boolean scanFilesBeforeCheckin;
+    private List<String> inEditorAnnotationRules;
+
 
     public PersistentData() {
         this.customRuleSets = new ArrayList<>();
+        this.inEditorAnnotationRules = new ArrayList<>();
         this.options = new HashMap<>();
     }
 
@@ -39,6 +42,13 @@ public class PersistentData {
 
     public boolean isSkipTestSources() {
         return skipTestSources;
+    }
+
+    public void setInEditorAnnotationRules(List<String> inEditorAnnotationRules) {
+        this.inEditorAnnotationRules = inEditorAnnotationRules;
+    }
+    public List<String> getInEditorAnnotationRules() {
+        return inEditorAnnotationRules;
     }
 
     public boolean isScanFilesBeforeCheckin() {

@@ -36,5 +36,9 @@
     <projectConfigurable id="PMD" displayName="PMD" instance="com.intellij.plugins.bodhi.pmd.PMDConfigurable"/>
     <checkinHandlerFactory id="PMDCheckinHandlerFactory"
                            implementation="com.intellij.plugins.bodhi.pmd.handlers.PMDCheckinHandlerFactory"/>
+
+    <externalAnnotator
+            language="JAVA"
+            implementationClass="com.intellij.plugins.bodhi.pmd.annotator.PMDExternalAnnotator"/>
   </extensions>
 </idea-plugin>

@@ -12,12 +12,11 @@ import com.intellij.plugins.bodhi.pmd.core.PMDJsonExportingRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.util.PlatformIcons;
+import net.sourceforge.pmd.util.ResourceLoader;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.DocumentEvent;
+import javax.swing.event.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.text.BadLocationException;
@@ -27,8 +26,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.*;
+
+import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_FILENAMES;
+import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_PROPERTY_FILE;
 
 /**
  * This class represents the UI for settings.
@@ -38,12 +41,13 @@ import java.util.*;
  */
 public class PMDConfigurationForm {
     private JPanel rootPanel;
-    private JList ruleList;
+    private JList<String> ruleList;
     private JPanel buttonPanel;
     private JTabbedPane tabbedPane1;
     private JTable table1;
     private JPanel mainPanel;
     private JCheckBox skipTestsCheckBox;
+    private JList<String> inEditorAnnotationRuleSets;
 
     private boolean isModified;
     private final Project project;
@@ -71,7 +75,9 @@ public class PMDConfigurationForm {
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
 
         table1.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
-        ruleList.setModel(new MyListModel(new ArrayList<String>()));
+        ruleList.setModel(new MyListModel(new ArrayList<>()));
+        inEditorAnnotationRuleSets.setModel(new MyListModel(new ArrayList<>()));
+        inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
         skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
 
         table1.setToolTipText(STAT_URL_MSG);
@@ -90,7 +96,8 @@ public class PMDConfigurationForm {
      * @param dataProjComp the data provider
      */
     public void setDataOnUI(PMDProjectComponent dataProjComp) {
-        ruleList.setModel(new MyListModel(dataProjComp.getCustomRuleSetPaths()));
+        List<String> customRuleSetPaths = dataProjComp.getCustomRuleSetPaths();
+        ruleList.setModel(new MyListModel(customRuleSetPaths));
         if (dataProjComp.getOptions().isEmpty()) {
             String[][] dat = new String[optionNames.length][2];
             for (int i = 0; i < optionNames.length; i++) {
@@ -102,6 +109,20 @@ public class PMDConfigurationForm {
         }
         table1.setModel(new MyTableModel(toArray(dataProjComp.getOptions()), columnNames));
         skipTestsCheckBox.setSelected(dataProjComp.isSkipTestSources());
+
+        Properties props = new Properties();
+        try {
+            props.load(getClass().getClassLoader().getResourceAsStream(RULESETS_PROPERTY_FILE));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        List<String> allRules = new ArrayList<>(List.of(props.getProperty(RULESETS_FILENAMES).split(PMDInvoker.RULE_DELIMITER)));
+        allRules.addAll(customRuleSetPaths);
+
+        MyListModel inEditorAnnotationModel = new MyListModel(allRules);
+        inEditorAnnotationRuleSets.setModel(inEditorAnnotationModel);
+        inEditorAnnotationRuleSets.setSelectedIndices(inEditorAnnotationModel.getIndexes(dataProjComp.getInEditorAnnotationRuleSets()));
+
         isModified = false;
     }
 
@@ -111,6 +132,8 @@ public class PMDConfigurationForm {
             res[i][0] = optionNames[i];
             res[i][1] = options.get(optionNames[i]);
         }
+
+
         return res;
     }
 
@@ -122,6 +145,8 @@ public class PMDConfigurationForm {
         data_ProjComp.setCustomRuleSets(((MyListModel) ruleList.getModel()).getData());
         data_ProjComp.setOptions( toMap(table1.getModel()) );
         data_ProjComp.skipTestSources(skipTestsCheckBox.isSelected());
+        data_ProjComp.setInEditorAnnotationRuleSets(inEditorAnnotationRuleSets.getSelectedValuesList());
+
         isModified = false;
     }
 
@@ -175,6 +200,10 @@ public class PMDConfigurationForm {
             int index = listModel.getSize();
             listModel.add(index, fileName);
             ruleList.setSelectedIndex(index);
+
+            MyListModel inEditorAnnotationRuleSetsModel = (MyListModel) inEditorAnnotationRuleSets.getModel();
+            inEditorAnnotationRuleSetsModel.add(inEditorAnnotationRuleSetsModel.getSize(), fileName);
+
             ruleList.repaint();
         }
     }
@@ -227,8 +256,11 @@ public class PMDConfigurationForm {
         public void actionPerformed(@NotNull AnActionEvent e) {
             int index = ruleList.getSelectedIndex();
             if (index != -1) {
+                String toRemove = ruleList.getModel().getElementAt(index);
                 ((MyListModel)ruleList.getModel()).remove(index);
                 ruleList.setSelectedIndex(index);
+
+                ((MyListModel) inEditorAnnotationRuleSets.getModel()).remove(toRemove);
             }
             ruleList.repaint();
         }
@@ -313,7 +345,7 @@ public class PMDConfigurationForm {
         }
     }
 
-    private class MyListModel extends AbstractListModel {
+    private class MyListModel extends AbstractListModel<String> {
 
         private final List<String> data;
 
@@ -331,12 +363,16 @@ public class PMDConfigurationForm {
             isModified = true;
         }
 
-        public synchronized Object getElementAt(int index) {
+        public synchronized String getElementAt(int index) {
             return data.get(index);
         }
 
         public synchronized List<String> getData() {
             return data;
+        }
+
+        public synchronized void remove(String objectToRemove) {
+            remove(data.indexOf(objectToRemove));
         }
 
         public synchronized void remove(int index) {
@@ -349,6 +385,16 @@ public class PMDConfigurationForm {
             data.set(selIndex, fileName);
             fireContentsChanged(this, selIndex, selIndex);
             isModified = true;
+        }
+
+        public int[] getIndexes(Set<String> selectedObjects) {
+            int[] selected = new int[selectedObjects.size()];
+            List<String> options = getData();
+            int i=0;
+            for (String selectedOption : selectedObjects) {
+                selected[i++] = options.indexOf(selectedOption);
+            }
+            return selected;
         }
     }
 
@@ -415,6 +461,13 @@ public class PMDConfigurationForm {
     {
         public void stateChanged(ChangeEvent e)
         {
+            isModified = true;
+        }
+    }
+
+    private class SelectionChangeListener implements ListSelectionListener {
+        @Override
+        public void valueChanged(ListSelectionEvent e) {
             isModified = true;
         }
     }
