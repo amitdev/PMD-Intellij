@@ -34,9 +34,9 @@ import java.util.regex.Pattern;
  * @author jborgers
  */
 public class UselessSuppressionsHelper {
-    static final Pattern NEXT_METHOD_NAME_PATTERN = Pattern.compile("\\R*^\\s*[\\w\\s<>]+\\s+([\\w]+)\\(");
-    static final Pattern NEXT_FIELD_NAME_PATTERN = Pattern.compile("\\R*\\s*[\\w\\s<>,?]+\\s+([\\w]+)\\s*[=;]");
-    static final Pattern COMMENT_PATTERN = Pattern.compile("(\\/\\/.*|\\/\\*(?s:.)*?\\*\\/)"); // Matches single-line and multi-line comments
+    static final Pattern NEXT_METHOD_NAME_PATTERN = Pattern.compile("\\R*^\\s*[\\w\\s<>]+\\s+(\\w+)\\(");
+    static final Pattern NEXT_FIELD_NAME_PATTERN = Pattern.compile("\\R*\\s*[\\w\\s<>,?]+\\s+(\\w+)\\s*[=;]");
+    static final Pattern COMMENT_PATTERN = Pattern.compile("(//.*|/\\*(?s:.)*?\\*/)"); // Matches single-line and multi-line comments
     static final String NO_METHOD = "<nom>";
     final Map<String, Set<String>> classMethodToRuleNameOfSuppressedViolationsMap = new HashMap<>();
     final Map<String, Set<String>> classMethodToRuleNameOfViolationsMap = new HashMap<>();
@@ -55,7 +55,7 @@ public class UselessSuppressionsHelper {
 
     void storeRuleNameForMethod(Report.SuppressedViolation suppressed) {
         RuleViolation violation = suppressed.getRuleViolation();
-        if (!violation.getMethodName().isEmpty()) {
+        if (violation.getMethodName() != null && !violation.getMethodName().isEmpty()) {
             // store for method
             String methodKey = violation.getPackageName() + "-" + violation.getClassName() + "-" + violation.getMethodName();
             Set<String> suppressedMethodRuleNames = classMethodToRuleNameOfSuppressedViolationsMap.get(methodKey);
@@ -136,8 +136,6 @@ public class UselessSuppressionsHelper {
                         uselessSuppressions.add(new PMDUselessSuppression(pmdViolation, annotatedRuleName));
                     }
                 }
-            } else {
-                // cannot deal with other, non-pmd suppressions
             }
         }
     }
@@ -179,18 +177,20 @@ public class UselessSuppressionsHelper {
         if (virtualFile != null) {
             ApplicationManager.getApplication().runReadAction(() -> {
                 Document doc = FileDocumentManager.getInstance().getDocument(virtualFile);
-                int startOffset = doc.getLineStartOffset(annotationViolation.getBeginLine() - 1) + annotationViolation.getBeginColumn();
-                int endOffset = doc.getLineStartOffset(annotationViolation.getEndLine() - 1) + annotationViolation.getEndColumn() - 1;
-                String violatingAnnotation = doc.getText(new TextRange(startOffset, endOffset));
-                String methodName;
-                if (!annotationViolation.getMethodName().isEmpty()) { // an annotation inside a method
-                    methodName = annotationViolation.getMethodName();
-                } else {
-                    int startAfter = doc.getLineStartOffset(annotationViolation.getEndLine());
-                    String after = doc.getText(new TextRange(startAfter, doc.getTextLength() - 1));
-                    methodName = findMethodName(after);
+                if (doc != null) {
+                    int startOffset = doc.getLineStartOffset(annotationViolation.getBeginLine() - 1) + annotationViolation.getBeginColumn();
+                    int endOffset = doc.getLineStartOffset(annotationViolation.getEndLine() - 1) + annotationViolation.getEndColumn() - 1;
+                    String violatingAnnotation = doc.getText(new TextRange(startOffset, endOffset));
+                    String methodName;
+                    if (!annotationViolation.getMethodName().isEmpty()) { // an annotation inside a method
+                        methodName = annotationViolation.getMethodName();
+                    } else {
+                        int startAfter = doc.getLineStartOffset(annotationViolation.getEndLine());
+                        String after = doc.getText(new TextRange(startAfter, doc.getTextLength() - 1));
+                        methodName = findMethodName(after);
+                    }
+                    annotationContextResult = new ViolatingAnnotationHolder(violatingAnnotation, methodName);
                 }
-                annotationContextResult = new ViolatingAnnotationHolder(violatingAnnotation, methodName);
             });
         }
         return annotationContextResult;

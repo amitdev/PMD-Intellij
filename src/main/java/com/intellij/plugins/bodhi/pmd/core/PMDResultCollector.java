@@ -57,7 +57,6 @@ public class PMDResultCollector {
      *
      * @param files            The files to run PMD on
      * @param ruleSetPath      The path of the ruleSet to run
-     * @param progressRenderer
      * @return list of results
      */
     public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSetPath, PMDProjectComponent comp) {
@@ -69,7 +68,6 @@ public class PMDResultCollector {
      *
      * @param files       The files to run PMD on
      * @param ruleSetPath The path of the ruleSet to run
-     * @param progress    Object to report progress to
      * @return list of results
      */
     public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSetPath, PMDProjectComponent comp, PMDProgressRenderer progressRenderer) {
@@ -92,7 +90,7 @@ public class PMDResultCollector {
 
             PMDJsonExportingRenderer exportingRenderer = addExportRenderer(options);
             if (exportingRenderer != null) renderers.add(exportingRenderer);
-            if (progressRenderer != null) renderers.add(progressRenderer    );
+            if (progressRenderer != null) renderers.add(progressRenderer);
 
             try (PmdAnalysis pmd = PmdAnalysis.create(pmdConfig)) {
                 files.forEach(file -> pmd.files().addFile(file.toPath()));
@@ -161,7 +159,7 @@ public class PMDResultCollector {
 
         try {
             RuleSet rs = new RuleSetLoader().loadFromResource(path);
-            if (rs.getRules().size() != 0) {
+            if (!rs.getRules().isEmpty()) {
                 pathToRuleSet.put(path, rs);
                 return "";
             }

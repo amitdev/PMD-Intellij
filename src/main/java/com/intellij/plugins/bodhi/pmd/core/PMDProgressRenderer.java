@@ -25,10 +25,6 @@ public class PMDProgressRenderer extends AbstractRenderer {
     }
 
     @Override
-    public void start() throws IOException {
-    }
-
-    @Override
     public void startFileAnalysis(DataSource dataSource) {
         processedFiles++;
         progress.setFraction(processedFiles / (double) totalFiles);
@@ -36,12 +32,19 @@ public class PMDProgressRenderer extends AbstractRenderer {
     }
 
     @Override
-    public void renderFileReport(Report report) throws IOException {
+    public void flush() {
+    }
 
+    @Override
+    public void start() throws IOException {
+    }
+
+    @Override
+    public void renderFileReport(Report report) throws IOException {
     }
 
     @Override
     public void end() throws IOException {
-
     }
+
 }
