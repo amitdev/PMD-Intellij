@@ -3,6 +3,7 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [1.8.28]
 ### Added
 - Support for running PMD task in background
 
