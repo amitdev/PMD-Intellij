@@ -252,7 +252,7 @@ public class PMDConfigurationForm {
             Object orig = getValueAt(row, column);
             super.setValueAt(aValue, row, column);
             boolean origIsMod = isModified;
-            isModified = isModified || !orig.equals(aValue);
+            isModified = isModified || orig == null || !orig.equals(aValue);
             switch (row) {
                 // row 1: statistics URL
                 case 1: validateStatUrl((String) aValue, row, column, orig, origIsMod);
