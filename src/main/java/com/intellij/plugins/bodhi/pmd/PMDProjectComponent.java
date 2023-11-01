@@ -61,6 +61,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private final ToolWindowManager toolWindowManager;
     private boolean skipTestSources;
     private boolean scanFilesBeforeCheckin;
+    private Set<String> inEditorAnnotationRuleSets = new LinkedHashSet<>(); // avoid duplicates, maintain order
 
     /**
      * Creates a PMD Project component based on the project given.
@@ -261,6 +262,13 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         this.customRuleSetPaths = new LinkedHashSet<>(customRuleSetPaths);
     }
 
+    public Set<String> getInEditorAnnotationRuleSets() {
+        return inEditorAnnotationRuleSets;
+    }
+    public void setInEditorAnnotationRuleSets(List<String> inEditorAnnotationRules) {
+        this.inEditorAnnotationRuleSets = new LinkedHashSet<>(inEditorAnnotationRules);
+    }
+
     public Map<String, String> getOptions() {
         return options;
     }
@@ -284,6 +292,10 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         }
         pd.setSkipTestSources(skipTestSources);
         pd.setScanFilesBeforeCheckin(scanFilesBeforeCheckin);
+
+        for (String item : inEditorAnnotationRuleSets) {
+            pd.getInEditorAnnotationRules().add(item);
+        }
         return pd;
     }
 
@@ -302,6 +314,9 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         if (options.remove("Encoding") != null) {
             options.put(PMDConfigurationForm.STATISTICS_URL, "");
         }
+
+        inEditorAnnotationRuleSets.clear();
+        inEditorAnnotationRuleSets.addAll(state.getInEditorAnnotationRules());
 
         this.skipTestSources = state.isSkipTestSources();
         this.scanFilesBeforeCheckin = state.isScanFilesBeforeCheckin();
