@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.annotator;
 
+import com.ibm.icu.impl.coll.Collation;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.lang.annotation.HighlightSeverity;
@@ -14,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Display PMD violations in the editor and in the problem view
@@ -27,15 +29,16 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
     @Override
     public @Nullable PMDAnnotations doAnnotate(FileInfo info) {
         PMDProjectComponent projectComponent = info.getProject().getComponent(PMDProjectComponent.class);
-        if (projectComponent.getInEditorAnnotationRuleSets().isEmpty()) {
+
+        Set<String> ruleSets = projectComponent.getInEditorAnnotationRuleSets();
+
+        if (ruleSets.isEmpty()) {
             return null;
         }
 
         PMDResultCollector collector = new PMDResultCollector();
         PMDAnnotationRenderer renderer = new PMDAnnotationRenderer();
-        for (String ruleSetPath : projectComponent.getInEditorAnnotationRuleSets()) {
-            collector.runPMDAndGetResults(List.of(info.getFile()), ruleSetPath, projectComponent, renderer);
-        }
+        collector.runPMDAndGetResults(List.of(info.getFile()), List.copyOf(ruleSets), projectComponent, renderer);
 
         return renderer.getResult(info.getDocument());
     }
@@ -48,10 +51,10 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
 
         Document document = annotationResult.getDocument();
         for (RuleViolation violation : annotationResult.getReport().getViolations()) {
-            int startLineOffset = document.getLineStartOffset(violation.getBeginLine()-1);
+            int startLineOffset = document.getLineStartOffset(violation.getBeginLine() - 1);
             int endOffset = violation.getEndLine() - violation.getBeginLine() > 5 // Only mark first line for long violations
-                    ? document.getLineEndOffset(violation.getBeginLine()-1)
-                    : document.getLineStartOffset(violation.getEndLine()-1) + violation.getEndColumn();
+                    ? document.getLineEndOffset(violation.getBeginLine() - 1)
+                    : document.getLineStartOffset(violation.getEndLine() - 1) + violation.getEndColumn();
 
             holder.newAnnotation(getSeverity(violation), "PMD: " + violation.getDescription())
                     .tooltip("PMD: " + violation.getRule().getName() +
