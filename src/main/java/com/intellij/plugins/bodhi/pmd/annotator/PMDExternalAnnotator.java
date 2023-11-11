@@ -6,6 +6,7 @@ import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.psi.PsiFile;
@@ -21,7 +22,13 @@ import java.util.List;
 public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotations> {
     @Override
     public FileInfo collectInformation(@NotNull PsiFile file, @NotNull Editor editor, boolean hasErrors) {
-        return new FileInfo(file, editor.getDocument());
+        var virtualFile = file.getVirtualFile();
+        // Can we get a real file for this virtual file?
+        if (virtualFile.getFileSystem().getNioPath(virtualFile) == null) {
+            return null;
+        } else {
+            return new FileInfo(file, editor.getDocument());
+        }
     }
 
     @Override
