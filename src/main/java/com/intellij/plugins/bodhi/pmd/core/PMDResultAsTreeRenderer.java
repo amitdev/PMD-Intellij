@@ -29,11 +29,11 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
     private final UselessSuppressionsHelper uselessSupHelper;
     private final Map<RuleKey, PMDRuleNode> ruleKeyToNodeMap = new TreeMap<>(); // order by priority and then name
 
-    public PMDResultAsTreeRenderer(List<PMDRuleSetEntryNode> pmdRuleSetResults, PMDErrorBranchNode errorsNode, String ruleSetPath) {
+    public PMDResultAsTreeRenderer(List<PMDRuleSetEntryNode> pmdRuleSetResults, PMDErrorBranchNode errorsNode, List<String> ruleSetPaths) {
         super("pmdplugin", "PMD plugin renderer");
         this.pmdRuleResultNodes = pmdRuleSetResults;
         processingErrorsNode = errorsNode;
-        uselessSupHelper = new UselessSuppressionsHelper(ruleSetPath);
+        uselessSupHelper = new UselessSuppressionsHelper(ruleSetPaths);
     }
 
     @Override

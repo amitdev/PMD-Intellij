@@ -18,10 +18,14 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.core.PMDProgressRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.plugins.bodhi.pmd.tree.*;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRootNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetNode;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -68,8 +72,8 @@ public class PMDInvoker {
     /**
      * Runs PMD based on the given parameters, and populates result.
      *
-     * @param actionEvent The action event that triggered run
-     * @param ruleSetPaths The ruleSetPath(s) for rules to run
+     * @param actionEvent     The action event that triggered run
+     * @param ruleSetPaths    The ruleSetPath(s) for rules to run
      * @param isCustomRuleSet Is it a custom ruleset or not.
      */
     public void runPMD(AnActionEvent actionEvent, String ruleSetPaths, boolean isCustomRuleSet) {
@@ -138,10 +142,11 @@ public class PMDInvoker {
 
     /**
      * Runs PMD on given files.
-     *  @param project the project
-     * @param ruleSetPaths The ruleSetPath(s) of rules to run
-     * @param files The files on which to run
-     * @param isCustomRuleSet Is it a custom ruleset or not.
+     *
+     * @param project          the project
+     * @param ruleSetPaths     The ruleSetPath(s) of rules to run
+     * @param files            The files on which to run
+     * @param isCustomRuleSet  Is it a custom ruleset or not.
      * @param projectComponent
      */
     public void processFiles(Project project, final String ruleSetPaths, final List<File> files, final boolean isCustomRuleSet, final PMDProjectComponent projectComponent) {
@@ -169,32 +174,30 @@ public class PMDInvoker {
                 rootNode.setRuleSetCount(ruleSetPathArray.length);
                 rootNode.setRunning(true);
                 PMDProgressRenderer progressRenderer = new PMDProgressRenderer(progress, files.size() * ruleSetPathArray.length);
-                for (String ruleSetPath : ruleSetPathArray) {
-                    progress.setText("Running : " + ruleSetPath + " on " + files.size() + " file(s)");
+                progress.setText("Running : " + ruleSetPathArray.length + " PMD rules on " + files.size() + " file(s)");
 
-                    //Create a result collector to get results
-                    PMDResultCollector collector = new PMDResultCollector();
+                //Create a result collector to get results
+                PMDResultCollector collector = new PMDResultCollector();
 
-                    //Get the tree nodes from result collector
-                    List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(files, ruleSetPath, projectComponent, progressRenderer);
-                    // sort rules by priority, rule and suppressed nodes are comparable
-                    resultRuleNodes.sort(null);
+                //Get the tree nodes from result collector
+                List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(files, Arrays.asList(ruleSetPathArray), projectComponent, progressRenderer);
+                // sort rules by priority, rule and suppressed nodes are comparable
+                resultRuleNodes.sort(null);
 
-                    if (!resultRuleNodes.isEmpty()) {
-                        String ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
-                        String  desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
-                        PMDRuleSetNode ruleSetNode = resultPanel.addCreateRuleSetNodeAtRoot(ruleSetName);
-                        ruleSetNode.setToolTip(desc);
-                        //Add all rule nodes to the tree
-                        for (PMDRuleSetEntryNode resultRuleNode : resultRuleNodes) {
-                            resultPanel.addNode(ruleSetNode, resultRuleNode);
-                        }
-                        rootNode.calculateCounts();
-                        resultPanel.reloadResultTree();
+                if (!resultRuleNodes.isEmpty()) {
+                    String ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPaths);
+                    String desc = PMDResultCollector.getRuleSetDescription(ruleSetPaths);
+                    PMDRuleSetNode ruleSetNode = resultPanel.addCreateRuleSetNodeAtRoot(ruleSetName);
+                    ruleSetNode.setToolTip(desc);
+                    //Add all rule nodes to the tree
+                    for (PMDRuleSetEntryNode resultRuleNode : resultRuleNodes) {
+                        resultPanel.addNode(ruleSetNode, resultRuleNode);
                     }
-                    if (progress.isCanceled()) {
-                        break;
-                    }
+                    rootNode.calculateCounts();
+                    resultPanel.reloadResultTree();
+                }
+                if (progress.isCanceled()) {
+                    // TODO what happens here ? Implement a PMD.onStop callback ?
                 }
                 resultPanel.addProcessingErrorsNodeToRootIfHasAny(); // as last node
                 rootNode.calculateCounts();

@@ -1,11 +1,11 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
-import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.plugins.bodhi.pmd.PMDConfigurationForm;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
-import com.intellij.plugins.bodhi.pmd.tree.*;
+import com.intellij.plugins.bodhi.pmd.tree.PMDErrorBranchNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
 import net.sourceforge.pmd.*;
 import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.LanguageVersion;
@@ -36,7 +36,8 @@ public class PMDResultCollector {
     /**
      * Creates an instance of PMDResultCollector.
      */
-    public PMDResultCollector() {}
+    public PMDResultCollector() {
+    }
 
     /**
      * Clears the pmd results Report by assigning a new one
@@ -47,30 +48,32 @@ public class PMDResultCollector {
 
     /**
      * Returns the report with pmd results
+     *
      * @return the report with pmd results
      */
     public static Report getReport() {
         return report;
     }
+
     /**
      * Runs the given ruleSet(s) on given set of files and returns the result.
      *
-     * @param files            The files to run PMD on
-     * @param ruleSetPath      The path of the ruleSet to run
+     * @param files        The files to run PMD on
+     * @param ruleSetPaths List of paths of ruleSets to run
      * @return list of results
      */
-    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSetPath, PMDProjectComponent comp) {
-        return this.runPMDAndGetResults(files, ruleSetPath, comp, null);
+    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, List<String> ruleSetPaths, PMDProjectComponent comp) {
+        return this.runPMDAndGetResults(files, ruleSetPaths, comp, null);
     }
 
     /**
      * Runs the given ruleSet(s) on given set of files and returns the result.
      *
-     * @param files       The files to run PMD on
-     * @param ruleSetPath The path of the ruleSet to run
+     * @param files        The files to run PMD on
+     * @param ruleSetPaths List of paths with the ruleSet to run
      * @return list of results
      */
-    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSetPath, PMDProjectComponent comp, Renderer extraRenderer) {
+    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, List<String> ruleSetPaths, PMDProjectComponent comp, Renderer extraRenderer) {
         Map<String, String> options = comp.getOptions();
         Project project = comp.getCurrentProject();
 
@@ -78,10 +81,10 @@ public class PMDResultCollector {
 
         final List<PMDRuleSetEntryNode> pmdRuleSetResults = new ArrayList<>();
         try {
-            PMDConfiguration pmdConfig = getPmdConfig(ruleSetPath, options, project);
+            PMDConfiguration pmdConfig = getPmdConfig(ruleSetPaths, options, project);
 
             PMDErrorBranchNode errorsNode = comp.getResultPanel().getProcessingErrorsNode();
-            PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode, ruleSetPath);
+            PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode, ruleSetPaths);
             treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFile()));
             treeRenderer.start();
 
@@ -125,7 +128,7 @@ public class PMDResultCollector {
     }
 
     @NotNull
-    private PMDConfiguration getPmdConfig(String ruleSets, Map<String, String> options, Project project) throws IOException {
+    private PMDConfiguration getPmdConfig(List<String> ruleSets, Map<String, String> options, Project project) throws IOException {
         PMDConfiguration pmdConfig = new PMDConfiguration();
         String type = options.get("Target JDK");
         if (type != null) {
@@ -135,7 +138,7 @@ public class PMDResultCollector {
         }
         pmdConfig.prependAuxClasspath(PMDUtil.getFullClassPathForAllModules(project));
 
-        pmdConfig.addRuleSet(ruleSets);
+        ruleSets.forEach(pmdConfig::addRuleSet);
         pmdConfig.setReportFile(File.createTempFile("pmd", "report").getAbsolutePath());
         pmdConfig.setShowSuppressedViolations(true);
 
@@ -179,7 +182,7 @@ public class PMDResultCollector {
         try {
             ruleSetName = PMDResultCollector.getRuleSet(ruleSetPath).getName(); // from the xml
         } catch (InvalidRuleSetException e) {
-            String msg = (e.getCause() == null) ? e.getMessage(): e.getCause().getMessage();
+            String msg = (e.getCause() == null) ? e.getMessage() : e.getCause().getMessage();
             ruleSetName = msg.substring(0, Math.min(25, msg.length()));
         }
         return ruleSetName;
