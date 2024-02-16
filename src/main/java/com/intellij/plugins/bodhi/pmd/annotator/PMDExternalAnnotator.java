@@ -49,7 +49,7 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
         PMDResultCollector collector = new PMDResultCollector();
         PMDAnnotationRenderer renderer = new PMDAnnotationRenderer();
         for (String ruleSetPath : projectComponent.getInEditorAnnotationRuleSets()) {
-            collector.runPMDAndGetResults(List.of(info.getFile()), List.of(asTextFile(info)), ruleSetPath, projectComponent, renderer);
+            collector.runPMDAndGetResults(List.of(), List.of(asTextFile(info)), ruleSetPath, projectComponent, renderer);
         }
 
         return renderer.getResult(info.getDocument());
@@ -82,8 +82,8 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
     private TextFile asTextFile(FileInfo info) {
         return new StringTextFile(
                 info.getDocument().getText(),
-                info.getFile().getAbsolutePath(),
-                info.getFile().getName(),
+                info.getFileName(),
+                info.getFileName(),
                 info.getLanguageVersion()
         );
     }

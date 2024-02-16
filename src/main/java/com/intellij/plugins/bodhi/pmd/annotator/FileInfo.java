@@ -23,8 +23,8 @@ public class FileInfo {
         return file.getProject();
     }
 
-    public File getFile() {
-        return file.getVirtualFile().toNioPath().toFile();
+    public String getFileName() {
+        return file.getVirtualFile().getName();
     }
 
     public LanguageVersion getLanguageVersion() {
