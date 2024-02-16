@@ -9,6 +9,7 @@ import com.intellij.plugins.bodhi.pmd.tree.*;
 import net.sourceforge.pmd.*;
 import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.LanguageVersion;
+import net.sourceforge.pmd.lang.document.TextFile;
 import net.sourceforge.pmd.renderers.Renderer;
 import net.sourceforge.pmd.util.IOUtil;
 import org.jetbrains.annotations.NotNull;
@@ -71,6 +72,17 @@ public class PMDResultCollector {
      * @return list of results
      */
     public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSetPath, PMDProjectComponent comp, Renderer extraRenderer) {
+        return runPMDAndGetResults(files,List.of(), ruleSetPath, comp, extraRenderer);
+    }
+
+    /**
+     * Runs the given ruleSet(s) on given set of files and returns the result.
+     *
+     * @param files       The files to run PMD on
+     * @param ruleSetPath The path of the ruleSet to run
+     * @return list of results
+     */
+    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, List<TextFile> textFiles, String ruleSetPath, PMDProjectComponent comp, Renderer extraRenderer) {
         Map<String, String> options = comp.getOptions();
         Project project = comp.getCurrentProject();
 
@@ -94,6 +106,7 @@ public class PMDResultCollector {
 
             try (PmdAnalysis pmd = PmdAnalysis.create(pmdConfig)) {
                 files.forEach(file -> pmd.files().addFile(file.toPath()));
+                textFiles.forEach(pmd.files()::addFile);
                 pmd.addRenderers(renderers);
                 pmd.performAnalysis();
             }
