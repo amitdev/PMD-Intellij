@@ -3,6 +3,7 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [1.9.1]
 ### Added
 - Fix issue running "All" rules
 
