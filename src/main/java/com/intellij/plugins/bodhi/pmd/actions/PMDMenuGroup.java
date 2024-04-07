@@ -4,10 +4,11 @@ import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The main menu group for the PMD Plugin. This will contain the Predefined
- * as well as custome rules menu.
+ * as well as custom rules menu.
  *
  * @author bodhi
  * @version 1.0
@@ -33,4 +34,8 @@ public class PMDMenuGroup extends DefaultActionGroup {
         }
     }
 
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.EDT;
+    }
 }
