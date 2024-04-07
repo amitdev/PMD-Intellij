@@ -8,7 +8,7 @@ val pmdVersion = "6.55.0"
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.6.20"
-    id("org.jetbrains.intellij") version "1.13.3"
+    id("org.jetbrains.intellij") version "1.17.3"
     id("org.jetbrains.changelog") version "1.1.2"
 }
 
@@ -29,8 +29,8 @@ dependencies {
     implementation("net.sourceforge.pmd:pmd-xml:${pmdVersion}")
 }
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 // Configure gradle-intellij-plugin plugin.
@@ -54,13 +54,13 @@ changelog {
 }
 
 tasks {
-    // Set the compatibility versions to 11
+    val javaVersion = "17"
     withType<JavaCompile> {
-        sourceCompatibility = "11"
-        targetCompatibility = "11"
+        sourceCompatibility = javaVersion
+        targetCompatibility = javaVersion
     }
     withType<KotlinCompile> {
-        kotlinOptions.jvmTarget = "11"
+        kotlinOptions.jvmTarget = javaVersion
     }
 
     patchPluginXml {

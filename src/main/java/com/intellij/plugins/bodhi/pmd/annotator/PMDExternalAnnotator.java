@@ -17,6 +17,8 @@ import net.sourceforge.pmd.lang.document.TextFile;
 import net.sourceforge.pmd.util.datasource.DataSource;
 import net.sourceforge.pmd.util.datasource.ReaderDataSource;
 import net.sourceforge.pmd.util.datasource.internal.LanguageAwareDataSource;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,6 +30,8 @@ import java.util.Objects;
  * Display PMD violations in the editor and in the problem view
  */
 public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotations> {
+    private static final Log log = LogFactory.getLog(PMDExternalAnnotator.class);
+
     @Override
     public FileInfo collectInformation(@NotNull PsiFile file, @NotNull Editor editor, boolean hasErrors) {
         var language = LanguageRegistry.findLanguageByTerseName("java");
@@ -68,14 +72,20 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
                     ? document.getLineEndOffset(violation.getBeginLine()-1)
                     : document.getLineStartOffset(violation.getEndLine()-1) + violation.getEndColumn();
 
-            holder.newAnnotation(getSeverity(violation), "PMD: " + violation.getDescription())
-                    .tooltip("PMD: " + violation.getRule().getName() +
-                            "<p>" + violation.getDescription() +
-                            "</p><p>" + violation.getRule().getDescription() + "</p>")
-                    .range(TextRange.create(startLineOffset + violation.getBeginColumn() - 1, endOffset))
-                    .needsUpdateOnTyping(true)
-                    .withFix(new SupressIntentionAction(violation))
-                    .create();
+            try {
+                var textRange = TextRange.create(startLineOffset + violation.getBeginColumn() - 1, endOffset);
+                holder.newAnnotation(getSeverity(violation), "PMD: " + violation.getDescription())
+                        .tooltip("PMD: " + violation.getRule().getName() +
+                                "<p>" + violation.getDescription() +
+                                "</p><p>" + violation.getRule().getDescription() + "</p>")
+                        .range(textRange)
+                        .needsUpdateOnTyping(true)
+                        .withFix(new SupressIntentionAction(violation))
+                        .create();
+            } catch(IllegalArgumentException e) {
+                // Catching "Invalid range specified" from TextRange.create thrown when file has been updated while analyzing
+                log.warn("Error while annotating file with PMD warnings: " + e.getMessage());
+            }
         }
     }
 

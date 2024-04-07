@@ -3,6 +3,14 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [1.9.1]
+### Added
+- Fix issue running "All" rules
+
+## [1.9.0]
+### Added
+- Support Intellij 2024 versions (only)
+
 ## [1.8.28]
 ### Added
 - Support for running PMD task in background
