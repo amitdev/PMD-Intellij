@@ -3,6 +3,7 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [1.9.0]
 ### Added
 - Support Intellij 2024 versions (only)
 
