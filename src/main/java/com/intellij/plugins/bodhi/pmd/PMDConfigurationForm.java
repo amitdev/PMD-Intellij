@@ -287,9 +287,15 @@ public class PMDConfigurationForm {
             isModified = isModified || orig == null || !orig.equals(aValue);
             switch (row) {
                 // row 1: statistics URL
-                case 1: validateStatUrl((String) aValue, row, column, orig, origIsMod);
+                case 1: {
+                    validateStatUrl((String) aValue, row, column, orig, origIsMod);
+                    break;
+                }
                 // row 2: threads
-                case 2: validateThreads((String) aValue, row, column, orig, origIsMod);
+                case 2: {
+                    validateThreads((String) aValue, row, column, orig, origIsMod);
+                    break;
+                }
             }
         }
 
@@ -301,10 +307,12 @@ public class PMDConfigurationForm {
          * however then the table setup should be quite changed.
          */
         private void validateStatUrl(String url, int row, int column, Object orig, boolean origIsMod) {
-            String statUrlMsg;
-            if (url.length() > 0) {
+            if (url.equals(orig)) {
+                return;
+            }
+            if (!url.isEmpty()) {
                 if (!PMDUtil.isValidUrl(url)) {
-                    statUrlMsg = "Previous input - Invalid URL: '" + url + "'";
+                    table1.setToolTipText("Previous input - Invalid URL: '" + url + "'");
                     super.setValueAt(orig, row, column);
                     isModified = origIsMod;
                 }
@@ -312,19 +320,16 @@ public class PMDConfigurationForm {
                     String content = "{\"test connection\"}\n";
                     String exportMsg = PMDJsonExportingRenderer.tryJsonExport(content, url);
                     if (exportMsg.length() > 0) {
-                        statUrlMsg = "Previous input - Failure for '" + url + "': " + exportMsg;
+                        table1.setToolTipText("Previous input - Failure for '" + url + "': " + exportMsg);
                         super.setValueAt(orig, row, column);
                         isModified = origIsMod;
                     }
                     else {
-                        statUrlMsg = STAT_URL_MSG_SUCCESS;
+                        isModified = true;
+                        table1.setToolTipText(STAT_URL_MSG_SUCCESS);
                     }
                 }
             }
-            else {
-                statUrlMsg = STAT_URL_MSG;
-            }
-            table1.setToolTipText(statUrlMsg);
         }
 
         private void validateThreads(String threads, int row, int column, Object orig, boolean origIsMod) {
