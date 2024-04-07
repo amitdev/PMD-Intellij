@@ -41,7 +41,7 @@ public class UselessSuppressionsHelper {
     final Map<String, Set<String>> classMethodToRuleNameOfSuppressedViolationsMap = new HashMap<>();
     final Map<String, Set<String>> classMethodToRuleNameOfViolationsMap = new HashMap<>();
     static final RuleKey USING_SUPPRESS_KEY = new RuleKey("UsingSuppressWarnings", 5);
-    private final List<String> ruleSetPaths;
+    private final String ruleSetPath;
 
     /**
      * the rule names of the rule set, lazily initialized, only when needed
@@ -49,8 +49,8 @@ public class UselessSuppressionsHelper {
     private Set<String> ruleNames;
     private volatile ViolatingAnnotationHolder annotationContextResult;
 
-    UselessSuppressionsHelper(List<String> ruleSetPaths) {
-        this.ruleSetPaths = ruleSetPaths;
+    UselessSuppressionsHelper(String ruleSetPath) {
+        this.ruleSetPath = ruleSetPath;
     }
 
     void storeRuleNameForMethod(Report.SuppressedViolation suppressed) {
@@ -150,11 +150,7 @@ public class UselessSuppressionsHelper {
     boolean ruleSetContains(String ruleName) {
         if (ruleNames == null) {
             try {
-                Collection<Rule> rules = new ArrayList<>();
-                for (String ruleSetPath : ruleSetPaths) {
-                    rules.addAll(PMDResultCollector.getRuleSet(ruleSetPath).getRules());
-                }
-
+                Collection<Rule> rules = PMDResultCollector.getRuleSet(ruleSetPath).getRules();
                 ruleNames = new HashSet<>(rules.size(), 1);
                 for (Rule rule : rules) {
                     ruleNames.add(rule.getName());
