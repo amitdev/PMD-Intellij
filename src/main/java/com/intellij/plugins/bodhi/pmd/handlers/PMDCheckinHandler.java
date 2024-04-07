@@ -18,7 +18,6 @@ import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.tree.*;
 import com.intellij.util.PairConsumer;
 import com.intellij.util.ui.UIUtil;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NonNls;
@@ -178,6 +177,6 @@ public class PMDCheckinHandler extends CheckinHandler {
         if (toolWindow != null) {
             toolWindow.activate(null);
         }
-        plugin.setLastRunActionAndRules(null, StringUtils.join(plugin.getCustomRuleSetPaths(), PMDInvoker.RULE_DELIMITER), true);
+        plugin.setLastRunActionAndRules(null, String.join(PMDInvoker.RULE_DELIMITER, plugin.getCustomRuleSetPaths()), true);
     }
 }

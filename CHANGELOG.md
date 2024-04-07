@@ -3,6 +3,9 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+### Added
+- Support Intellij 2024 versions (only)
+
 ## [1.8.28]
 ### Added
 - Support for running PMD task in background
