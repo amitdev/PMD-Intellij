@@ -3,6 +3,9 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+### Added
+- Fix issue running "All" rules
+
 ## [1.9.0]
 ### Added
 - Support Intellij 2024 versions (only)
