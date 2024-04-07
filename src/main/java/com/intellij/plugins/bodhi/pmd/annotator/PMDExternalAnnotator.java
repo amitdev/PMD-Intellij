@@ -7,9 +7,12 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
+import com.intellij.plugins.bodhi.pmd.core.PMDResultAsTreeRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.psi.PsiFile;
 import net.sourceforge.pmd.RuleViolation;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,9 +22,17 @@ import java.util.List;
  * Display PMD violations in the editor and in the problem view
  */
 public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotations> {
+    private static final Log log = LogFactory.getLog(PMDExternalAnnotator.class);
+
     @Override
     public FileInfo collectInformation(@NotNull PsiFile file, @NotNull Editor editor, boolean hasErrors) {
-        return new FileInfo(file, editor.getDocument());
+        var virtualFile = file.getVirtualFile();
+        // Can we get a real file for this virtual file?
+        if (virtualFile.getFileSystem().getNioPath(virtualFile) == null) {
+            return null;
+        } else {
+            return new FileInfo(file, editor.getDocument());
+        }
     }
 
     @Override
@@ -53,14 +64,20 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
                     ? document.getLineEndOffset(violation.getBeginLine()-1)
                     : document.getLineStartOffset(violation.getEndLine()-1) + violation.getEndColumn();
 
-            holder.newAnnotation(getSeverity(violation), "PMD: " + violation.getDescription())
-                    .tooltip("PMD: " + violation.getRule().getName() +
-                            "<p>" + violation.getDescription() +
-                            "</p><p>" + violation.getRule().getDescription() + "</p>")
-                    .range(TextRange.create(startLineOffset + violation.getBeginColumn() - 1, endOffset))
-                    .needsUpdateOnTyping(true)
-                    .withFix(new SupressIntentionAction(violation))
-                    .create();
+            try {
+                var textRange = TextRange.create(startLineOffset + violation.getBeginColumn() - 1, endOffset);
+                holder.newAnnotation(getSeverity(violation), "PMD: " + violation.getDescription())
+                        .tooltip("PMD: " + violation.getRule().getName() +
+                                "<p>" + violation.getDescription() +
+                                "</p><p>" + violation.getRule().getDescription() + "</p>")
+                        .range(textRange)
+                        .needsUpdateOnTyping(true)
+                        .withFix(new SupressIntentionAction(violation))
+                        .create();
+            } catch(IllegalArgumentException e) {
+                // Catching "Invalid range specified" from TextRange.create thrown when file has been updated while analyzing
+                log.warn("Error while annotating file with PMD warnings: " + e.getMessage());
+            }
         }
     }
 
