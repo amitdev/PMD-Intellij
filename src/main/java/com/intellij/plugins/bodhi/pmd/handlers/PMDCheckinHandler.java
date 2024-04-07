@@ -100,30 +100,30 @@ public class PMDCheckinHandler extends CheckinHandler {
         PMDResultCollector.clearReport();
 
         List<PMDRuleSetNode> ruleSetResultNodes = new ArrayList<>();
-        PMDRuleSetNode ruleSetResultNode = scanFiles(plugin.getCustomRuleSetPaths(), plugin);
-        if (ruleSetResultNode != null) {
-            ruleSetResultNodes.add(ruleSetResultNode);
+        for (String ruleSetPath : plugin.getCustomRuleSetPaths()) {
+            PMDRuleSetNode ruleSetResultNode = scanFiles(ruleSetPath, plugin);
+            if (ruleSetResultNode != null) {
+                ruleSetResultNodes.add(ruleSetResultNode);
+            }
         }
         return processScanResults(ruleSetResultNodes, project);
     }
 
-    private PMDRuleSetNode scanFiles(List<String> ruleSetPaths, PMDProjectComponent plugin) {
+    private PMDRuleSetNode scanFiles(String ruleSetPath, PMDProjectComponent plugin) {
         PMDRuleSetNode ruleSetResultNode = null;
         PMDResultCollector collector = new PMDResultCollector();
         List<File> files = new ArrayList<>(checkinProjectPanel.getFiles());
 
-        List<PMDRuleSetEntryNode> ruleSetResultNodes = collector.runPMDAndGetResults(files, ruleSetPaths, plugin);
+        List<PMDRuleSetEntryNode> ruleSetResultNodes = collector.runPMDAndGetResults(files, ruleSetPath, plugin);
         if (!ruleSetResultNodes.isEmpty()) {
-            ruleSetResultNode = createRuleSetNodeWithResults(ruleSetPaths, ruleSetResultNodes);
+            ruleSetResultNode = createRuleSetNodeWithResults(ruleSetPath, ruleSetResultNodes);
         }
         return ruleSetResultNode;
     }
 
-    private PMDRuleSetNode createRuleSetNodeWithResults(List<String> ruleSetPaths, List<PMDRuleSetEntryNode> ruleResultNodes) {
-        String ruleSetFiles = ruleSetPaths.stream()
-                .reduce("", (String previous, String current) -> PMDUtil.getFileNameFromPath(current) + ";" + previous);
-
-        PMDRuleSetNode ruleSetNode = PMDTreeNodeFactory.getInstance().createRuleSetNode(ruleSetFiles);
+    private PMDRuleSetNode createRuleSetNodeWithResults(String ruleSetPath, List<PMDRuleSetEntryNode> ruleResultNodes) {
+        ruleSetPath = PMDUtil.getFileNameFromPath(ruleSetPath) + ";" + ruleSetPath;
+        PMDRuleSetNode ruleSetNode = PMDTreeNodeFactory.getInstance().createRuleSetNode(ruleSetPath);
 
         for (PMDRuleSetEntryNode ruleResultNode : ruleResultNodes) {
             ruleSetNode.add(ruleResultNode);
