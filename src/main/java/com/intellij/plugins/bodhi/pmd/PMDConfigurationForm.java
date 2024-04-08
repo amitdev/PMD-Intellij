@@ -8,11 +8,14 @@ import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.plugins.bodhi.pmd.actions.AnEDTAction;
 import com.intellij.plugins.bodhi.pmd.core.PMDJsonExportingRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.util.PlatformIcons;
-import net.sourceforge.pmd.util.ResourceLoader;
+import net.sourceforge.pmd.lang.Language;
+import net.sourceforge.pmd.lang.LanguageRegistry;
+import net.sourceforge.pmd.lang.LanguageVersion;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -52,12 +55,12 @@ public class PMDConfigurationForm {
     private boolean isModified;
     private final Project project;
 
-    public static final String STATISTICS_URL = "Statistics URL";
+    public static final String STATISTICS_URL_KEY = "Statistics URL";
+    private static final int NUM_PROCS = Runtime.getRuntime().availableProcessors();
     private static final String[] columnNames = new String[] {"Option", "Value"};
-    private static final String[] optionNames = new String[] {"Target JDK", STATISTICS_URL, "Threads"};
-    private static final String[] defaultValues = new String[] {"17", "", "1"};
-    private static final String STAT_URL_MSG = "Fill in Statistics URL endpoint to export anonymous PMD-Plugin usage statistics";
-    private static final String STAT_URL_MSG_SUCCESS = "Could connect, will use Statistics URL endpoint to export anonymous PMD-Plugin usage statistics";
+    private static final String[] optionNames = new String[] {"Target JDK (max: 20-preview)", STATISTICS_URL_KEY + " to export usage anonymously", "Threads (fast: " + NUM_PROCS + ")"};
+    private static final String[] defaultValues = new String[] {"20-preview", "", String.valueOf(NUM_PROCS)};
+    private static final String STAT_URL_MSG_SUCCESS = "Connection success; will use Statistics URL to export usage statistics anonymously";
 
     public PMDConfigurationForm(final Project project) {
         this.project = project;
@@ -79,8 +82,6 @@ public class PMDConfigurationForm {
         inEditorAnnotationRuleSets.setModel(new MyListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
         skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
-
-        table1.setToolTipText(STAT_URL_MSG);
     }
 
     /**
@@ -132,8 +133,6 @@ public class PMDConfigurationForm {
             res[i][0] = optionNames[i];
             res[i][1] = options.get(optionNames[i]);
         }
-
-
         return res;
     }
 
@@ -151,7 +150,7 @@ public class PMDConfigurationForm {
     }
 
     private Map<String, String> toMap(TableModel tm) {
-        Map<String, String> m = new HashMap<String, String>();
+        Map<String, String> m = new HashMap<>();
         for (int i = 0; i < tm.getRowCount(); i++) {
             m.put(optionNames[i], (String) tm.getValueAt(i,1));
         }
@@ -211,7 +210,7 @@ public class PMDConfigurationForm {
     /**
      * Inner class for 'Add' action
      */
-    private class AddRuleSetAction extends AnAction {
+    private class AddRuleSetAction extends AnEDTAction {
         public AddRuleSetAction(String text, String description, Icon icon) {
             super(text, description, icon);
             registerCustomShortcutSet(new CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, KeyEvent.ALT_DOWN_MASK)), rootPanel);
@@ -226,7 +225,7 @@ public class PMDConfigurationForm {
     /**
      * Inner class for 'Edit' action
      */
-    private class EditRuleSetAction extends AnAction {
+    private class EditRuleSetAction extends AnEDTAction {
         public EditRuleSetAction(String text, String description, Icon icon) {
             super(text, description, icon);
             registerCustomShortcutSet(CommonShortcuts.ALT_ENTER, rootPanel);
@@ -242,12 +241,13 @@ public class PMDConfigurationForm {
             super.update(e);
             e.getPresentation().setEnabled(!ruleList.getSelectionModel().isSelectionEmpty());
         }
+
     }
 
     /**
      * Inner class for 'Delete' action
      */
-    private class DeleteRuleSetAction extends AnAction {
+    private class DeleteRuleSetAction extends AnEDTAction {
         public DeleteRuleSetAction(String text, String description, Icon icon) {
             super(text, description, icon);
             registerCustomShortcutSet(CommonShortcuts.getDelete(), rootPanel);
@@ -286,16 +286,38 @@ public class PMDConfigurationForm {
             boolean origIsMod = isModified;
             isModified = isModified || orig == null || !orig.equals(aValue);
             switch (row) {
+                // row 0: Target JDK
+                case 0: validateJavaVersion((String) aValue, row, column, orig, origIsMod);
+                break;
                 // row 1: statistics URL
-                case 1: {
-                    validateStatUrl((String) aValue, row, column, orig, origIsMod);
-                    break;
-                }
+                case 1: validateStatUrl((String) aValue, row, column, orig, origIsMod);
+                break;
                 // row 2: threads
-                case 2: {
-                    validateThreads((String) aValue, row, column, orig, origIsMod);
-                    break;
+                case 2: validateThreads((String) aValue, row, column, orig, origIsMod);
+                break;
+            }
+        }
+
+        private void validateJavaVersion(String versionInput, int row, int column, Object orig, boolean origIsMod) {
+            if (versionInput.equals(orig)) {
+                return;
+            }
+            Language java = LanguageRegistry.findLanguageByTerseName("java");
+            boolean isRegistered = java.hasVersion(versionInput);
+            if (isRegistered) {
+                String registeredVersion = java.getVersion(versionInput).getVersion();
+                table1.setToolTipText("Java version " + registeredVersion);
+            }
+            else {
+                super.setValueAt(orig, row, column);
+                List<LanguageVersion> langVersions = java.getVersions();
+                List<String> versions = new ArrayList<>();
+                for (LanguageVersion langVersion : langVersions) {
+                    versions.add(langVersion.getVersion());
                 }
+                String tipText = "For JDK take one of: " + String.join(",", versions.subList(5, versions.size()));
+                table1.setToolTipText(tipText);
+                isModified = origIsMod;
             }
         }
 
@@ -306,21 +328,21 @@ public class PMDConfigurationForm {
          * Better solution might be to have a modal dialog to enter the URL,
          * however then the table setup should be quite changed.
          */
-        private void validateStatUrl(String url, int row, int column, Object orig, boolean origIsMod) {
-            if (url.equals(orig)) {
+        private void validateStatUrl(String urlInput, int row, int column, Object orig, boolean origIsMod) {
+            if (urlInput.equals(orig)) {
                 return;
             }
-            if (!url.isEmpty()) {
-                if (!PMDUtil.isValidUrl(url)) {
-                    table1.setToolTipText("Previous input - Invalid URL: '" + url + "'");
+            if (!urlInput.isEmpty()) {
+                if (!PMDUtil.isValidUrl(urlInput)) {
+                    table1.setToolTipText("Previous input - Invalid URL: '" + urlInput + "'");
                     super.setValueAt(orig, row, column);
                     isModified = origIsMod;
                 }
                 else {
                     String content = "{\"test connection\"}\n";
-                    String exportMsg = PMDJsonExportingRenderer.tryJsonExport(content, url);
-                    if (exportMsg.length() > 0) {
-                        table1.setToolTipText("Previous input - Failure for '" + url + "': " + exportMsg);
+                    String exportMsg = PMDJsonExportingRenderer.tryJsonExport(content, urlInput);
+                    if (!exportMsg.isEmpty()) {
+                        table1.setToolTipText("Previous input - Failure for '" + urlInput + "': " + exportMsg);
                         super.setValueAt(orig, row, column);
                         isModified = origIsMod;
                     }
@@ -332,19 +354,25 @@ public class PMDConfigurationForm {
             }
         }
 
-        private void validateThreads(String threads, int row, int column, Object orig, boolean origIsMod) {
+        private void validateThreads(String threadsInput, int row, int column, Object orig, boolean origIsMod) {
+            if (threadsInput.equals(orig)) {
+                return;
+            }
             boolean ok = true;
             try {
-                int asInt = Integer.parseInt(threads);
-                if (asInt < 1) {
+                int asInt = Integer.parseInt(threadsInput);
+                if (asInt < 1 || asInt > NUM_PROCS) {
                     ok = false;
                 }
             } catch (NumberFormatException ne) {
                 ok = false;
             }
-            if (!ok) {
+            if (ok) {
+                table1.setToolTipText(threadsInput + " threads");
+            }
+            else {
                 super.setValueAt(orig, row, column);
-                table1.setToolTipText("Must be an positive integer");
+                table1.setToolTipText("Must be an positive integer less than or equal to " + NUM_PROCS);
                 isModified = origIsMod;
             }
         }
@@ -392,10 +420,10 @@ public class PMDConfigurationForm {
             isModified = true;
         }
 
-        public int[] getIndexes(Set<String> selectedObjects) {
+        public synchronized int[] getIndexes(Set<String> selectedObjects) {
             int[] selected = new int[selectedObjects.size()];
             List<String> options = getData();
-            int i=0;
+            int i = 0;
             for (String selectedOption : selectedObjects) {
                 selected[i++] = options.indexOf(selectedOption);
             }

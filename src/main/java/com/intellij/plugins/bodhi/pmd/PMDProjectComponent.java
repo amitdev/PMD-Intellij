@@ -312,7 +312,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         }
         // replace unused 'Encoding' by 'Statistics URL'
         if (options.remove("Encoding") != null) {
-            options.put(PMDConfigurationForm.STATISTICS_URL, "");
+            options.put(PMDConfigurationForm.STATISTICS_URL_KEY, "");
         }
 
         inEditorAnnotationRuleSets.clear();

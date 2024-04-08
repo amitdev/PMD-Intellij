@@ -15,6 +15,7 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
+import com.intellij.plugins.bodhi.pmd.actions.AnEDTAction;
 import com.intellij.plugins.bodhi.pmd.core.HasPositionInFile;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
@@ -459,7 +460,7 @@ public class PMDResultPanel extends JPanel {
     /**
      * Inner class for rerun action.
      */
-    private class ReRunAction extends AnAction {
+    private class ReRunAction extends AnEDTAction {
         public ReRunAction() {
             super(CommonBundle.message("action.rerun"), UsageViewBundle.message("action.description.rerun"), AllIcons.Actions.Rerun);
             registerCustomShortcutSet(CommonShortcuts.getRerun(), PMDResultPanel.this);
@@ -483,7 +484,7 @@ public class PMDResultPanel extends JPanel {
     /**
      * Inner class for close action.
      */
-    private static class CloseAction extends AnAction {
+    private static class CloseAction extends AnEDTAction {
         private static final String ACTION_CLOSE = "action.close";
 
         private CloseAction() {
