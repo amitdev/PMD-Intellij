@@ -57,7 +57,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private boolean lastRunRulesCustom;
     private AnActionEvent lastRunActionEvent;
     private Set<String> customRuleSetPaths = new LinkedHashSet<>(); // avoid duplicates, maintain order
-    private Map<ConfigOption, String> optionToValue = new HashMap<>();
+    private Map<ConfigOption, String> optionToValue = new EnumMap<>(ConfigOption.class);
     private final ToolWindowManager toolWindowManager;
     private boolean skipTestSources;
     private boolean scanFilesBeforeCheckin;

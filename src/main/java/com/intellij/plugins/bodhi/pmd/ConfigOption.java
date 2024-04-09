@@ -9,15 +9,6 @@ public enum ConfigOption {
     THREADS("Threads", "Threads (fastest: " + PMDUtil.AVAILABLE_PROCESSORS + ")", String.valueOf(PMDUtil.AVAILABLE_PROCESSORS));
 
     /**
-     * keys are used for persisting
-     */
-    //private static final List<String> keys;
-
-    /**
-     * description is used in the UI
-     */
-    //private static final List<String> descriptions;
-    /**
      * key is used for persisting
      */
     private final String key;
@@ -32,16 +23,6 @@ public enum ConfigOption {
      */
     private final String defaultValue;
 
-    /*static {
-        List<String> ks = new ArrayList<>();
-        List<String> descs = new ArrayList<>();
-        for (ConfigOption value : ConfigOption.values()) {
-            ks.add(value.getKey());
-            descs.add(value.getDescription());
-        }
-        keys = List.copyOf(ks);
-        descriptions = List.copyOf(descs);
-    }*/
     public static ConfigOption fromKey(String key) {
         for (ConfigOption option : ConfigOption.values()) {
             if (option.getKey().equals(key)) {
@@ -61,15 +42,6 @@ public enum ConfigOption {
     public static int size() {
         return ConfigOption.values().length;
     }
-    /*public static List<ConfigOption> asList() {
-        return List.of(ConfigOption.values());
-    }*/
-    /*public static List<String> keys() {
-        return keys;
-    }*/
-    /*public static List<String> descriptions() {
-        return descriptions;
-    }*/
 
     ConfigOption(String key, String description, String defaultValue) {
         this.key = key;

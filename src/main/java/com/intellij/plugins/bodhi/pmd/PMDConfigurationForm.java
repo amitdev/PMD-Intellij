@@ -55,9 +55,7 @@ public class PMDConfigurationForm {
     private boolean isModified;
     private final Project project;
 
-    //public static final String STATISTICS_URL_KEY = "Statistics URL";
     private static final List<String> columnNames = List.of("Option", "Value");
-    //private static final List<String> defaultOptionValues = List.of("20-preview", "", String.valueOf(AVAILABLE_PROCESSORS));
     private static final String STAT_URL_MSG_SUCCESS = "Connection success; will use Statistics URL to export anonymous usage statistics";
 
     public PMDConfigurationForm(final Project project) {
@@ -153,7 +151,7 @@ public class PMDConfigurationForm {
     }
 
     private Map<ConfigOption, String> toOptionToValue(TableModel tm) {
-        Map<ConfigOption, String> optionToValue = new HashMap<>(); // TODO EnumMap
+        Map<ConfigOption, String> optionToValue = new EnumMap<>(ConfigOption.class);
         for (int i = 0; i < tm.getRowCount(); i++) {
             ConfigOption option = ConfigOption.fromDescription((String)tm.getValueAt(i, 0));
             optionToValue.put(option, (String) tm.getValueAt(i,1));

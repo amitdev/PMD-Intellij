@@ -10,9 +10,9 @@ import java.util.function.Supplier;
 
 /**
  * AnAction which actions should be just accessing UI/Swing components, not model data.
- * EDT = Event Dispatch Thread
- * See ActionUpdateThread and ActionUpdateThreadAware
- * https://plugins.jetbrains.com/docs/intellij/basic-action-system.html#action-implementation
+ * EDT = Event Dispatch Thread.
+ * See ActionUpdateThread and ActionUpdateThreadAware.
+ * See <a href="https://plugins.jetbrains.com/docs/intellij/basic-action-system.html#action-implementation">JetBrains doc on action implementation</a>
  */
 public abstract class AnEDTAction extends AnAction implements ActionUpdateThreadAware {
 
