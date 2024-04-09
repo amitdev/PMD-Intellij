@@ -32,6 +32,12 @@ import static java.util.Arrays.asList;
 public class PMDUtil {
 
     public static final Pattern HOST_NAME_PATTERN = Pattern.compile(".+\\.([a-z]+\\.[a-z]+)/.+");
+    public static final int AVAILABLE_PROCESSORS = Runtime.getRuntime().availableProcessors();
+
+    /**
+     * Not to be instantiated
+     */
+    private PMDUtil() {}
 
     /**
      * Get the the Project Component from given Action.

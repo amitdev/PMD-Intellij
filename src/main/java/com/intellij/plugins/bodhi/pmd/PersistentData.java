@@ -8,7 +8,7 @@ import java.util.Map;
 public class PersistentData {
     private static final boolean DEFAULT_SKIP_TEST_SRC = true;
     private List<String> customRuleSets;
-    private Map<String, String> options;
+    private Map<String, String> optionKeyToValue;
     private boolean skipTestSources = DEFAULT_SKIP_TEST_SRC;
     private boolean scanFilesBeforeCheckin;
     private List<String> inEditorAnnotationRules;
@@ -17,7 +17,7 @@ public class PersistentData {
     public PersistentData() {
         this.customRuleSets = new ArrayList<>();
         this.inEditorAnnotationRules = new ArrayList<>();
-        this.options = new HashMap<>();
+        this.optionKeyToValue = new HashMap<>();
     }
 
     public List<String> getCustomRuleSets() {
@@ -28,12 +28,12 @@ public class PersistentData {
         this.customRuleSets = rules;
     }
 
-    public Map<String, String> getOptions() {
-        return options;
+    public Map<String, String> getOptionKeyToValue() {
+        return optionKeyToValue;
     }
 
-    public void setOptions(Map<String, String> opts) {
-        options = opts;
+    public void setOptionKeyToValue(Map<String, String> opts) {
+        optionKeyToValue = opts;
     }
 
     public void setSkipTestSources(boolean skip) {

@@ -47,7 +47,7 @@ public class PMDConfigurationForm {
     private JList<String> ruleList;
     private JPanel buttonPanel;
     private JTabbedPane tabbedPane1;
-    private JTable table1;
+    private JTable optionsTable;
     private JPanel mainPanel;
     private JCheckBox skipTestsCheckBox;
     private JList<String> inEditorAnnotationRuleSets;
@@ -55,12 +55,10 @@ public class PMDConfigurationForm {
     private boolean isModified;
     private final Project project;
 
-    public static final String STATISTICS_URL_KEY = "Statistics URL";
-    private static final int NUM_PROCS = Runtime.getRuntime().availableProcessors();
-    private static final String[] columnNames = new String[] {"Option", "Value"};
-    private static final String[] optionNames = new String[] {"Target JDK (max: 20-preview)", STATISTICS_URL_KEY + " to export usage anonymously", "Threads (fast: " + NUM_PROCS + ")"};
-    private static final String[] defaultValues = new String[] {"20-preview", "", String.valueOf(NUM_PROCS)};
-    private static final String STAT_URL_MSG_SUCCESS = "Connection success; will use Statistics URL to export usage statistics anonymously";
+    //public static final String STATISTICS_URL_KEY = "Statistics URL";
+    private static final List<String> columnNames = List.of("Option", "Value");
+    //private static final List<String> defaultOptionValues = List.of("20-preview", "", String.valueOf(AVAILABLE_PROCESSORS));
+    private static final String STAT_URL_MSG_SUCCESS = "Connection success; will use Statistics URL to export anonymous usage statistics";
 
     public PMDConfigurationForm(final Project project) {
         this.project = project;
@@ -73,11 +71,12 @@ public class PMDConfigurationForm {
         actionGroup.add(new EditRuleSetAction("Edit", "Edit selected ruleset", PlatformIcons.EDIT));
         actionGroup.add(new DeleteRuleSetAction("Delete", "Remove selected ruleset", PlatformIcons.DELETE_ICON));
         ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("modify actions", actionGroup, true);
+        toolbar.setTargetComponent(toolbar.getComponent()); // prevent warning
         toolbar.getComponent().setVisible(true);
         buttonPanel.setLayout(new BorderLayout());
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
 
-        table1.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
+        optionsTable.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
         ruleList.setModel(new MyListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.setModel(new MyListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
@@ -99,16 +98,19 @@ public class PMDConfigurationForm {
     public void setDataOnUI(PMDProjectComponent dataProjComp) {
         List<String> customRuleSetPaths = dataProjComp.getCustomRuleSetPaths();
         ruleList.setModel(new MyListModel(customRuleSetPaths));
-        if (dataProjComp.getOptions().isEmpty()) {
-            String[][] dat = new String[optionNames.length][2];
-            for (int i = 0; i < optionNames.length; i++) {
-                dat[i][0] = optionNames[i];
-                dat[i][1] = defaultValues[i];
+        if (dataProjComp.getOptionToValue().isEmpty()) {
+            final int numOptions = ConfigOption.size();
+            String[][] optionDescsDefaultValues = new String[numOptions][2];
+            for (int i = 0; i < numOptions; i++) {
+                ConfigOption option = ConfigOption.values()[i];
+                optionDescsDefaultValues[i][0] = option.getDescription();
+                optionDescsDefaultValues[i][1] = option.getDefaultValue();
             }
-            table1.setModel(new MyTableModel(dat, columnNames));
-            return;
+            optionsTable.setModel(new MyTableModel(optionDescsDefaultValues, columnNames.toArray()));
         }
-        table1.setModel(new MyTableModel(toArray(dataProjComp.getOptions()), columnNames));
+        else {
+            optionsTable.setModel(new MyTableModel(toDescValueArray2d(dataProjComp.getOptionToValue()), columnNames.toArray()));
+        }
         skipTestsCheckBox.setSelected(dataProjComp.isSkipTestSources());
 
         Properties props = new Properties();
@@ -127,34 +129,36 @@ public class PMDConfigurationForm {
         isModified = false;
     }
 
-    private Object[][] toArray(Map<String, String> options) {
-        String[][] res = new String[optionNames.length][2];
-        for (int i = 0; i < optionNames.length; i++) {
-            res[i][0] = optionNames[i];
-            res[i][1] = options.get(optionNames[i]);
+    private Object[][] toDescValueArray2d(Map<ConfigOption, String> optionToValue) {
+        String[][] result = new String[optionToValue.size()][2];
+        for (int i = 0; i < optionToValue.size(); i++) {
+            ConfigOption option = ConfigOption.values()[i];
+            result[i][0] = option.getDescription();
+            result[i][1] = optionToValue.get(option);
         }
-        return res;
+        return result;
     }
 
     /**
      * Get the data from ui and return.
-     * @param data_ProjComp the data provider
+     * @param dataProjComp the data provider
      */
-    public void getDataFromUi(PMDProjectComponent data_ProjComp) {
-        data_ProjComp.setCustomRuleSets(((MyListModel) ruleList.getModel()).getData());
-        data_ProjComp.setOptions( toMap(table1.getModel()) );
-        data_ProjComp.skipTestSources(skipTestsCheckBox.isSelected());
-        data_ProjComp.setInEditorAnnotationRuleSets(inEditorAnnotationRuleSets.getSelectedValuesList());
+    public void getDataFromUi(PMDProjectComponent dataProjComp) {
+        dataProjComp.setCustomRuleSets(((MyListModel) ruleList.getModel()).getData());
+        dataProjComp.setOptionToValue(toOptionToValue(optionsTable.getModel()));
+        dataProjComp.skipTestSources(skipTestsCheckBox.isSelected());
+        dataProjComp.setInEditorAnnotationRuleSets(inEditorAnnotationRuleSets.getSelectedValuesList());
 
         isModified = false;
     }
 
-    private Map<String, String> toMap(TableModel tm) {
-        Map<String, String> m = new HashMap<>();
+    private Map<ConfigOption, String> toOptionToValue(TableModel tm) {
+        Map<ConfigOption, String> optionToValue = new HashMap<>(); // TODO EnumMap
         for (int i = 0; i < tm.getRowCount(); i++) {
-            m.put(optionNames[i], (String) tm.getValueAt(i,1));
+            ConfigOption option = ConfigOption.fromDescription((String)tm.getValueAt(i, 0));
+            optionToValue.put(option, (String) tm.getValueAt(i,1));
         }
-        return m;
+        return optionToValue;
     }
 
     /**
@@ -306,7 +310,7 @@ public class PMDConfigurationForm {
             boolean isRegistered = java.hasVersion(versionInput);
             if (isRegistered) {
                 String registeredVersion = java.getVersion(versionInput).getVersion();
-                table1.setToolTipText("Java version " + registeredVersion);
+                optionsTable.setToolTipText("Java version " + registeredVersion);
             }
             else {
                 super.setValueAt(orig, row, column);
@@ -316,7 +320,7 @@ public class PMDConfigurationForm {
                     versions.add(langVersion.getVersion());
                 }
                 String tipText = "For JDK take one of: " + String.join(",", versions.subList(5, versions.size()));
-                table1.setToolTipText(tipText);
+                optionsTable.setToolTipText(tipText);
                 isModified = origIsMod;
             }
         }
@@ -334,7 +338,7 @@ public class PMDConfigurationForm {
             }
             if (!urlInput.isEmpty()) {
                 if (!PMDUtil.isValidUrl(urlInput)) {
-                    table1.setToolTipText("Previous input - Invalid URL: '" + urlInput + "'");
+                    optionsTable.setToolTipText("Previous input - Invalid URL: '" + urlInput + "'");
                     super.setValueAt(orig, row, column);
                     isModified = origIsMod;
                 }
@@ -342,13 +346,13 @@ public class PMDConfigurationForm {
                     String content = "{\"test connection\"}\n";
                     String exportMsg = PMDJsonExportingRenderer.tryJsonExport(content, urlInput);
                     if (!exportMsg.isEmpty()) {
-                        table1.setToolTipText("Previous input - Failure for '" + urlInput + "': " + exportMsg);
+                        optionsTable.setToolTipText("Previous input - Failure for '" + urlInput + "': " + exportMsg);
                         super.setValueAt(orig, row, column);
                         isModified = origIsMod;
                     }
                     else {
                         isModified = true;
-                        table1.setToolTipText(STAT_URL_MSG_SUCCESS);
+                        optionsTable.setToolTipText(STAT_URL_MSG_SUCCESS);
                     }
                 }
             }
@@ -361,18 +365,18 @@ public class PMDConfigurationForm {
             boolean ok = true;
             try {
                 int asInt = Integer.parseInt(threadsInput);
-                if (asInt < 1 || asInt > NUM_PROCS) {
+                if (asInt < 1 || asInt > PMDUtil.AVAILABLE_PROCESSORS) {
                     ok = false;
                 }
             } catch (NumberFormatException ne) {
                 ok = false;
             }
             if (ok) {
-                table1.setToolTipText(threadsInput + " threads");
+                optionsTable.setToolTipText(threadsInput + " threads");
             }
             else {
                 super.setValueAt(orig, row, column);
-                table1.setToolTipText("Must be an positive integer less than or equal to " + NUM_PROCS);
+                optionsTable.setToolTipText("Must be an positive integer less than or equal to " + PMDUtil.AVAILABLE_PROCESSORS);
                 isModified = origIsMod;
             }
         }

@@ -67,14 +67,6 @@ public abstract class AnEDTAction extends AnAction implements ActionUpdateThread
         super(text, description, icon);
     }
 
-    public AnEDTAction(@NotNull @NlsActions.ActionText Supplier<String> text, @Nullable @NlsActions.ActionDescription Supplier<String> description, @Nullable Supplier<? extends @Nullable Icon> icon) {
-        super(text, description, icon);
-    }
-
-    public AnEDTAction(@NotNull @NlsActions.ActionText Supplier<String> text, @NotNull @NlsActions.ActionDescription Supplier<String> description) {
-        super(text, description);
-    }
-
     /**
      * Creates a new EDT action with the given text, description and icon.
      * Use this variant if you need to localize the action text.

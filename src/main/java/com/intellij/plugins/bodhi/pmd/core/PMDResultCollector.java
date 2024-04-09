@@ -1,7 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
 import com.intellij.openapi.project.Project;
-import com.intellij.plugins.bodhi.pmd.PMDConfigurationForm;
+import com.intellij.plugins.bodhi.pmd.ConfigOption;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.tree.*;
@@ -70,7 +70,7 @@ public class PMDResultCollector {
      * @return list of results
      */
     public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSetPath, PMDProjectComponent comp, Renderer extraRenderer) {
-        Map<String, String> options = comp.getOptions();
+        Map<ConfigOption, String> options = comp.getOptionToValue();
         Project project = comp.getCurrentProject();
 
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
@@ -107,9 +107,9 @@ public class PMDResultCollector {
         return pmdRuleSetResults;
     }
 
-    private PMDJsonExportingRenderer addExportRenderer(Map<String, String> options) {
+    private PMDJsonExportingRenderer addExportRenderer(Map<ConfigOption, String> options) {
         PMDJsonExportingRenderer exportingRenderer = null;
-        String exportUrlFromForm = options.get(PMDConfigurationForm.STATISTICS_URL_KEY);
+        String exportUrlFromForm = options.get(ConfigOption.STATISTICS_URL);
         boolean exportStats = (PMDUtil.isValidUrl(exportUrlFromForm));
         String exportUrl = exportUrlFromForm;
         if (!exportStats || exportUrl.contains("localhost")) { // cmdline arg overrides localhost from form for testing
@@ -124,9 +124,9 @@ public class PMDResultCollector {
     }
 
     @NotNull
-    private PMDConfiguration getPmdConfig(String ruleSets, Map<String, String> options, Project project) throws IOException {
+    private PMDConfiguration getPmdConfig(String ruleSets, Map<ConfigOption, String> options, Project project) throws IOException {
         PMDConfiguration pmdConfig = new PMDConfiguration();
-        String configVersion = options.get("Target JDK");
+        String configVersion = options.get(ConfigOption.TARGET_JDK);
         if (configVersion != null) {
             LanguageVersion version = LanguageRegistry.findLanguageByTerseName("java").getVersion(configVersion);
             if (version != null)
@@ -138,8 +138,11 @@ public class PMDResultCollector {
         pmdConfig.setReportFile(File.createTempFile("pmd", "report").getAbsolutePath());
         pmdConfig.setShowSuppressedViolations(true);
 
-        String threads = options.get("Threads");
-        if (threads == null || threads.equals("1")) {
+        String threads = options.get(ConfigOption.THREADS);
+        if (threads == null || threads.isEmpty()) {
+            pmdConfig.setThreads(PMDUtil.AVAILABLE_PROCESSORS);
+        }
+        else if (threads.equals("1")) {
             pmdConfig.setThreads(0); // 0 is a special value invoking in single thread mood
         } else {
             pmdConfig.setThreads(Integer.parseInt(threads));
