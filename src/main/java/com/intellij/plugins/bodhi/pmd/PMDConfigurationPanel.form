@@ -53,7 +53,7 @@
                 <properties/>
                 <border type="none"/>
                 <children>
-                  <component id="d89c5" class="javax.swing.JList" binding="ruleList">
+                  <component id="d89c5" class="javax.swing.JList" binding="ruleSetPathList">
                     <constraints/>
                     <properties/>
                   </component>

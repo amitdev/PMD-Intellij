@@ -93,6 +93,7 @@ public class PMDResultPanel extends JPanel {
         //Create the actions of the toolbar and create it.
         ActionGroup actionGrp = createActions();
         ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar(PMDProjectComponent.TOOL_ID, actionGrp, false);
+        toolbar.setTargetComponent(toolbar.getComponent()); // prevent warning
         toolbar.getComponent().setVisible(true);
         add(toolbar.getComponent(), BorderLayout.WEST);
 

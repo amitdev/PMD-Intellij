@@ -62,6 +62,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private boolean skipTestSources;
     private boolean scanFilesBeforeCheckin;
     private Set<String> inEditorAnnotationRuleSets = new LinkedHashSet<>(); // avoid duplicates, maintain order
+    private List<String> deletedRuleSetPaths = Collections.emptyList();
 
     /**
      * Creates a PMD Project component based on the project given.
@@ -113,7 +114,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     /**
      * Reflect customRuleSetPaths into actionGroup (ActionManager singleton instance)
      * Better solution is an ActionManager for each project and
-     * one shared configuration/settings for all projects, as expected by user
+     * one shared configuration/settings for all projects, as assumed expected by user
      * Now for > 1 projects open, merge the rule sets of shared actions (menu) and current project
      */
     void updateCustomRulesMenu() {
@@ -121,7 +122,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
             if (numProjectsOpen.get() != 1) {
                 // merge actions from menu and from settings to not lose any when switching between projects
                 AnAction[] currentActions = actionGroup.getChildren(null);
-                Set<String> ruleSetPathsFromMenu = new HashSet<>();
+                Set<String> ruleSetPathsFromMenu = new LinkedHashSet<>();
                 for (AnAction action : currentActions) {
                     if (action.getSynonyms().size() == 1) {
                         String ruleSetPath = action.getSynonyms().get(0).get();
@@ -129,6 +130,8 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
                     }
                 }
                 customRuleSetPaths.addAll(ruleSetPathsFromMenu);
+                // remove the ones just explicitly deleted in config
+                customRuleSetPaths.removeAll(deletedRuleSetPaths);
             }
             List<AnAction> newActionList = new ArrayList<>();
             boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
@@ -258,8 +261,12 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         return new ArrayList<>(customRuleSetPaths);
     }
 
-    public void setCustomRuleSets(List<String> customRuleSetPaths) {
+    public void setCustomRuleSetPaths(List<String> customRuleSetPaths) {
         this.customRuleSetPaths = new LinkedHashSet<>(customRuleSetPaths);
+    }
+
+    public void setDeletedRuleSetPaths(List<String> deletedRuleSetPaths) {
+        this.deletedRuleSetPaths = deletedRuleSetPaths;
     }
 
     public Set<String> getInEditorAnnotationRuleSets() {
@@ -340,6 +347,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     public boolean isScanFilesBeforeCheckin() {
         return scanFilesBeforeCheckin;
     }
+
 
 
 }

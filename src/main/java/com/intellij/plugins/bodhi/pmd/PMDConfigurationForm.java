@@ -44,14 +44,14 @@ import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESET
  */
 public class PMDConfigurationForm {
     private JPanel rootPanel;
-    private JList<String> ruleList;
+    private JList<String> ruleSetPathList;
     private JPanel buttonPanel;
     private JTabbedPane tabbedPane1;
     private JTable optionsTable;
     private JPanel mainPanel;
     private JCheckBox skipTestsCheckBox;
     private JList<String> inEditorAnnotationRuleSets;
-
+    private final List<String> deletedRuleSetPaths = new ArrayList();
     private boolean isModified;
     private final Project project;
 
@@ -75,7 +75,7 @@ public class PMDConfigurationForm {
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
 
         optionsTable.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
-        ruleList.setModel(new MyListModel(new ArrayList<>()));
+        ruleSetPathList.setModel(new MyListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.setModel(new MyListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
         skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
@@ -95,7 +95,7 @@ public class PMDConfigurationForm {
      */
     public void setDataOnUI(PMDProjectComponent dataProjComp) {
         List<String> customRuleSetPaths = dataProjComp.getCustomRuleSetPaths();
-        ruleList.setModel(new MyListModel(customRuleSetPaths));
+        ruleSetPathList.setModel(new MyListModel(customRuleSetPaths));
         if (dataProjComp.getOptionToValue().isEmpty()) {
             final int numOptions = ConfigOption.size();
             String[][] optionDescsDefaultValues = new String[numOptions][2];
@@ -142,7 +142,8 @@ public class PMDConfigurationForm {
      * @param dataProjComp the data provider
      */
     public void getDataFromUi(PMDProjectComponent dataProjComp) {
-        dataProjComp.setCustomRuleSets(((MyListModel) ruleList.getModel()).getData());
+        dataProjComp.setCustomRuleSetPaths(((MyListModel) ruleSetPathList.getModel()).getData());
+        dataProjComp.setDeletedRuleSetPaths(deletedRuleSetPaths);
         dataProjComp.setOptionToValue(toOptionToValue(optionsTable.getModel()));
         dataProjComp.skipTestSources(skipTestsCheckBox.isSelected());
         dataProjComp.setInEditorAnnotationRuleSets(inEditorAnnotationRuleSets.getSelectedValuesList());
@@ -189,23 +190,24 @@ public class PMDConfigurationForm {
                         "Invalid File/URL", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            MyListModel listModel = (MyListModel) ruleList.getModel();
+            MyListModel listModel = (MyListModel) ruleSetPathList.getModel();
             if (listModel.data.contains(fileName)) {
-                listModel.set(ruleList.getSelectedIndex(), fileName); // trigger menu update
+                listModel.set(ruleSetPathList.getSelectedIndex(), fileName); // trigger menu update
                 return;
             }
             if (defaultValue != null && defaultValue.trim().length() > 0) {
-                listModel.set(ruleList.getSelectedIndex(), fileName);
+                listModel.set(ruleSetPathList.getSelectedIndex(), fileName);
                 return;
             }
             int index = listModel.getSize();
             listModel.add(index, fileName);
-            ruleList.setSelectedIndex(index);
+            ruleSetPathList.setSelectedIndex(index);
+            deletedRuleSetPaths.remove(fileName);
 
             MyListModel inEditorAnnotationRuleSetsModel = (MyListModel) inEditorAnnotationRuleSets.getModel();
             inEditorAnnotationRuleSetsModel.add(inEditorAnnotationRuleSetsModel.getSize(), fileName);
 
-            ruleList.repaint();
+            ruleSetPathList.repaint();
         }
     }
 
@@ -234,14 +236,13 @@ public class PMDConfigurationForm {
         }
 
         public void actionPerformed(@NotNull AnActionEvent e) {
-            String defaultValue;
-            defaultValue = (String) ruleList.getSelectedValue();
+            String defaultValue = (String) ruleSetPathList.getSelectedValue();
             modifyRuleSet(defaultValue, e);
         }
 
         public void update(@NotNull AnActionEvent e) {
             super.update(e);
-            e.getPresentation().setEnabled(!ruleList.getSelectionModel().isSelectionEmpty());
+            e.getPresentation().setEnabled(!ruleSetPathList.getSelectionModel().isSelectionEmpty());
         }
 
     }
@@ -256,20 +257,21 @@ public class PMDConfigurationForm {
         }
 
         public void actionPerformed(@NotNull AnActionEvent e) {
-            int index = ruleList.getSelectedIndex();
+            int index = ruleSetPathList.getSelectedIndex();
             if (index != -1) {
-                String toRemove = ruleList.getModel().getElementAt(index);
-                ((MyListModel)ruleList.getModel()).remove(index);
-                ruleList.setSelectedIndex(index);
+                String toRemove = ruleSetPathList.getModel().getElementAt(index);
+                ((MyListModel) ruleSetPathList.getModel()).remove(index);
+                ruleSetPathList.setSelectedIndex(index);
+                deletedRuleSetPaths.add(toRemove);
 
                 ((MyListModel) inEditorAnnotationRuleSets.getModel()).remove(toRemove);
             }
-            ruleList.repaint();
+            ruleSetPathList.repaint();
         }
 
         public void update(@NotNull AnActionEvent e) {
             super.update(e);
-            e.getPresentation().setEnabled(ruleList.getSelectedIndex() != -1);
+            e.getPresentation().setEnabled(ruleSetPathList.getSelectedIndex() != -1);
         }
     }
 
