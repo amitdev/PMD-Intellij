@@ -133,8 +133,8 @@ public class PMDUtil {
     }
 
     /**
-     * Parses and returns the rule file name without extension from path.
-     * Rulename is got by getting the filename from path and stripping off
+     * Parses and returns the ruleset file name without extension from path.
+     * By taking the filename from path and stripping off
      * the extension.
      *
      * @param rulePath the path
@@ -156,7 +156,9 @@ public class PMDUtil {
      * @return the rule file name including extension
      */
     public static String getFileNameFromPath(String rulePath) {
-        int index = rulePath.lastIndexOf(File.separatorChar);
+        int indexFilePath = rulePath.lastIndexOf(File.separatorChar);
+        int indexUrl = rulePath.lastIndexOf('/'); // on windows different from previous
+        int index = Math.max(indexFilePath, indexUrl); // fixes issue #147
         return rulePath.substring(index + 1); // if not found (-1), start from 0
     }
 

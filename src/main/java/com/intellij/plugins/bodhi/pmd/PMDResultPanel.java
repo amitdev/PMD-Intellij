@@ -469,7 +469,7 @@ public class PMDResultPanel extends JPanel {
 
         public void actionPerformed(AnActionEvent e) {
             Project project = e.getData(PlatformDataKeys.PROJECT);
-            //Run the last run rule
+            //Run the last run rule sets
             if (project != null) {
                 PMDProjectComponent component = project.getComponent(PMDProjectComponent.class);
                 String ruleSetPaths = component.getLastRunRuleSetPaths();

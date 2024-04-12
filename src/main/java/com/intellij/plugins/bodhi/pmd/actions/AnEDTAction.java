@@ -9,7 +9,7 @@ import javax.swing.*;
 import java.util.function.Supplier;
 
 /**
- * AnAction which actions should be just accessing UI/Swing components, not model data.
+ * AnAction which update methods should be just accessing UI/Swing components, not e.g. file system or model data. Update methods should be very quick.
  * EDT = Event Dispatch Thread.
  * See ActionUpdateThread and ActionUpdateThreadAware.
  * See <a href="https://plugins.jetbrains.com/docs/intellij/basic-action-system.html#action-implementation">JetBrains doc on action implementation</a>
