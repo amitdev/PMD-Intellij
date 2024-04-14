@@ -11,7 +11,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.plugins.bodhi.pmd.actions.AnEDTAction;
 import com.intellij.plugins.bodhi.pmd.core.PMDJsonExportingRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.ui.DocumentAdapter;
 import com.intellij.util.PlatformIcons;
 import net.sourceforge.pmd.lang.Language;
 import net.sourceforge.pmd.lang.LanguageRegistry;
@@ -22,8 +21,6 @@ import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Document;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -35,6 +32,7 @@ import java.util.*;
 
 import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_FILENAMES;
 import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_PROPERTY_FILE;
+import static com.intellij.plugins.bodhi.pmd.PMDUtil.KNOWN_CUSTOM_RULES;
 
 /**
  * This class represents the UI for settings.
@@ -43,6 +41,7 @@ import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESET
  * @version 1.1
  */
 public class PMDConfigurationForm {
+
     private JPanel rootPanel;
     private JList<String> ruleSetPathList;
     private JPanel buttonPanel;
@@ -51,7 +50,7 @@ public class PMDConfigurationForm {
     private JPanel mainPanel;
     private JCheckBox skipTestsCheckBox;
     private JList<String> inEditorAnnotationRuleSets;
-    private final List<String> deletedRuleSetPaths = new ArrayList();
+    private final List<String> deletedRuleSetPaths = new ArrayList<>();
     private boolean isModified;
     private final Project project;
 
@@ -173,15 +172,18 @@ public class PMDConfigurationForm {
         DialogBuilder db = new DialogBuilder(PMDUtil.getProjectComponent(e).getCurrentProject());
         db.addOkAction();
         db.addCancelAction();
-        db.setTitle("Select Custom RuleSet File or type URL");
+        db.setTitle("Choose Custom RuleSet from Drop-down, File or paste URL");
         final BrowsePanel panel = new BrowsePanel(defaultValue, db, project);
-        db.setOkActionEnabled(defaultValue != null && defaultValue.trim().length() > 0);
         db.show();
         //If ok is selected add the selected ruleset
         if (db.getDialogWrapper().getExitCode() == DialogWrapper.OK_EXIT_CODE) {
-            String fileName = panel.getText();
+            String rulesPath = panel.getText().trim();
+            // if ruleSet by name, change to the URL
+            if (KNOWN_CUSTOM_RULES.containsKey(rulesPath)) {
+                rulesPath = KNOWN_CUSTOM_RULES.get(rulesPath);
+            }
             String err;
-            if ( (err = PMDResultCollector.isValidRuleSet(fileName)).length() > 0) {
+            if ( (err = PMDResultCollector.isValidRuleSet(rulesPath)).length() > 0) {
                 // make sense of error
                 int lastPartToShow = err.indexOf("valid file or URL");
                 int lastPos = (lastPartToShow > 0) ? lastPartToShow + 17 : Math.min(err.length(), 170);
@@ -191,21 +193,22 @@ public class PMDConfigurationForm {
                 return;
             }
             MyListModel listModel = (MyListModel) ruleSetPathList.getModel();
-            if (listModel.data.contains(fileName)) {
-                listModel.set(ruleSetPathList.getSelectedIndex(), fileName); // trigger menu update
+            int selectedIndex = Math.max(0, ruleSetPathList.getSelectedIndex()); // prevent out of range with -1
+            if (listModel.data.contains(rulesPath)) {
+                listModel.set(selectedIndex, rulesPath); // trigger menu update
                 return;
             }
             if (defaultValue != null && defaultValue.trim().length() > 0) {
-                listModel.set(ruleSetPathList.getSelectedIndex(), fileName);
+                listModel.set(selectedIndex, rulesPath);
                 return;
             }
             int index = listModel.getSize();
-            listModel.add(index, fileName);
+            listModel.add(index, rulesPath);
             ruleSetPathList.setSelectedIndex(index);
-            deletedRuleSetPaths.remove(fileName);
+            deletedRuleSetPaths.remove(rulesPath);
 
             MyListModel inEditorAnnotationRuleSetsModel = (MyListModel) inEditorAnnotationRuleSets.getModel();
-            inEditorAnnotationRuleSetsModel.add(inEditorAnnotationRuleSetsModel.getSize(), fileName);
+            inEditorAnnotationRuleSetsModel.add(inEditorAnnotationRuleSetsModel.getSize(), rulesPath);
 
             ruleSetPathList.repaint();
         }
@@ -236,7 +239,7 @@ public class PMDConfigurationForm {
         }
 
         public void actionPerformed(@NotNull AnActionEvent e) {
-            String defaultValue = (String) ruleSetPathList.getSelectedValue();
+            String defaultValue = ruleSetPathList.getSelectedValue();
             modifyRuleSet(defaultValue, e);
         }
 
@@ -395,7 +398,7 @@ public class PMDConfigurationForm {
         }
 
         public synchronized void add(int index, Object item) {
-            data.add(index, (String)item);
+            data.add(index, ((String)item).trim());
             fireIntervalAdded(this, index, index);
             isModified = true;
         }
@@ -419,7 +422,7 @@ public class PMDConfigurationForm {
         }
 
         public synchronized void set(int selIndex, String fileName) {
-            data.set(selIndex, fileName);
+            data.set(selIndex, fileName.trim());
             fireContentsChanged(this, selIndex, selIndex);
             isModified = true;
         }
@@ -440,57 +443,60 @@ public class PMDConfigurationForm {
      * select a ruleset file.
      */
     static class BrowsePanel extends JPanel {
-        private final JTextField path;
+        private final JComboBox<String> pathComboBox;
 
         public BrowsePanel(String defaultValue, final DialogBuilder db, final Project project) {
             super();
             setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
             JLabel label = new JLabel("Choose RuleSet: ");
-            label.setMinimumSize(new Dimension(100, 20));
-            label.setMaximumSize(new Dimension(120, 20));
-            label.setPreferredSize(new Dimension(100, 20));
+            label.setMinimumSize(new Dimension(120, 20));
+            label.setMaximumSize(new Dimension(150, 20));
+            label.setPreferredSize(new Dimension(130, 20));
             add(label);
-            path = new JTextField(defaultValue);
-            label.setMinimumSize(new Dimension(200, 20));
-            label.setMaximumSize(new Dimension(250, 20));
-            path.setPreferredSize(new Dimension(200, 20));
-            add(path);
+            final Vector<String> elements = new Vector<>();
+            elements.add(defaultValue);
+            for (String ruleSetName : KNOWN_CUSTOM_RULES.keySet()) {
+                elements.add(ruleSetName);
+            }
+            ComboBoxModel<String> model = new DefaultComboBoxModel<>(elements);
+            model.setSelectedItem(defaultValue);
+            pathComboBox = new JComboBox<>(model);
+            pathComboBox.setEditable(true);
+            pathComboBox.setMinimumSize(new Dimension(200, 26));
+            pathComboBox.setMaximumSize(new Dimension(800, 28));
+            pathComboBox.setPreferredSize(new Dimension(230, 28));
+            add(pathComboBox);
             add(Box.createHorizontalStrut(5));
             JButton open = new JButton("Browse");
-            label.setMinimumSize(new Dimension(50, 20));
-            label.setMaximumSize(new Dimension(150, 20));
             open.setPreferredSize(new Dimension(80, 20));
             open.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     final VirtualFile toSelect = project.getBaseDir();
-
+                    // file system access takes some time, IntelliJ sometimes gives an exception that
+                    // and EDT thread should not take long. Should be solved by using a BGT thread, but how?
                     final FileChooserDescriptor descriptor = new FileChooserDescriptor(true, false, false, false, false, false);
                     descriptor.withFileFilter(virtualFile -> virtualFile.getName().endsWith(".xml"));
 
                     final VirtualFile chosen = FileChooser.chooseFile(descriptor, BrowsePanel.this, project, toSelect);
                     if (chosen != null) {
                         final File newConfigFile = VfsUtilCore.virtualToIoFile(chosen);
-                        path.setText(newConfigFile.getAbsolutePath());
+                        String ioFile = newConfigFile.getAbsolutePath();
+                        final Vector<String> elem = new Vector<>();
+                        elem.add(ioFile);
+                        ComboBoxModel<String> newModel = new DefaultComboBoxModel<>(elem);
+                        pathComboBox.setModel(newModel);
+                        pathComboBox.setSelectedItem(ioFile);
+                        pathComboBox.setEditable(false);
                     }
                 }
             });
             add(open);
             add(Box.createVerticalGlue());
             db.setCenterPanel(this);
-
-            path.getDocument().addDocumentListener(new DocumentAdapter() {
-                protected void textChanged(@NotNull DocumentEvent e) {
-                    try {
-                        Document doc = e.getDocument();
-                        db.setOkActionEnabled(doc.getText(0, doc.getLength()).trim().length() > 0);
-                    } catch (BadLocationException e1) {
-                    }
-                }
-            });
         }
 
         public String getText() {
-            return path.getText();
+            return (String) pathComboBox.getSelectedItem();
         }
     }
 
