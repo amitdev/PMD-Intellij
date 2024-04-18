@@ -1,6 +1,9 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
+import com.intellij.plugins.bodhi.pmd.core.HasMessage;
+import com.intellij.plugins.bodhi.pmd.core.HasRule;
 import com.intellij.plugins.bodhi.pmd.core.PMDSuppressedViolation;
+import net.sourceforge.pmd.Rule;
 
 import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 
@@ -10,7 +13,7 @@ import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
  *
  * @author jborgers
  */
-public class PMDSuppressedNode extends PMDLeafNode {
+public class PMDSuppressedNode extends PMDLeafNode implements HasMessage, HasRule {
 
     private final PMDSuppressedViolation pmdSuppressedViolation;
 
@@ -34,17 +37,25 @@ public class PMDSuppressedNode extends PMDLeafNode {
 
     @Override
     public String getToolTip() {
+        String tip = getReasonText();
+        if (!tip.isEmpty()) return tip;
+        return null;
+    }
+
+    private String getReasonText() {
+        String result = "";
         final String userMessage = pmdSuppressedViolation.getUserMessage();
         if (pmdSuppressedViolation.suppressedByNOPMD()) {
             // NOPMD should be followed by a reason explaining the suppression
             if (containsNoReasonDescription(userMessage)) {
-                return "Warn: No reason for suppression documented";
+                result = "Warn: No reason for suppression documented";
             }
             else {
-                return "Reason: " + userMessage;
+                result = "Reason: " + userMessage;
             }
         }
-        return null; // Annotation cannot include a reason, should be documented in // comment
+        // else:  Annotation cannot include a reason, should be documented in // comment
+        return result;
     }
 
     private boolean containsNoReasonDescription(String userMessage) {
@@ -53,10 +64,21 @@ public class PMDSuppressedNode extends PMDLeafNode {
                 || userMessage.contains("TODO"));
     }
 
+    public String getMessage() {
+        return "A violation is actually suppressed by " +
+                (pmdSuppressedViolation.suppressedByNOPMD() ? "//NOPMD. " : "@SuppressWarnings. ")
+                + getReasonText() + "\n\nThe suppressed violation: "
+                + pmdSuppressedViolation.getPMDViolation().getRuleName() + " - " + pmdSuppressedViolation.getPMDViolation().getDescription();
+    }
+
+    @Override
+    public Rule getRule() {
+        return pmdSuppressedViolation.getPMDViolation().getRule();
+    }
+
     @Override
     public void render(PMDCellRenderer cellRenderer, boolean expanded) {
         final String userMessage = pmdSuppressedViolation.getUserMessage();
-        String reason;
         if (pmdSuppressedViolation.suppressedByNOPMD()) {
             // NOPMD should be followed by a reason explaining the suppression
             if (containsNoReasonDescription(userMessage)) {

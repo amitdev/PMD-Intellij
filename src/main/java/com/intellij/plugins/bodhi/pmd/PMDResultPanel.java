@@ -16,15 +16,14 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.actions.AnEDTAction;
-import com.intellij.plugins.bodhi.pmd.core.HasPositionInFile;
-import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
+import com.intellij.plugins.bodhi.pmd.core.*;
 import com.intellij.plugins.bodhi.pmd.tree.*;
 import com.intellij.pom.Navigatable;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.usageView.UsageViewBundle;
 import com.intellij.util.ui.tree.TreeUtil;
 import net.sourceforge.pmd.Report;
+import net.sourceforge.pmd.Rule;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -69,7 +68,8 @@ public class PMDResultPanel extends JPanel {
      * @param projectComponent The Project Component.
      */
     public PMDResultPanel(final PMDProjectComponent projectComponent) {
-        super(new BorderLayout());
+        super();
+        this.setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         this.projectComponent = projectComponent;
         setBorder(new EmptyBorder(2, 2, 2, 2));
 
@@ -93,15 +93,31 @@ public class PMDResultPanel extends JPanel {
         //Create the actions of the toolbar and create it.
         ActionGroup actionGrp = createActions();
         ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar(PMDProjectComponent.TOOL_ID, actionGrp, false);
-        toolbar.setTargetComponent(toolbar.getComponent()); // prevent warning
-        toolbar.getComponent().setVisible(true);
-        add(toolbar.getComponent(), BorderLayout.WEST);
+        JComponent toolbarComponent = toolbar.getComponent();
+        toolbar.setTargetComponent(toolbarComponent); // prevent warning
+        toolbarComponent.setVisible(true);
+        toolbarComponent.setMinimumSize(new Dimension(20, 100));
+        toolbarComponent.setMaximumSize(new Dimension(20, 1000));
+        toolbarComponent.setPreferredSize(new Dimension(20, 300));
+        add(toolbarComponent);
 
         initializeTree();
 
         resultTree.setCellRenderer(new PMDCellRenderer());
         TreeUtil.expandAll(resultTree);
-        add(new JBScrollPane(resultTree), BorderLayout.CENTER);
+        JBScrollPane treeScrollPane = new JBScrollPane(resultTree);
+        treeScrollPane.setPreferredSize(new Dimension(600, 300));
+        add(treeScrollPane);
+
+
+        JTextArea textArea = new JTextArea("Click on a rule or violation node to see its description with example.");
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        JBScrollPane textScrollPane = new JBScrollPane(textArea);
+
+        textScrollPane.setPreferredSize(new Dimension(600, 300));
+        add(textScrollPane);
 
         //Add selection listener to support autoscroll to source.
         resultTree.addTreeSelectionListener(new TreeSelectionListener() {
@@ -117,26 +133,24 @@ public class PMDResultPanel extends JPanel {
         //Add right-click menu to the tree
         popupMenu = new PMDPopupMenu(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                final List<PMDViolation> results = popupMenu.getViolations();
+                final List<PMDViolation> violations = popupMenu.getViolations();
                 if (e.getActionCommand().equals(PMDPopupMenu.SUPPRESS)) {
-                    Map<String, PMDViolation> unique = new HashMap<>();
-                    for (PMDViolation result : results) {
-                        unique.put(result.getFilename()+":"+result.getBeginLine(), result);
+                    // suppress all selected violations, max 1 per file+line
+                    Map<String, PMDViolation> uniqueViolationsMap = new HashMap<>();
+                    for (PMDViolation violation : violations) {
+                        uniqueViolationsMap.put(violation.getFilename() + ":" + violation.getBeginLine(), violation);
                     }
-                    for (PMDViolation result : unique.values()) {
+                    for (PMDViolation violation : uniqueViolationsMap.values()) {
                         //Suppress the violation
-                        final Editor editor = openEditor(result);
+                        final Editor editor = openEditor(violation);
                         if (editor != null) {
-                            executeWrite(editor, result);
+                            executeWrite(editor, violation);
                         }
                     }
                 } else if (e.getActionCommand().equals(PMDPopupMenu.DETAILS)) {
-                    Set<String> urls = new HashSet<>();
-                    for (PMDViolation result : results) {
-                        urls.add(result.getExternalUrl());
-                    }
-                    for (String url : urls) {
-                        //Open a browser and show rule details
+                    // show rule details documentation in browser
+                    String url = popupMenu.getDetailsUrl();
+                    if (!url.isEmpty()) {
                         BrowserUtil.browse(url);
                     }
                 }
@@ -161,11 +175,25 @@ public class PMDResultPanel extends JPanel {
             public void mousePressed(MouseEvent e) {
                 DefaultMutableTreeNode[] treeNodes = getNodeFromEvent(e);
                 if (treeNodes != null) {
+                    DefaultMutableTreeNode node = treeNodes[0];
+                    Rule rule = null;
+                    String message = "";
+                    if (node instanceof HasRule) {
+                        rule = ((HasRule) node).getRule();
+                        message = rule.getMessage();
+                    }
+                    if (node instanceof HasMessage) {
+                        message = ((HasMessage) node).getMessage();
+                    }
+                    textArea.setText(getFormattedText(message, rule));
+                    textArea.setCaretPosition(0);
+
                     if (e.getClickCount() == 2) {
                         for (DefaultMutableTreeNode treeNode : treeNodes) {
                             highlightFindingInEditor(treeNode);
                         }
-                    } else {
+                    }
+                    else {
                         showPopup(treeNodes, e);
                     }
                 }
@@ -178,6 +206,28 @@ public class PMDResultPanel extends JPanel {
         });
     }
 
+    private static @NotNull String getFormattedText(String message, @Nullable Rule rule) {
+        String header = message.trim() + "\n\n";
+        String desc = "";
+        String examples = "";
+        if (rule != null) {
+            desc = rule.getDescription().replaceAll("\\s+(Solution: |Note: |Exceptions:)", "\n\n$1");
+            desc = desc.replaceAll("([^\\.\\n])\\n", "$1 "); // remove line breaks within a sentence
+            desc = desc.replaceAll(" +", " "); // remove multiple spaces
+            desc = desc.replace("\\.\\n ", ". ");
+            desc = desc.replaceAll("\\s+\\([\\w-]+-rules\\)\\s*", "");
+            desc = desc.trim();
+            StringBuilder examplesBld = new StringBuilder();
+            for (String example : rule.getExamples()) {
+                examplesBld.append(example.trim()).append("\n\n");
+            }
+            if (!rule.getExamples().isEmpty()) {
+                examples += "\n\nExample:\n\n" + examplesBld;
+            }
+        }
+        return header + desc + examples;
+    }
+
     /**
      * Displays the right click popup menu for a tree node.
      *
@@ -185,13 +235,18 @@ public class PMDResultPanel extends JPanel {
      * @param e the MouseEvent
      */
     private void showPopup(DefaultMutableTreeNode[] treeNodes, MouseEvent e) {
-        //Check if its a popup trigger
+        //Check if it's a popup trigger
         if (treeNodes != null && e.isPopupTrigger()) {
-            popupMenu.clearViolations();
-            //Only for violation nodes, popups are supported
+            popupMenu.clearViolationsAndUrl();
+            //Only for violation nodes, popups suppress+details are supported
             for (DefaultMutableTreeNode treeNode : treeNodes) {
+                //Only for violation nodes, popups suppress+details are supported
                 if (treeNode instanceof PMDViolationNode) {
                     popupMenu.addViolation(((PMDViolationNode)treeNode).getPmdViolation());
+                }
+                // if it has a rule, popup details is supported
+                else if (treeNode instanceof HasRule) {
+                    popupMenu.setDetailsUrl(((HasRule)treeNode).getRule().getExternalInfoUrl());
                 }
             }
             //Display popup

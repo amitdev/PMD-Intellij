@@ -24,6 +24,7 @@ import java.util.*;
 public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
 
     private static final Log log = LogFactory.getLog(PMDResultAsTreeRenderer.class);
+    private static final String EXCEPTION_SWALLOWED = "Exception caught and swallowed: ";
     private final List<PMDRuleSetEntryNode> pmdRuleResultNodes;
     private final PMDErrorBranchNode processingErrorsNode;
     private final UselessSuppressionsHelper uselessSupHelper;
@@ -48,7 +49,6 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
                 PMDRuleNode ruleNode = ruleKeyToNodeMap.get(key);
                 if (ruleNode == null) {
                     ruleNode = nodeFactory.createRuleNode(rule);
-                    ruleNode.setToolTip(rule.getDescription());
                     ruleKeyToNodeMap.put(key, ruleNode);
                 }
                 ruleNode.add(nodeFactory.createViolationLeafNode(new PMDViolation(ruleViolation)));
@@ -56,7 +56,7 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
             }
             catch(Exception e) {
                 // report and swallow so following violations will still be rendered
-                log.error("Exception caught and swallowed: ", e);
+                log.error(EXCEPTION_SWALLOWED, e);
             }
         }
         for (PMDRuleNode ruleNode : ruleKeyToNodeMap.values()) {
@@ -78,7 +78,7 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
                 }
                 catch(Exception e) {
                     // report and swallow so following processing error will still be rendered
-                    log.error("Exception caught and swallowed: ", e);
+                    log.error(EXCEPTION_SWALLOWED, e);
                 }
             }
         }
@@ -107,7 +107,7 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
                 }
                 catch(Exception e) {
                     // report and swallow so following suppressed violations will still be rendered
-                    log.error("Exception caught and swallowed: ", e);
+                    log.error(EXCEPTION_SWALLOWED, e);
                 }
             }
             suppressedByAnnotationNode.calculateCounts();
@@ -132,7 +132,7 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
                 }
                 catch(Exception e) {
                     // report and swallow so following useless suppressions will still be rendered
-                    log.error("Exception caught and swallowed: ", e);
+                    log.error(EXCEPTION_SWALLOWED, e);
                 }
             }
             uselessSuppressionNode.calculateCounts();

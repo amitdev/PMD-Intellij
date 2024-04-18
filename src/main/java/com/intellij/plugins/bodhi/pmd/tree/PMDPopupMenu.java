@@ -16,12 +16,14 @@ import java.util.List;
  */
 public class PMDPopupMenu {
 
-    private List<PMDViolation> violations = new ArrayList<PMDViolation>();
-    private JPopupMenu menu;
+    private final List<PMDViolation> violations = new ArrayList<>();
+    private final JPopupMenu menu;
     /** Menu label for suppress */
     public static final String SUPPRESS = "Suppress";
     /** Menu label for details - showing rule details */
     public static final String DETAILS = "Details";
+    private String detailsUrl = "";
+
 
     /**
      * Creates a popup menu and associates the given action listener with it.
@@ -46,6 +48,9 @@ public class PMDPopupMenu {
      */
     public void addViolation(PMDViolation violation) {
         this.violations.add(violation);
+        if (detailsUrl.isEmpty()) {
+            detailsUrl = violation.getExternalUrl();
+        }
     }
 
     /**
@@ -57,8 +62,9 @@ public class PMDPopupMenu {
         return violations;
     }
 
-    public void clearViolations() {
-        this.violations.clear();
+    public void clearViolationsAndUrl() {
+        violations.clear();
+        detailsUrl = "";
     }
 
     /**
@@ -68,5 +74,13 @@ public class PMDPopupMenu {
      */
     public JPopupMenu getMenu() {
         return menu;
+    }
+
+    public String getDetailsUrl() {
+        return detailsUrl;
+    }
+
+    public void setDetailsUrl(String externalInfoUrl) {
+        detailsUrl = externalInfoUrl;
     }
 }
