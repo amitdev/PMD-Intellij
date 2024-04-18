@@ -214,7 +214,7 @@ public class PMDResultPanel extends JPanel {
             desc = rule.getDescription().replaceAll("\\s+(Solution: |Note: |Exceptions:)", "\n\n$1");
             desc = desc.replaceAll("([^\\.\\n])\\n", "$1 "); // remove line breaks within a sentence
             desc = desc.replaceAll(" +", " "); // remove multiple spaces
-            desc = desc.replace("\\.\\n ", ". ");
+            desc = desc.replaceAll("\\.\\n ", ". ");
             desc = desc.replaceAll("\\s+\\([\\w-]+-rules\\)\\s*", "");
             desc = desc.trim();
             StringBuilder examplesBld = new StringBuilder();
