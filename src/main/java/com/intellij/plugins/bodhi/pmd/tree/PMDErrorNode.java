@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
+import com.intellij.plugins.bodhi.pmd.core.HasMessage;
 import com.intellij.plugins.bodhi.pmd.core.PMDProcessingError;
 import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 
@@ -9,7 +10,7 @@ import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
  *
  * @author jborgers
  */
-public class PMDErrorNode extends PMDLeafNode {
+public class PMDErrorNode extends PMDLeafNode implements HasMessage {
 
     private final PMDProcessingError pmdProcessingError;
 
@@ -20,6 +21,11 @@ public class PMDErrorNode extends PMDLeafNode {
     @Override
     public String getToolTip() {
         return pmdProcessingError.getCauseMsg();
+    }
+
+    @Override
+    public String getMessage() {
+        return pmdProcessingError.getMsg() + "\n\n" + pmdProcessingError.getCauseMsg();
     }
 
     @Override

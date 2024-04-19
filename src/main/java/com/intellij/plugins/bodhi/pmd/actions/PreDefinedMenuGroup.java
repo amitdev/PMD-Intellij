@@ -32,7 +32,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
 
     //The ruleset property file which lists all the predefined rulesets
     public static final String RULESETS_PROPERTY_FILE = "rulesets/java/rulesets.properties";
-    public static final String RULESETS_FILENAMES = "rulesets.filenames";
+    public static final String RULESETS_FILENAMES_KEY = "rulesets.filenames";
 
     /**
      * Loads all the predefined rulesets in PMD and create actions for them.
@@ -48,7 +48,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
         try {
             //Load the property file which has all the rulesets.
             props.load(new ResourceLoader(getClass().getClassLoader()).loadResourceAsStream(RULESETS_PROPERTY_FILE));
-            String[] rulesetFilenames = props.getProperty(RULESETS_FILENAMES).split(PMDInvoker.RULE_DELIMITER);
+            String[] rulesetFilenames = props.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER);
 
             //We have 'All' rules in addition to the rulesets
             //First one is 'All'

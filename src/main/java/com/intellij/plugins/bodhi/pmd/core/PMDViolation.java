@@ -15,7 +15,7 @@ import java.io.File;
  * @author bodhi
  * @version 1.2
  */
-public class PMDViolation implements HasPositionInFile {
+public class PMDViolation implements HasPositionInFile, HasRule, HasMessage {
 
     private final RuleViolation ruleViolation;
     private final String positionText;
@@ -33,7 +33,7 @@ public class PMDViolation implements HasPositionInFile {
         String fileName = violation.getFilename();
         int startIndex = fileName.lastIndexOf(File.separatorChar);
         String className = violation.getClassName();
-        if (className == null || className.length() == 0) {
+        if (className == null || className.isEmpty()) {
             if (startIndex != -1) {
                 className = fileName.substring(startIndex + 1, fileName.indexOf('.', startIndex));
             }
@@ -73,12 +73,17 @@ public class PMDViolation implements HasPositionInFile {
         return ruleViolation.getEndColumn();
     }
 
-    private Rule getRule() {
+    public Rule getRule() {
         return ruleViolation.getRule();
     }
 
     public String getDescription() {
         return ruleViolation.getDescription();
+    }
+
+    @Override
+    public String getMessage() {
+        return getDescription();
     }
 
     public String getPackageName() {

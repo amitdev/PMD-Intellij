@@ -15,15 +15,15 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.plugins.bodhi.pmd.core.HasPositionInFile;
-import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
+import com.intellij.plugins.bodhi.pmd.actions.AnEDTAction;
+import com.intellij.plugins.bodhi.pmd.core.*;
 import com.intellij.plugins.bodhi.pmd.tree.*;
 import com.intellij.pom.Navigatable;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.usageView.UsageViewBundle;
 import com.intellij.util.ui.tree.TreeUtil;
 import net.sourceforge.pmd.Report;
+import net.sourceforge.pmd.Rule;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * The result panel where the PMD results are shown. This includes a toolbar and
@@ -54,8 +55,13 @@ import java.util.*;
  */
 public class PMDResultPanel extends JPanel {
 
+    private static final Pattern PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN = Pattern.compile("\\s+(Problem: |Solution: |Note: |Exceptions:)");
+    private static final Pattern INNER_LINE_BREAK_PATTERN = Pattern.compile("([^\\.\\n])\\n");
+    private static final Pattern DOT_ENDLINE_SPACE_PATTERN = Pattern.compile("\\.\\n ");
+    private static final Pattern BRACED_RULES_NAME_PATTERN = Pattern.compile("\\s+\\([\\w-]+-rules\\)\\s*");
     private final JTree resultTree;
     private final PMDProjectComponent projectComponent;
+    private final JTextArea ruleDetailjTextArea;
     private PMDRootNode rootNode;
     private PMDErrorBranchNode processingErrorsNode;
     private boolean scrolling;
@@ -68,7 +74,8 @@ public class PMDResultPanel extends JPanel {
      * @param projectComponent The Project Component.
      */
     public PMDResultPanel(final PMDProjectComponent projectComponent) {
-        super(new BorderLayout());
+        super();
+        this.setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         this.projectComponent = projectComponent;
         setBorder(new EmptyBorder(2, 2, 2, 2));
 
@@ -92,14 +99,30 @@ public class PMDResultPanel extends JPanel {
         //Create the actions of the toolbar and create it.
         ActionGroup actionGrp = createActions();
         ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar(PMDProjectComponent.TOOL_ID, actionGrp, false);
-        toolbar.getComponent().setVisible(true);
-        add(toolbar.getComponent(), BorderLayout.WEST);
+        JComponent toolbarComponent = toolbar.getComponent();
+        toolbar.setTargetComponent(toolbarComponent); // prevent warning
+        toolbarComponent.setVisible(true);
+        toolbarComponent.setMinimumSize(new Dimension(20, 100));
+        toolbarComponent.setMaximumSize(new Dimension(20, 1000));
+        toolbarComponent.setPreferredSize(new Dimension(20, 300));
+        add(toolbarComponent);
 
         initializeTree();
 
         resultTree.setCellRenderer(new PMDCellRenderer());
         TreeUtil.expandAll(resultTree);
-        add(new JBScrollPane(resultTree), BorderLayout.CENTER);
+        JBScrollPane treeScrollPane = new JBScrollPane(resultTree);
+        treeScrollPane.setPreferredSize(new Dimension(600, 300));
+        add(treeScrollPane);
+
+        ruleDetailjTextArea = new JTextArea("Click on a rule or violation node to see its description with example.");
+        ruleDetailjTextArea.setEditable(false);
+        ruleDetailjTextArea.setLineWrap(true);
+        ruleDetailjTextArea.setWrapStyleWord(true);
+        JBScrollPane textScrollPane = new JBScrollPane(ruleDetailjTextArea);
+
+        textScrollPane.setPreferredSize(new Dimension(600, 300));
+        add(textScrollPane);
 
         //Add selection listener to support autoscroll to source.
         resultTree.addTreeSelectionListener(new TreeSelectionListener() {
@@ -115,26 +138,24 @@ public class PMDResultPanel extends JPanel {
         //Add right-click menu to the tree
         popupMenu = new PMDPopupMenu(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                final List<PMDViolation> results = popupMenu.getViolations();
+                final List<PMDViolation> violations = popupMenu.getViolations();
                 if (e.getActionCommand().equals(PMDPopupMenu.SUPPRESS)) {
-                    Map<String, PMDViolation> unique = new HashMap<>();
-                    for (PMDViolation result : results) {
-                        unique.put(result.getFilename()+":"+result.getBeginLine(), result);
+                    // suppress all selected violations, max 1 per file+line
+                    Map<String, PMDViolation> uniqueViolationsMap = new HashMap<>();
+                    for (PMDViolation violation : violations) {
+                        uniqueViolationsMap.put(violation.getFilename() + ":" + violation.getBeginLine(), violation);
                     }
-                    for (PMDViolation result : unique.values()) {
+                    for (PMDViolation violation : uniqueViolationsMap.values()) {
                         //Suppress the violation
-                        final Editor editor = openEditor(result);
+                        final Editor editor = openEditor(violation);
                         if (editor != null) {
-                            executeWrite(editor, result);
+                            executeWrite(editor, violation);
                         }
                     }
                 } else if (e.getActionCommand().equals(PMDPopupMenu.DETAILS)) {
-                    Set<String> urls = new HashSet<>();
-                    for (PMDViolation result : results) {
-                        urls.add(result.getExternalUrl());
-                    }
-                    for (String url : urls) {
-                        //Open a browser and show rule details
+                    // show rule details documentation in browser
+                    String url = popupMenu.getDetailsUrl();
+                    if (!url.isEmpty()) {
                         BrowserUtil.browse(url);
                     }
                 }
@@ -159,11 +180,15 @@ public class PMDResultPanel extends JPanel {
             public void mousePressed(MouseEvent e) {
                 DefaultMutableTreeNode[] treeNodes = getNodeFromEvent(e);
                 if (treeNodes != null) {
+                    DefaultMutableTreeNode node = treeNodes[0];
+                    setRuleDetailsOnTextArea(node);
+
                     if (e.getClickCount() == 2) {
                         for (DefaultMutableTreeNode treeNode : treeNodes) {
                             highlightFindingInEditor(treeNode);
                         }
-                    } else {
+                    }
+                    else {
                         showPopup(treeNodes, e);
                     }
                 }
@@ -176,6 +201,43 @@ public class PMDResultPanel extends JPanel {
         });
     }
 
+    private void setRuleDetailsOnTextArea(DefaultMutableTreeNode node) {
+        Rule rule = null;
+        String message = "";
+        if (node instanceof HasRule) {
+            rule = ((HasRule) node).getRule();
+            message = rule.getMessage();
+        }
+        if (node instanceof HasMessage) {
+            message = ((HasMessage) node).getMessage();
+        }
+        ruleDetailjTextArea.setText(getFormattedText(message, rule));
+        ruleDetailjTextArea.setCaretPosition(0);
+    }
+
+    private static @NotNull String getFormattedText(String message, @Nullable Rule rule) {
+        String header = message.trim().replaceAll(" +", " ") + "\n\n"; // remove redundant spaces
+        String desc = "";
+        String examples = "";
+        if (rule != null) {
+            desc = rule.getDescription();
+            desc = PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN.matcher(desc).replaceAll("\n\n$1");
+            desc = INNER_LINE_BREAK_PATTERN.matcher(desc).replaceAll("$1 ");
+            desc = desc.replaceAll(" +", " "); // remove multiple spaces
+            desc = DOT_ENDLINE_SPACE_PATTERN.matcher(desc).replaceAll(". ");
+            desc = BRACED_RULES_NAME_PATTERN.matcher(desc).replaceAll("");
+            desc = desc.trim();
+            StringBuilder examplesBld = new StringBuilder();
+            for (String example : rule.getExamples()) {
+                examplesBld.append(example.trim()).append("\n\n");
+            }
+            if (!rule.getExamples().isEmpty()) {
+                examples += "\n\nExample:\n\n" + examplesBld;
+            }
+        }
+        return header + desc + examples;
+    }
+
     /**
      * Displays the right click popup menu for a tree node.
      *
@@ -183,13 +245,18 @@ public class PMDResultPanel extends JPanel {
      * @param e the MouseEvent
      */
     private void showPopup(DefaultMutableTreeNode[] treeNodes, MouseEvent e) {
-        //Check if its a popup trigger
+        //Check if it's a popup trigger
         if (treeNodes != null && e.isPopupTrigger()) {
-            popupMenu.clearViolations();
-            //Only for violation nodes, popups are supported
+            popupMenu.clearViolationsAndUrl();
+            //Only for violation nodes, popups suppress+details are supported
             for (DefaultMutableTreeNode treeNode : treeNodes) {
+                //Only for violation nodes, popups suppress+details are supported
                 if (treeNode instanceof PMDViolationNode) {
                     popupMenu.addViolation(((PMDViolationNode)treeNode).getPmdViolation());
+                }
+                // if it has a rule, popup details is supported
+                else if (treeNode instanceof HasRule) {
+                    popupMenu.setDetailsUrl(((HasRule)treeNode).getRule().getExternalInfoUrl());
                 }
             }
             //Display popup
@@ -279,6 +346,24 @@ public class PMDResultPanel extends JPanel {
                     return navigatable.canNavigate() ? navigatable : null;
                 }
                 return null;
+            }
+
+            @Override
+            public OccurenceInfo goNextOccurence() {
+                OccurenceInfo info = super.goNextOccurence();
+                if (info.getNavigateable() instanceof DefaultMutableTreeNode node) {
+                    setRuleDetailsOnTextArea(node);
+                }
+                return info;
+            }
+
+            @Override
+            public OccurenceInfo goPreviousOccurence() {
+                OccurenceInfo info = super.goNextOccurence();
+                if (info.getNavigateable() instanceof DefaultMutableTreeNode node) {
+                    setRuleDetailsOnTextArea(node);
+                }
+                return info;
             }
 
             public String getNextOccurenceActionName() {
@@ -459,7 +544,7 @@ public class PMDResultPanel extends JPanel {
     /**
      * Inner class for rerun action.
      */
-    private class ReRunAction extends AnAction {
+    private class ReRunAction extends AnEDTAction {
         public ReRunAction() {
             super(CommonBundle.message("action.rerun"), UsageViewBundle.message("action.description.rerun"), AllIcons.Actions.Rerun);
             registerCustomShortcutSet(CommonShortcuts.getRerun(), PMDResultPanel.this);
@@ -467,7 +552,7 @@ public class PMDResultPanel extends JPanel {
 
         public void actionPerformed(AnActionEvent e) {
             Project project = e.getData(PlatformDataKeys.PROJECT);
-            //Run the last run rule
+            //Run the last run rule sets
             if (project != null) {
                 PMDProjectComponent component = project.getComponent(PMDProjectComponent.class);
                 String ruleSetPaths = component.getLastRunRuleSetPaths();
@@ -483,7 +568,7 @@ public class PMDResultPanel extends JPanel {
     /**
      * Inner class for close action.
      */
-    private static class CloseAction extends AnAction {
+    private static class CloseAction extends AnEDTAction {
         private static final String ACTION_CLOSE = "action.close";
 
         private CloseAction() {

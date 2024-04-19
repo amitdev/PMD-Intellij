@@ -57,11 +57,12 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     private boolean lastRunRulesCustom;
     private AnActionEvent lastRunActionEvent;
     private Set<String> customRuleSetPaths = new LinkedHashSet<>(); // avoid duplicates, maintain order
-    private Map<String, String> options = new HashMap<>();
+    private Map<ConfigOption, String> optionToValue = new EnumMap<>(ConfigOption.class);
     private final ToolWindowManager toolWindowManager;
     private boolean skipTestSources;
     private boolean scanFilesBeforeCheckin;
     private Set<String> inEditorAnnotationRuleSets = new LinkedHashSet<>(); // avoid duplicates, maintain order
+    private List<String> deletedRuleSetPaths = Collections.emptyList();
 
     /**
      * Creates a PMD Project component based on the project given.
@@ -113,7 +114,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     /**
      * Reflect customRuleSetPaths into actionGroup (ActionManager singleton instance)
      * Better solution is an ActionManager for each project and
-     * one shared configuration/settings for all projects, as expected by user
+     * one shared configuration/settings for all projects, as assumed expected by user
      * Now for > 1 projects open, merge the rule sets of shared actions (menu) and current project
      */
     void updateCustomRulesMenu() {
@@ -121,14 +122,16 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
             if (numProjectsOpen.get() != 1) {
                 // merge actions from menu and from settings to not lose any when switching between projects
                 AnAction[] currentActions = actionGroup.getChildren(null);
-                Set<String> ruleSetPathsFromMenu = new HashSet<>();
+                Set<String> ruleSetPathsFromMenu = new LinkedHashSet<>();
                 for (AnAction action : currentActions) {
                     if (action.getSynonyms().size() == 1) {
                         String ruleSetPath = action.getSynonyms().get(0).get();
-                        ruleSetPathsFromMenu.add(ruleSetPath);
+                        ruleSetPathsFromMenu.add(ruleSetPath.trim());
                     }
                 }
                 customRuleSetPaths.addAll(ruleSetPathsFromMenu);
+                // remove the ones just explicitly deleted in config
+                customRuleSetPaths.removeAll(deletedRuleSetPaths);
             }
             List<AnAction> newActionList = new ArrayList<>();
             boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
@@ -258,8 +261,12 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         return new ArrayList<>(customRuleSetPaths);
     }
 
-    public void setCustomRuleSets(List<String> customRuleSetPaths) {
+    public void setCustomRuleSetPaths(List<String> customRuleSetPaths) {
         this.customRuleSetPaths = new LinkedHashSet<>(customRuleSetPaths);
+    }
+
+    public void setDeletedRuleSetPaths(List<String> deletedRuleSetPaths) {
+        this.deletedRuleSetPaths = deletedRuleSetPaths;
     }
 
     public Set<String> getInEditorAnnotationRuleSets() {
@@ -269,12 +276,12 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         this.inEditorAnnotationRuleSets = new LinkedHashSet<>(inEditorAnnotationRules);
     }
 
-    public Map<String, String> getOptions() {
-        return options;
+    public Map<ConfigOption, String> getOptionToValue() {
+        return Map.copyOf(optionToValue); // unmodifiable
     }
 
-    public void setOptions(Map<String, String> options) {
-        this.options = options;
+    public void setOptionToValue(Map<ConfigOption, String> optionToValue) {
+        this.optionToValue = optionToValue;
     }
 
     /**
@@ -283,20 +290,20 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      */
     @NotNull
     public PersistentData getState() {
-        final PersistentData pd = new PersistentData();
+        final PersistentData persistentData = new PersistentData();
         for (String item : customRuleSetPaths) {
-            pd.getCustomRuleSets().add(item);
+            persistentData.getCustomRuleSets().add(item);
         }
-        for (String key : options.keySet()) {
-            pd.getOptions().put(key, options.get(key));
+        for (ConfigOption option : optionToValue.keySet()) {
+            persistentData.getOptionKeyToValue().put(option.getKey(), optionToValue.get(option));
         }
-        pd.setSkipTestSources(skipTestSources);
-        pd.setScanFilesBeforeCheckin(scanFilesBeforeCheckin);
+        persistentData.setSkipTestSources(skipTestSources);
+        persistentData.setScanFilesBeforeCheckin(scanFilesBeforeCheckin);
 
         for (String item : inEditorAnnotationRuleSets) {
-            pd.getInEditorAnnotationRules().add(item);
+            persistentData.getInEditorAnnotationRules().add(item);
         }
-        return pd;
+        return persistentData;
     }
 
     /**
@@ -305,14 +312,15 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      */
     public void loadState(PersistentData state) {
         customRuleSetPaths.clear();
-        options.clear();
+        optionToValue.clear();
         customRuleSetPaths.addAll(state.getCustomRuleSets());
-        for (String key : state.getOptions().keySet()) {
-            options.put(key, state.getOptions().get(key));
-        }
-        // replace unused 'Encoding' by 'Statistics URL'
-        if (options.remove("Encoding") != null) {
-            options.put(PMDConfigurationForm.STATISTICS_URL, "");
+        for (String key : state.getOptionKeyToValue().keySet()) {
+            if (key.equals("Encoding")) { // replace unused 'Encoding' by 'Statistics URL'
+                optionToValue.put(ConfigOption.STATISTICS_URL, "");
+            }
+            else {
+                optionToValue.put(ConfigOption.fromKey(key), state.getOptionKeyToValue().get(key));
+            }
         }
 
         inEditorAnnotationRuleSets.clear();
@@ -339,5 +347,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     public boolean isScanFilesBeforeCheckin() {
         return scanFilesBeforeCheckin;
     }
+
+
 
 }
