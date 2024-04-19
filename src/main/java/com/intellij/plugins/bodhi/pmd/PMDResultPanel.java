@@ -61,6 +61,7 @@ public class PMDResultPanel extends JPanel {
     private static final Pattern BRACED_RULES_NAME_PATTERN = Pattern.compile("\\s+\\([\\w-]+-rules\\)\\s*");
     private final JTree resultTree;
     private final PMDProjectComponent projectComponent;
+    private final JTextArea ruleDetailjTextArea;
     private PMDRootNode rootNode;
     private PMDErrorBranchNode processingErrorsNode;
     private boolean scrolling;
@@ -114,11 +115,11 @@ public class PMDResultPanel extends JPanel {
         treeScrollPane.setPreferredSize(new Dimension(600, 300));
         add(treeScrollPane);
 
-        JTextArea textArea = new JTextArea("Click on a rule or violation node to see its description with example.");
-        textArea.setEditable(false);
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-        JBScrollPane textScrollPane = new JBScrollPane(textArea);
+        ruleDetailjTextArea = new JTextArea("Click on a rule or violation node to see its description with example.");
+        ruleDetailjTextArea.setEditable(false);
+        ruleDetailjTextArea.setLineWrap(true);
+        ruleDetailjTextArea.setWrapStyleWord(true);
+        JBScrollPane textScrollPane = new JBScrollPane(ruleDetailjTextArea);
 
         textScrollPane.setPreferredSize(new Dimension(600, 300));
         add(textScrollPane);
@@ -180,17 +181,7 @@ public class PMDResultPanel extends JPanel {
                 DefaultMutableTreeNode[] treeNodes = getNodeFromEvent(e);
                 if (treeNodes != null) {
                     DefaultMutableTreeNode node = treeNodes[0];
-                    Rule rule = null;
-                    String message = "";
-                    if (node instanceof HasRule) {
-                        rule = ((HasRule) node).getRule();
-                        message = rule.getMessage();
-                    }
-                    if (node instanceof HasMessage) {
-                        message = ((HasMessage) node).getMessage();
-                    }
-                    textArea.setText(getFormattedText(message, rule));
-                    textArea.setCaretPosition(0);
+                    setRuleDetailsOnTextArea(node);
 
                     if (e.getClickCount() == 2) {
                         for (DefaultMutableTreeNode treeNode : treeNodes) {
@@ -208,6 +199,20 @@ public class PMDResultPanel extends JPanel {
                 showPopup(treeNodes, e);
             }
         });
+    }
+
+    private void setRuleDetailsOnTextArea(DefaultMutableTreeNode node) {
+        Rule rule = null;
+        String message = "";
+        if (node instanceof HasRule) {
+            rule = ((HasRule) node).getRule();
+            message = rule.getMessage();
+        }
+        if (node instanceof HasMessage) {
+            message = ((HasMessage) node).getMessage();
+        }
+        ruleDetailjTextArea.setText(getFormattedText(message, rule));
+        ruleDetailjTextArea.setCaretPosition(0);
     }
 
     private static @NotNull String getFormattedText(String message, @Nullable Rule rule) {
@@ -341,6 +346,24 @@ public class PMDResultPanel extends JPanel {
                     return navigatable.canNavigate() ? navigatable : null;
                 }
                 return null;
+            }
+
+            @Override
+            public OccurenceInfo goNextOccurence() {
+                OccurenceInfo info = super.goNextOccurence();
+                if (info.getNavigateable() instanceof DefaultMutableTreeNode node) {
+                    setRuleDetailsOnTextArea(node);
+                }
+                return info;
+            }
+
+            @Override
+            public OccurenceInfo goPreviousOccurence() {
+                OccurenceInfo info = super.goNextOccurence();
+                if (info.getNavigateable() instanceof DefaultMutableTreeNode node) {
+                    setRuleDetailsOnTextArea(node);
+                }
+                return info;
             }
 
             public String getNextOccurenceActionName() {
