@@ -17,6 +17,7 @@ import java.io.FileFilter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,6 +33,14 @@ import static java.util.Arrays.asList;
 public class PMDUtil {
 
     public static final Pattern HOST_NAME_PATTERN = Pattern.compile(".+\\.([a-z]+\\.[a-z]+)/.+");
+    public static final int AVAILABLE_PROCESSORS = Runtime.getRuntime().availableProcessors();
+    private static final String JPINPOINT_RULES = "https://raw.githubusercontent.com/jborgers/PMD-jPinpoint-rules/master/rulesets/java/jpinpoint-rules.xml";
+    public static final Map<String, String> KNOWN_CUSTOM_RULES = Map.of("jpinpoint-rules", JPINPOINT_RULES);
+
+    /**
+     * Not to be instantiated
+     */
+    private PMDUtil() {}
 
     /**
      * Get the the Project Component from given Action.
@@ -127,8 +136,8 @@ public class PMDUtil {
     }
 
     /**
-     * Parses and returns the rule file name without extension from path.
-     * Rulename is got by getting the filename from path and stripping off
+     * Parses and returns the ruleset file name without extension from path.
+     * By taking the filename from path and stripping off
      * the extension.
      *
      * @param rulePath the path
@@ -150,7 +159,9 @@ public class PMDUtil {
      * @return the rule file name including extension
      */
     public static String getFileNameFromPath(String rulePath) {
-        int index = rulePath.lastIndexOf(File.separatorChar);
+        int indexFilePath = rulePath.lastIndexOf(File.separatorChar);
+        int indexUrl = rulePath.lastIndexOf('/'); // on windows different from previous
+        int index = Math.max(indexFilePath, indexUrl); // fixes issue #147
         return rulePath.substring(index + 1); // if not found (-1), start from 0
     }
 
@@ -166,7 +177,7 @@ public class PMDUtil {
         if (index == -1) {
             return rulePath;
         }
-        String shortPathDesc = "";
+        String shortPathDesc;
         if (rulePath.startsWith("http")) {
             shortPathDesc = getHostNameFromPath(rulePath) + ": " + rulePath.substring(index + 1);
         }
@@ -224,14 +235,14 @@ public class PMDUtil {
      * @return whether url is non-empty and starts with http, specifies a host and is not malformed.
      */
     public static boolean isValidUrl(String url) {
-        if (url == null || url.length() == 0 || !url.startsWith("http")) {
+        if (url == null || !url.startsWith("http")) {
             return false;
         }
         boolean isValid = true;
         try {
             URL myURL = new URL(url);
             String host = myURL.getHost();
-            if (host == null || host.length() == 0) {
+            if (host == null || host.isEmpty()) {
                 isValid = false;
             }
         } catch (MalformedURLException e) {

@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
+import com.intellij.plugins.bodhi.pmd.core.HasMessage;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -8,18 +9,23 @@ import org.jetbrains.annotations.NotNull;
  *
  * @author jborgers
  */
-public class PMDUselessSuppressionBranchNode extends PMDRuleSetEntryNode {
+public class PMDUselessSuppressionBranchNode extends PMDRuleSetEntryNode implements HasMessage {
     public PMDUselessSuppressionBranchNode(String name) {
         super(name);
     }
 
     @Override
     public String getToolTip() {
-        return "Occurrences of @SuppressWarnings for a rule for which no violation is actually suppressed";
+        return getMessage();
     }
 
     @Override
-    public void render(PMDCellRenderer cellRenderer, boolean expanded) {
+    public String getMessage() {
+        return "Occurrences of @SuppressWarnings for a rule for which no violation is actually suppressed.";
+    }
+
+    @Override
+    public synchronized void render(PMDCellRenderer cellRenderer, boolean expanded) {
         cellRenderer.setIcon(Severity.MAJOR.getIcon());
         super.render(cellRenderer, expanded);
     }

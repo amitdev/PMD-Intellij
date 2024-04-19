@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
+import com.intellij.plugins.bodhi.pmd.core.HasMessage;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -7,17 +8,23 @@ import org.jetbrains.annotations.NotNull;
  *
  * @author jborgers
  */
-public class PMDSuppressedBranchNode extends PMDRuleSetEntryNode {
+public class PMDSuppressedBranchNode extends PMDRuleSetEntryNode implements HasMessage {
     public PMDSuppressedBranchNode(String name) {
         super(name);
     }
 
     @Override
     public String getToolTip() {
-        return "Violations which are actually suppressed.";
+        return getMessage();
     }
+
     @Override
-    public void render(PMDCellRenderer cellRenderer, boolean expanded) {
+    public String getMessage() {
+        return getNodeName() + ".";
+    }
+
+    @Override
+    public synchronized void render(PMDCellRenderer cellRenderer, boolean expanded) {
         cellRenderer.setIcon(Severity.INFO.getIcon());
         super.render(cellRenderer, expanded);
     }

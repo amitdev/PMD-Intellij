@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
+import com.intellij.plugins.bodhi.pmd.core.HasRule;
 import com.intellij.plugins.bodhi.pmd.core.RuleKey;
 import net.sourceforge.pmd.Rule;
 import net.sourceforge.pmd.RulePriority;
@@ -12,11 +13,11 @@ import java.util.Objects;
  *
  * @author jborgers
  */
-public class PMDRuleNode extends PMDRuleSetEntryNode {
+public class PMDRuleNode extends PMDRuleSetEntryNode implements HasRule {
 
     private final RulePriority priority;
     private final RuleKey ruleKey;
-
+    private final Rule rule;
 
     /**
      * Create a node with the given value as rule
@@ -25,8 +26,18 @@ public class PMDRuleNode extends PMDRuleSetEntryNode {
      */
     public PMDRuleNode(Rule rule) {
         super(rule.getName());
+        this.rule = rule;
         priority = rule.getPriority();
         this.ruleKey = new RuleKey(rule);
+    }
+
+    @Override
+    public Rule getRule() {
+        return rule;
+    }
+
+    public String getRuleExternalInfoUrl() {
+        return rule.getExternalInfoUrl();
     }
 
     @Override

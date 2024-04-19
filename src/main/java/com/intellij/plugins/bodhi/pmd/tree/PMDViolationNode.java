@@ -1,6 +1,10 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
+import com.intellij.plugins.bodhi.pmd.core.HasMessage;
+import com.intellij.plugins.bodhi.pmd.core.HasRule;
 import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
+import net.sourceforge.pmd.Rule;
+
 import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 
 /**
@@ -10,7 +14,7 @@ import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
  * @author bodhi
  * @version 1.2
  */
-public class PMDViolationNode extends PMDLeafNode {
+public class PMDViolationNode extends PMDLeafNode implements HasRule, HasMessage {
 
     private final PMDViolation pmdViolation;
 
@@ -57,5 +61,15 @@ public class PMDViolationNode extends PMDLeafNode {
     @Override
     public int getSevViolationCount(Severity sev) {
         return (sev.getRulePriority() == pmdViolation.getRulePriority()) ? 1 : 0;
+    }
+
+    @Override
+    public Rule getRule() {
+        return pmdViolation.getRule();
+    }
+
+    @Override
+    public String getMessage() {
+        return pmdViolation.getMessage();
     }
 }
