@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.*;
 
-import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_FILENAMES;
+import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_FILENAMES_KEY;
 import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_PROPERTY_FILE;
 import static com.intellij.plugins.bodhi.pmd.PMDUtil.KNOWN_CUSTOM_RULES;
 
@@ -43,7 +43,7 @@ import static com.intellij.plugins.bodhi.pmd.PMDUtil.KNOWN_CUSTOM_RULES;
 public class PMDConfigurationForm {
 
     private JPanel rootPanel;
-    private JList<String> ruleSetPathList;
+    private JList<String> ruleSetPathJList;
     private JPanel buttonPanel;
     private JTabbedPane tabbedPane1;
     private JTable optionsTable;
@@ -74,8 +74,8 @@ public class PMDConfigurationForm {
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
 
         optionsTable.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
-        ruleSetPathList.setModel(new MyListModel(new ArrayList<>()));
-        inEditorAnnotationRuleSets.setModel(new MyListModel(new ArrayList<>()));
+        ruleSetPathJList.setModel(new RuleSetListModel(new ArrayList<>()));
+        inEditorAnnotationRuleSets.setModel(new RuleSetListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
         skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
     }
@@ -94,7 +94,7 @@ public class PMDConfigurationForm {
      */
     public void setDataOnUI(PMDProjectComponent dataProjComp) {
         List<String> customRuleSetPaths = dataProjComp.getCustomRuleSetPaths();
-        ruleSetPathList.setModel(new MyListModel(customRuleSetPaths));
+        ruleSetPathJList.setModel(new RuleSetListModel(customRuleSetPaths));
         if (dataProjComp.getOptionToValue().isEmpty()) {
             final int numOptions = ConfigOption.size();
             String[][] optionDescsDefaultValues = new String[numOptions][2];
@@ -116,10 +116,10 @@ public class PMDConfigurationForm {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        List<String> allRules = new ArrayList<>(List.of(props.getProperty(RULESETS_FILENAMES).split(PMDInvoker.RULE_DELIMITER)));
+        List<String> allRules = new ArrayList<>(List.of(props.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER)));
         allRules.addAll(customRuleSetPaths);
 
-        MyListModel inEditorAnnotationModel = new MyListModel(allRules);
+        RuleSetListModel inEditorAnnotationModel = new RuleSetListModel(allRules);
         inEditorAnnotationRuleSets.setModel(inEditorAnnotationModel);
         inEditorAnnotationRuleSets.setSelectedIndices(inEditorAnnotationModel.getIndexes(dataProjComp.getInEditorAnnotationRuleSets()));
 
@@ -141,7 +141,7 @@ public class PMDConfigurationForm {
      * @param dataProjComp the data provider
      */
     public void getDataFromUi(PMDProjectComponent dataProjComp) {
-        dataProjComp.setCustomRuleSetPaths(((MyListModel) ruleSetPathList.getModel()).getData());
+        dataProjComp.setCustomRuleSetPaths(((RuleSetListModel) ruleSetPathJList.getModel()).getList());
         dataProjComp.setDeletedRuleSetPaths(deletedRuleSetPaths);
         dataProjComp.setOptionToValue(toOptionToValue(optionsTable.getModel()));
         dataProjComp.skipTestSources(skipTestsCheckBox.isSelected());
@@ -178,9 +178,11 @@ public class PMDConfigurationForm {
         //If ok is selected add the selected ruleset
         if (db.getDialogWrapper().getExitCode() == DialogWrapper.OK_EXIT_CODE) {
             String rulesPath = panel.getText().trim();
+            RuleSetListModel listModel = (RuleSetListModel) ruleSetPathJList.getModel();
             // if ruleSet by name, change to the URL
             if (KNOWN_CUSTOM_RULES.containsKey(rulesPath)) {
                 rulesPath = KNOWN_CUSTOM_RULES.get(rulesPath);
+                ruleSetPathJList.setSelectedIndex(listModel.getSize());
             }
             String err;
             if ( (err = PMDResultCollector.isValidRuleSet(rulesPath)).length() > 0) {
@@ -192,25 +194,27 @@ public class PMDConfigurationForm {
                         "Invalid File/URL", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            MyListModel listModel = (MyListModel) ruleSetPathList.getModel();
-            int selectedIndex = Math.max(0, ruleSetPathList.getSelectedIndex()); // prevent out of range with -1
-            if (listModel.data.contains(rulesPath)) {
-                listModel.set(selectedIndex, rulesPath); // trigger menu update
+            int selectedIndex = ruleSetPathJList.getSelectedIndex();
+            if (listModel.list.contains(rulesPath.trim())) {
+                selectedIndex = listModel.list.indexOf(rulesPath.trim());
+                ruleSetPathJList.setSelectedIndex(selectedIndex);
+                listModel.set(selectedIndex, rulesPath.trim()); // trigger menu update
                 return;
             }
-            if (defaultValue != null && defaultValue.trim().length() > 0) {
+            if (defaultValue != null && defaultValue.trim().length() > 0 && selectedIndex >= 0) {
                 listModel.set(selectedIndex, rulesPath);
                 return;
             }
+
             int index = listModel.getSize();
             listModel.add(index, rulesPath);
-            ruleSetPathList.setSelectedIndex(index);
+            ruleSetPathJList.setSelectedIndex(index);
             deletedRuleSetPaths.remove(rulesPath);
 
-            MyListModel inEditorAnnotationRuleSetsModel = (MyListModel) inEditorAnnotationRuleSets.getModel();
+            RuleSetListModel inEditorAnnotationRuleSetsModel = (RuleSetListModel) inEditorAnnotationRuleSets.getModel();
             inEditorAnnotationRuleSetsModel.add(inEditorAnnotationRuleSetsModel.getSize(), rulesPath);
 
-            ruleSetPathList.repaint();
+            ruleSetPathJList.repaint();
         }
     }
 
@@ -239,13 +243,13 @@ public class PMDConfigurationForm {
         }
 
         public void actionPerformed(@NotNull AnActionEvent e) {
-            String defaultValue = ruleSetPathList.getSelectedValue();
+            String defaultValue = ruleSetPathJList.getSelectedValue();
             modifyRuleSet(defaultValue, e);
         }
 
         public void update(@NotNull AnActionEvent e) {
             super.update(e);
-            e.getPresentation().setEnabled(!ruleSetPathList.getSelectionModel().isSelectionEmpty());
+            e.getPresentation().setEnabled(!ruleSetPathJList.getSelectionModel().isSelectionEmpty());
         }
 
     }
@@ -260,21 +264,21 @@ public class PMDConfigurationForm {
         }
 
         public void actionPerformed(@NotNull AnActionEvent e) {
-            int index = ruleSetPathList.getSelectedIndex();
+            int index = ruleSetPathJList.getSelectedIndex();
             if (index != -1) {
-                String toRemove = ruleSetPathList.getModel().getElementAt(index);
-                ((MyListModel) ruleSetPathList.getModel()).remove(index);
-                ruleSetPathList.setSelectedIndex(index);
+                String toRemove = ruleSetPathJList.getModel().getElementAt(index);
+                ((RuleSetListModel) ruleSetPathJList.getModel()).remove(index);
+                ruleSetPathJList.setSelectedIndex(index);
                 deletedRuleSetPaths.add(toRemove);
 
-                ((MyListModel) inEditorAnnotationRuleSets.getModel()).remove(toRemove);
+                ((RuleSetListModel) inEditorAnnotationRuleSets.getModel()).remove(toRemove);
             }
-            ruleSetPathList.repaint();
+            ruleSetPathJList.repaint();
         }
 
         public void update(@NotNull AnActionEvent e) {
             super.update(e);
-            e.getPresentation().setEnabled(ruleSetPathList.getSelectedIndex() != -1);
+            e.getPresentation().setEnabled(ruleSetPathJList.getSelectedIndex() != -1);
         }
     }
 
@@ -385,51 +389,60 @@ public class PMDConfigurationForm {
         }
     }
 
-    private class MyListModel extends AbstractListModel<String> {
+    private class RuleSetListModel extends AbstractListModel<String> {
 
-        private final List<String> data;
+        private final List<String> list;
 
-        public MyListModel(List<String> data) {
-            this.data = data;
+        public RuleSetListModel(List<String> list) {
+            // make sure the rules are trimmed and unique
+            Set<String> set = new LinkedHashSet<>();
+            Iterator<String> iter = list.iterator();
+            while (iter.hasNext()) {
+                set.add(iter.next().trim());
+            }
+            this.list = new ArrayList(set);
         }
 
         public synchronized int getSize() {
-            return data.size();
+            return list.size();
         }
 
         public synchronized void add(int index, Object item) {
-            data.add(index, ((String)item).trim());
-            fireIntervalAdded(this, index, index);
-            isModified = true;
+            String trimmed = ((String) item).trim();
+            if (!list.contains(trimmed)) {
+                list.add(index, trimmed);
+                fireIntervalAdded(this, index, index);
+                isModified = true;
+            }
         }
 
         public synchronized String getElementAt(int index) {
-            return data.get(index);
+            return list.get(index);
         }
 
-        public synchronized List<String> getData() {
-            return data;
+        public synchronized List<String> getList() {
+            return list;
         }
 
         public synchronized void remove(String objectToRemove) {
-            remove(data.indexOf(objectToRemove));
+            remove(list.indexOf(objectToRemove));
         }
 
         public synchronized void remove(int index) {
-            data.remove(index);
+            list.remove(index);
             fireIntervalRemoved(this, index, index);
             isModified = true;
         }
 
         public synchronized void set(int selIndex, String fileName) {
-            data.set(selIndex, fileName.trim());
+            list.set(selIndex, fileName.trim());
             fireContentsChanged(this, selIndex, selIndex);
             isModified = true;
         }
 
         public synchronized int[] getIndexes(Set<String> selectedObjects) {
             int[] selected = new int[selectedObjects.size()];
-            List<String> options = getData();
+            List<String> options = getList();
             int i = 0;
             for (String selectedOption : selectedObjects) {
                 selected[i++] = options.indexOf(selectedOption);

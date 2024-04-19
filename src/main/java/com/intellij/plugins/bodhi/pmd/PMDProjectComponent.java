@@ -126,7 +126,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
                 for (AnAction action : currentActions) {
                     if (action.getSynonyms().size() == 1) {
                         String ruleSetPath = action.getSynonyms().get(0).get();
-                        ruleSetPathsFromMenu.add(ruleSetPath);
+                        ruleSetPathsFromMenu.add(ruleSetPath.trim());
                     }
                 }
                 customRuleSetPaths.addAll(ruleSetPathsFromMenu);

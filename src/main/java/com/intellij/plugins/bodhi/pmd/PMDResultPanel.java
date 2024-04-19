@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * The result panel where the PMD results are shown. This includes a toolbar and
@@ -54,6 +55,10 @@ import java.util.*;
  */
 public class PMDResultPanel extends JPanel {
 
+    private static final Pattern PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN = Pattern.compile("\\s+(Problem: |Solution: |Note: |Exceptions:)");
+    private static final Pattern INNER_LINE_BREAK_PATTERN = Pattern.compile("([^\\.\\n])\\n");
+    private static final Pattern DOT_ENDLINE_SPACE_PATTERN = Pattern.compile("\\.\\n ");
+    private static final Pattern BRACED_RULES_NAME_PATTERN = Pattern.compile("\\s+\\([\\w-]+-rules\\)\\s*");
     private final JTree resultTree;
     private final PMDProjectComponent projectComponent;
     private PMDRootNode rootNode;
@@ -108,7 +113,6 @@ public class PMDResultPanel extends JPanel {
         JBScrollPane treeScrollPane = new JBScrollPane(resultTree);
         treeScrollPane.setPreferredSize(new Dimension(600, 300));
         add(treeScrollPane);
-
 
         JTextArea textArea = new JTextArea("Click on a rule or violation node to see its description with example.");
         textArea.setEditable(false);
@@ -207,15 +211,16 @@ public class PMDResultPanel extends JPanel {
     }
 
     private static @NotNull String getFormattedText(String message, @Nullable Rule rule) {
-        String header = message.trim() + "\n\n";
+        String header = message.trim().replaceAll(" +", " ") + "\n\n"; // remove redundant spaces
         String desc = "";
         String examples = "";
         if (rule != null) {
-            desc = rule.getDescription().replaceAll("\\s+(Solution: |Note: |Exceptions:)", "\n\n$1");
-            desc = desc.replaceAll("([^\\.\\n])\\n", "$1 "); // remove line breaks within a sentence
+            desc = rule.getDescription();
+            desc = PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN.matcher(desc).replaceAll("\n\n$1");
+            desc = INNER_LINE_BREAK_PATTERN.matcher(desc).replaceAll("$1 ");
             desc = desc.replaceAll(" +", " "); // remove multiple spaces
-            desc = desc.replaceAll("\\.\\n ", ". ");
-            desc = desc.replaceAll("\\s+\\([\\w-]+-rules\\)\\s*", "");
+            desc = DOT_ENDLINE_SPACE_PATTERN.matcher(desc).replaceAll(". ");
+            desc = BRACED_RULES_NAME_PATTERN.matcher(desc).replaceAll("");
             desc = desc.trim();
             StringBuilder examplesBld = new StringBuilder();
             for (String example : rule.getExamples()) {
