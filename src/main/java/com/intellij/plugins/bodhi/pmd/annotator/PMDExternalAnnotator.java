@@ -6,6 +6,7 @@ import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.plugins.bodhi.pmd.ConfigOption;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.psi.PsiFile;
@@ -37,7 +38,7 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
         var language = LanguageRegistry.findLanguageByTerseName("java");
 
         PMDProjectComponent projectComponent = file.getProject().getComponent(PMDProjectComponent.class);
-        String type = projectComponent.getOptions().get("Target JDK");
+        String type = projectComponent.getOptionToValue().get(ConfigOption.TARGET_JDK);
         LanguageVersion version = type != null ? language.getVersion(type) : null;
 
         return new FileInfo(file, editor.getDocument(), version != null ? version : language.getDefaultVersion());
