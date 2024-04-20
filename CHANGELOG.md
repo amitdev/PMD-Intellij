@@ -3,6 +3,7 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [1.9.2]
 ### Added
 - Bugfixes and improved stability
 
