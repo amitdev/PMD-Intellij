@@ -1,6 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
-import net.sourceforge.pmd.Rule;
+import net.sourceforge.pmd.lang.rule.Rule;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;

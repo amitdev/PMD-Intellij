@@ -10,16 +10,17 @@ import com.intellij.plugins.bodhi.pmd.ConfigOption;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.psi.PsiFile;
-import net.sourceforge.pmd.RuleViolation;
-import net.sourceforge.pmd.internal.util.AssertionUtil;
 import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.LanguageVersion;
+import net.sourceforge.pmd.lang.document.FileId;
 import net.sourceforge.pmd.lang.document.TextFile;
-import net.sourceforge.pmd.util.datasource.DataSource;
-import net.sourceforge.pmd.util.datasource.ReaderDataSource;
-import net.sourceforge.pmd.util.datasource.internal.LanguageAwareDataSource;
+import net.sourceforge.pmd.lang.document.TextFileContent;
+import net.sourceforge.pmd.reporting.RuleViolation;
+import net.sourceforge.pmd.util.AssertionUtil;
+import net.sourceforge.pmd.util.StringUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,13 +36,11 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
 
     @Override
     public FileInfo collectInformation(@NotNull PsiFile file, @NotNull Editor editor, boolean hasErrors) {
-        var language = LanguageRegistry.findLanguageByTerseName("java");
-
         PMDProjectComponent projectComponent = file.getProject().getComponent(PMDProjectComponent.class);
         String type = projectComponent.getOptionToValue().get(ConfigOption.TARGET_JDK);
-        LanguageVersion version = type != null ? language.getVersion(type) : null;
+        LanguageVersion version = LanguageRegistry.CPD.getLanguageVersionById("java", type);
 
-        return new FileInfo(file, editor.getDocument(), version != null ? version : language.getDefaultVersion());
+        return new FileInfo(file, editor.getDocument(), version);
     }
 
     @Override
@@ -93,8 +92,7 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
     private TextFile asTextFile(FileInfo info) {
         return new StringTextFile(
                 info.getDocument().getText(),
-                info.getFileName(),
-                info.getFileName(),
+                FileId.UNKNOWN,
                 info.getLanguageVersion()
         );
     }
@@ -117,59 +115,43 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
 
     // Copied from PMD's StringTextFile since it was not public
     private static class StringTextFile implements TextFile {
-        private final String content;
-        private final String pathId;
-        private final String displayName;
+        private final TextFileContent content;
+        private final FileId fileId;
         private final LanguageVersion languageVersion;
 
-        StringTextFile(String content, String pathId, String displayName, LanguageVersion languageVersion) {
-            AssertionUtil.requireParamNotNull("source text", content);
-            AssertionUtil.requireParamNotNull("file name", displayName);
-            AssertionUtil.requireParamNotNull("file ID", pathId);
+        StringTextFile(CharSequence source, FileId fileId, LanguageVersion languageVersion) {
+            AssertionUtil.requireParamNotNull("source text", source);
+            AssertionUtil.requireParamNotNull("file name", fileId);
             AssertionUtil.requireParamNotNull("language version", languageVersion);
+
             this.languageVersion = languageVersion;
-            this.content = content;
-            this.pathId = pathId;
-            this.displayName = displayName;
+            this.content = TextFileContent.fromCharSeq(source);
+            this.fileId = fileId;
         }
 
-        public LanguageVersion getLanguageVersion() {
-            return this.languageVersion;
+        @Override
+        public @NonNull LanguageVersion getLanguageVersion() {
+            return languageVersion;
         }
 
-        public String getDisplayName() {
-            return this.displayName;
+        @Override
+        public FileId getFileId() {
+            return fileId;
         }
 
-        public String getPathId() {
-            return this.pathId;
+        @Override
+        public TextFileContent readContents() {
+            return content;
         }
 
-        public String readContents() {
-            return this.content;
+        @Override
+        public void close() {
+            // nothing to do
         }
 
-        public DataSource toDataSourceCompat() {
-            return new LanguageAwareDataSource(new ReaderDataSource(new StringReader(this.content), this.pathId), this.languageVersion);
-        }
-
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            } else if (o != null && this.getClass() == o.getClass()) {
-                var that = (StringTextFile)o;
-                return Objects.equals(pathId, that.pathId);
-            } else {
-                return false;
-            }
-        }
-
-        public int hashCode() {
-            return Objects.hash(new Object[]{pathId});
-        }
-
+        @Override
         public String toString() {
-            return this.getPathId();
+            return "ReadOnlyString[" + StringUtil.elide(content.getNormalizedText().toString(), 40, "...") + "]";
         }
     }
 }

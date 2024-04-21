@@ -6,11 +6,15 @@ import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.tree.*;
 import net.sourceforge.pmd.*;
+import net.sourceforge.pmd.internal.util.IOUtil;
 import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.LanguageVersion;
 import net.sourceforge.pmd.lang.document.TextFile;
+import net.sourceforge.pmd.lang.rule.RuleSet;
+import net.sourceforge.pmd.lang.rule.RuleSetLoadException;
+import net.sourceforge.pmd.lang.rule.RuleSetLoader;
 import net.sourceforge.pmd.renderers.Renderer;
-import net.sourceforge.pmd.util.IOUtil;
+import net.sourceforge.pmd.reporting.Report;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -26,7 +30,7 @@ import java.util.*;
  */
 public class PMDResultCollector {
 
-    private static Report report = new Report();
+    private static Report report;
 
     /**
      * lazily loaded path to ruleset map, should only contain valid rule sets
@@ -37,13 +41,6 @@ public class PMDResultCollector {
      * Creates an instance of PMDResultCollector.
      */
     public PMDResultCollector() {}
-
-    /**
-     * Clears the pmd results Report by assigning a new one
-     */
-    public static void clearReport() {
-        report = new Report();
-    }
 
     /**
      * Returns the report with pmd results
@@ -93,7 +90,7 @@ public class PMDResultCollector {
 
             PMDErrorBranchNode errorsNode = comp.getResultPanel().getProcessingErrorsNode();
             PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode, ruleSetPath);
-            treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFile()));
+            treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFilePath().toString()));
             treeRenderer.start();
 
             List<Renderer> renderers = new LinkedList<>();
@@ -107,7 +104,7 @@ public class PMDResultCollector {
                 files.forEach(file -> pmd.files().addFile(file.toPath()));
                 textFiles.forEach(pmd.files()::addFile);
                 pmd.addRenderers(renderers);
-                pmd.performAnalysis();
+                report = pmd.performAnalysisAndCollectReport();
             }
 
             if (exportingRenderer != null) {
@@ -141,14 +138,14 @@ public class PMDResultCollector {
         PMDConfiguration pmdConfig = new PMDConfiguration();
         String configVersion = options.get(ConfigOption.TARGET_JDK);
         if (configVersion != null) {
-            LanguageVersion version = LanguageRegistry.findLanguageByTerseName("java").getVersion(configVersion);
+            LanguageVersion version = LanguageRegistry.PMD.getLanguageVersionById("java", configVersion);
             if (version != null)
                 pmdConfig.setDefaultLanguageVersion(version);
         }
         pmdConfig.prependAuxClasspath(PMDUtil.getFullClassPathForAllModules(project));
 
         pmdConfig.addRuleSet(ruleSets);
-        pmdConfig.setReportFile(File.createTempFile("pmd", "report").getAbsolutePath());
+        pmdConfig.setReportFile(File.createTempFile("pmd", "report").toPath());
         pmdConfig.setShowSuppressedViolations(true);
 
         String threads = options.get(ConfigOption.THREADS);

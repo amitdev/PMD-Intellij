@@ -8,9 +8,9 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDViolationNode;
-import net.sourceforge.pmd.Report;
-import net.sourceforge.pmd.Rule;
-import net.sourceforge.pmd.RuleViolation;
+import net.sourceforge.pmd.lang.rule.Rule;
+import net.sourceforge.pmd.reporting.Report;
+import net.sourceforge.pmd.reporting.RuleViolation;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.tree.TreeNode;
@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static net.sourceforge.pmd.reporting.RuleViolation.*;
 
 /**
  * Represents a helper for the PMDResultAsTreeRenderer dealing with useless suppressions.
@@ -55,9 +57,12 @@ public class UselessSuppressionsHelper {
 
     void storeRuleNameForMethod(Report.SuppressedViolation suppressed) {
         RuleViolation violation = suppressed.getRuleViolation();
-        if (violation.getMethodName() != null && !violation.getMethodName().isEmpty()) {
+        var packageName = violation.getAdditionalInfo().get(PACKAGE_NAME);
+        var className = violation.getAdditionalInfo().get(CLASS_NAME);
+        var methodName = violation.getAdditionalInfo().get(METHOD_NAME);
+        if (methodName != null && !methodName.isEmpty()) {
             // store for method
-            String methodKey = violation.getPackageName() + "-" + violation.getClassName() + "-" + violation.getMethodName();
+            String methodKey = packageName + "-" + className + "-" + methodName;
             Set<String> suppressedMethodRuleNames = classMethodToRuleNameOfSuppressedViolationsMap.get(methodKey);
             if (suppressedMethodRuleNames == null) {
                 suppressedMethodRuleNames = new HashSet<>();
@@ -66,7 +71,7 @@ public class UselessSuppressionsHelper {
             classMethodToRuleNameOfSuppressedViolationsMap.put(methodKey, suppressedMethodRuleNames);
         }
         // store for class and fields
-        String classKey = violation.getPackageName() + "-" + violation.getClassName() + "-" + UselessSuppressionsHelper.NO_METHOD;
+        String classKey = packageName + "-" + className + "-" + UselessSuppressionsHelper.NO_METHOD;
         Set<String> suppressedClassRuleNames = classMethodToRuleNameOfSuppressedViolationsMap.get(classKey);
         if (suppressedClassRuleNames == null) {
             suppressedClassRuleNames = new HashSet<>();
@@ -76,10 +81,13 @@ public class UselessSuppressionsHelper {
     }
 
     void storeRuleNameForMethod(RuleViolation violation) {
-        String methodName = violation.getMethodName();
+        var packageName = violation.getAdditionalInfo().get(PACKAGE_NAME);
+        var className = violation.getAdditionalInfo().get(CLASS_NAME);
+        var methodName = violation.getAdditionalInfo().get(METHOD_NAME);
+
         if (methodName != null && !methodName.isEmpty()) {
             // store for method
-            String methodKey = violation.getPackageName() + "-" + violation.getClassName() + "-" + methodName;
+            String methodKey = packageName + "-" + className + "-" + methodName;
             Set<String> violationMethodRuleNames = classMethodToRuleNameOfViolationsMap.get(methodKey);
             if (violationMethodRuleNames == null) {
                 violationMethodRuleNames = new HashSet<>();
@@ -91,7 +99,7 @@ public class UselessSuppressionsHelper {
         // because this is missing, we map field annotations on the class and lose field resolution
 
         // store for class
-        String classKey = violation.getPackageName() + "-" + violation.getClassName() + "-" + NO_METHOD;
+        String classKey = packageName + "-" + className  + "-" + NO_METHOD;
         Set<String> violationClassRuleNames = classMethodToRuleNameOfViolationsMap.get(classKey);
         if (violationClassRuleNames == null) {
             violationClassRuleNames = new HashSet<>();
@@ -172,7 +180,7 @@ public class UselessSuppressionsHelper {
      */
     ViolatingAnnotationHolder getAnnotationContext(PMDViolation annotationViolation) {
         final VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(
-                annotationViolation.getFilename().replace(File.separatorChar, '/'));
+                annotationViolation.getFilePath().replace(File.separatorChar, '/'));
         annotationContextResult = null;
         if (virtualFile != null) {
             ApplicationManager.getApplication().runReadAction(() -> {

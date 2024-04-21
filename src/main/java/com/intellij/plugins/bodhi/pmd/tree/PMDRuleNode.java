@@ -2,8 +2,8 @@ package com.intellij.plugins.bodhi.pmd.tree;
 
 import com.intellij.plugins.bodhi.pmd.core.HasRule;
 import com.intellij.plugins.bodhi.pmd.core.RuleKey;
-import net.sourceforge.pmd.Rule;
-import net.sourceforge.pmd.RulePriority;
+import net.sourceforge.pmd.lang.rule.Rule;
+import net.sourceforge.pmd.lang.rule.RulePriority;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;

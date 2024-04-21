@@ -97,8 +97,6 @@ public class PMDCheckinHandler extends CheckinHandler {
             return ReturnResult.COMMIT;
         }
 
-        PMDResultCollector.clearReport();
-
         List<PMDRuleSetNode> ruleSetResultNodes = new ArrayList<>();
         for (String ruleSetPath : plugin.getCustomRuleSetPaths()) {
             PMDRuleSetNode ruleSetResultNode = scanFiles(ruleSetPath, plugin);

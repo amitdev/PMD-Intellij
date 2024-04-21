@@ -6,10 +6,11 @@ import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDSuppressedBranchNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
 import com.intellij.plugins.bodhi.pmd.tree.PMDUselessSuppressionBranchNode;
-import net.sourceforge.pmd.Report;
-import net.sourceforge.pmd.Rule;
-import net.sourceforge.pmd.RuleViolation;
+import net.sourceforge.pmd.lang.rule.Rule;
 import net.sourceforge.pmd.renderers.AbstractIncrementingRenderer;
+import net.sourceforge.pmd.reporting.Report;
+import net.sourceforge.pmd.reporting.RuleViolation;
+import net.sourceforge.pmd.reporting.ViolationSuppressor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -43,7 +44,6 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
         while (violations.hasNext()) {
             try {
                 RuleViolation ruleViolation = violations.next();
-                PMDResultCollector.getReport().addRuleViolation(ruleViolation);
                 Rule rule = ruleViolation.getRule();
                 RuleKey key = new RuleKey(rule);
                 PMDRuleNode ruleNode = ruleKeyToNodeMap.get(key);
@@ -71,9 +71,9 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
             PMDTreeNodeFactory nodeFactory = PMDTreeNodeFactory.getInstance();
             for (Report.ProcessingError error : errors) {
                 try {
-                    if (!processingErrorsNode.hasFile(error.getFile())) {
+                    if (!processingErrorsNode.hasFile(error.getFileId().getOriginalPath())) {
                         processingErrorsNode.add(nodeFactory.createErrorLeafNode(new PMDProcessingError(error)));
-                        processingErrorsNode.registerFile(error.getFile());
+                        processingErrorsNode.registerFile(error.getFileId().getOriginalPath());
                     }
                 }
                 catch(Exception e) {
@@ -98,7 +98,7 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
             PMDSuppressedBranchNode suppressedByAnnotationNode = nodeFactory.createSuppressedBranchNode("Suppressed violations by Annotation");
             for (Report.SuppressedViolation suppressed : suppressed) {
                 try {
-                    if (suppressed.suppressedByAnnotation()) {
+                    if (suppressed.getSuppressor() != ViolationSuppressor.NOPMD_COMMENT_SUPPRESSOR) {
                         suppressedByAnnotationNode.add(nodeFactory.createSuppressedLeafNode(new PMDSuppressedViolation(suppressed)));
                         uselessSupHelper.storeRuleNameForMethod(suppressed);
                     } else {

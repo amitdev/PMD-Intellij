@@ -5,7 +5,7 @@ import com.intellij.plugins.bodhi.pmd.core.PMDProcessingError;
 import com.intellij.plugins.bodhi.pmd.core.PMDSuppressedViolation;
 import com.intellij.plugins.bodhi.pmd.core.PMDUselessSuppression;
 import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
-import net.sourceforge.pmd.Rule;
+import net.sourceforge.pmd.lang.rule.Rule;
 
 import javax.swing.tree.MutableTreeNode;
 

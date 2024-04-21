@@ -26,8 +26,8 @@ public class PMDUselessSuppression implements HasPositionInFile {
     }
 
     @Override
-    public String getFilename() {
-        return pmdViolation.getFilename();
+    public String getFilePath() {
+        return pmdViolation.getFilePath();
     }
 
     @Override

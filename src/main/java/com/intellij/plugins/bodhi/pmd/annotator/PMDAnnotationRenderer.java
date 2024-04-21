@@ -1,9 +1,9 @@
 package com.intellij.plugins.bodhi.pmd.annotator;
 
 import com.intellij.openapi.editor.Document;
-import net.sourceforge.pmd.Report;
+import net.sourceforge.pmd.lang.document.TextFile;
 import net.sourceforge.pmd.renderers.AbstractRenderer;
-import net.sourceforge.pmd.util.datasource.DataSource;
+import net.sourceforge.pmd.reporting.Report;
 
 import java.io.IOException;
 
@@ -25,13 +25,17 @@ class PMDAnnotationRenderer extends AbstractRenderer {
     }
 
     @Override
-    public void startFileAnalysis(DataSource dataSource) {
+    public void startFileAnalysis(TextFile dataSource) {
 
     }
 
     @Override
-    public void renderFileReport(Report report) throws IOException {
-        this.report = report;
+    public void renderFileReport(Report report) {
+        if (this.report == null) {
+            this.report = report;
+        } else {
+            this.report = this.report.union(report);
+        }
     }
 
     @Override

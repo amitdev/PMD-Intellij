@@ -22,9 +22,9 @@ import com.intellij.pom.Navigatable;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.usageView.UsageViewBundle;
 import com.intellij.util.ui.tree.TreeUtil;
-import net.sourceforge.pmd.Report;
-import net.sourceforge.pmd.Rule;
+import net.sourceforge.pmd.lang.rule.Rule;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
+import net.sourceforge.pmd.reporting.Report;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,6 +41,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.*;
@@ -143,7 +144,7 @@ public class PMDResultPanel extends JPanel {
                     // suppress all selected violations, max 1 per file+line
                     Map<String, PMDViolation> uniqueViolationsMap = new HashMap<>();
                     for (PMDViolation violation : violations) {
-                        uniqueViolationsMap.put(violation.getFilename() + ":" + violation.getBeginLine(), violation);
+                        uniqueViolationsMap.put(violation.getFilePath() + ":" + violation.getBeginLine(), violation);
                     }
                     for (PMDViolation violation : uniqueViolationsMap.values()) {
                         //Suppress the violation
@@ -403,7 +404,7 @@ public class PMDResultPanel extends JPanel {
                 HTMLRenderer renderer = new HTMLRenderer();
                 StringWriter w = new StringWriter();
                 try {
-                    renderer.renderBody(w, r);
+                    renderer.renderBody(new PrintWriter(w), r);
                     return w.getBuffer().toString();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -463,7 +464,7 @@ public class PMDResultPanel extends JPanel {
     private Editor openEditor(HasPositionInFile finding) {
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(projectComponent.getCurrentProject());
         final VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(
-                finding.getFilename().replace(File.separatorChar, '/'));
+                finding.getFilePath().replace(File.separatorChar, '/'));
         if (virtualFile != null) {
             return fileEditorManager.openTextEditor(new OpenFileDescriptor(
                     projectComponent.getCurrentProject(),
