@@ -18,7 +18,10 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.core.PMDProgressRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
+import com.intellij.plugins.bodhi.pmd.handlers.PMDCheckinHandler;
 import com.intellij.plugins.bodhi.pmd.tree.*;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -35,6 +38,7 @@ import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.*;
  * @version 1.0
  */
 public class PMDInvoker {
+    private static final Log log = LogFactory.getLog(PMDInvoker.class);
 
     /**
      * The delimiter used for delimiting multiple rules.
@@ -162,6 +166,7 @@ public class PMDInvoker {
                 String[] ruleSetPathArray = ruleSetPaths.split(RULE_DELIMITER);
                 PMDResultPanel resultPanel = projectComponent.getResultPanel();
 
+                System.setProperty("pmd.error_recovery", "true"); //Recover from errors on single files
                 PMDRootNode rootNode = resultPanel.getRootNode();
                 resultPanel.createProcessingErrorNode();
                 rootNode.setFileCount(files.size());
@@ -200,6 +205,7 @@ public class PMDInvoker {
                     rootNode.calculateCounts();
                 } catch (Throwable t) {
                     rootNode.setRuleSetErrorMsg(t.getMessage());
+                    log.error("Error running PMD", t);
                 } finally {
                     rootNode.setRunning(false);
                     resultPanel.reloadResultTree();
