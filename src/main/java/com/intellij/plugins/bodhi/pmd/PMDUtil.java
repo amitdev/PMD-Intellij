@@ -10,6 +10,7 @@ import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.vfs.VirtualFileVisitor;
+import com.intellij.util.containers.OrderedSet;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -95,9 +96,14 @@ public class PMDUtil {
 
     public static String getFullClassPathForAllModules(Project project) {
         List<Module> modules = getProjectModules(project);
-        StringJoiner joiner = new StringJoiner(File.pathSeparator);
+        OrderedSet<String> uniqPaths = new OrderedSet<>();
         for (Module module : modules) {
-            joiner.add(OrderEnumerator.orderEntries(module).recursively().getPathsList().getPathsString());
+            uniqPaths.addAll(OrderEnumerator.orderEntries(module).recursively().getPathsList().getPathList());
+        }
+
+        StringJoiner joiner = new StringJoiner(File.pathSeparator);
+        for (String path : uniqPaths) {
+            joiner.add(path);
         }
         return joiner.toString();
     }
