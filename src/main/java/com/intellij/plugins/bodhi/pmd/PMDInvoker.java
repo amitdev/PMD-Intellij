@@ -168,37 +168,42 @@ public class PMDInvoker {
                 rootNode.setRuleSetCount(ruleSetPathArray.length);
                 rootNode.setRunning(true);
                 PMDProgressRenderer progressRenderer = new PMDProgressRenderer(progress, files.size() * ruleSetPathArray.length);
-                for (String ruleSetPath : ruleSetPathArray) {
-                    progress.setText("Running : " + ruleSetPath + " on " + files.size() + " file(s)");
+                try {
+                    for (String ruleSetPath : ruleSetPathArray) {
+                        progress.setText("Running : " + ruleSetPath + " on " + files.size() + " file(s)");
 
-                    //Create a result collector to get results
-                    PMDResultCollector collector = new PMDResultCollector();
+                        //Create a result collector to get results
+                        PMDResultCollector collector = new PMDResultCollector();
 
-                    //Get the tree nodes from result collector
-                    List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(files, ruleSetPath, projectComponent, progressRenderer);
-                    // sort rules by priority, rule and suppressed nodes are comparable
-                    resultRuleNodes.sort(null);
+                        //Get the tree nodes from result collector
+                        List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(files, ruleSetPath, projectComponent, progressRenderer);
+                        // sort rules by priority, rule and suppressed nodes are comparable
+                        resultRuleNodes.sort(null);
 
-                    if (!resultRuleNodes.isEmpty()) {
-                        String ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
-                        String  desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
-                        PMDRuleSetNode ruleSetNode = resultPanel.addCreateRuleSetNodeAtRoot(ruleSetName);
-                        ruleSetNode.setToolTip(desc);
-                        //Add all rule nodes to the tree
-                        for (PMDRuleSetEntryNode resultRuleNode : resultRuleNodes) {
-                            resultPanel.addNode(ruleSetNode, resultRuleNode);
+                        if (!resultRuleNodes.isEmpty()) {
+                            String ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
+                            String desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
+                            PMDRuleSetNode ruleSetNode = resultPanel.addCreateRuleSetNodeAtRoot(ruleSetName);
+                            ruleSetNode.setToolTip(desc);
+                            //Add all rule nodes to the tree
+                            for (PMDRuleSetEntryNode resultRuleNode : resultRuleNodes) {
+                                resultPanel.addNode(ruleSetNode, resultRuleNode);
+                            }
+                            rootNode.calculateCounts();
+                            resultPanel.reloadResultTree();
                         }
-                        rootNode.calculateCounts();
-                        resultPanel.reloadResultTree();
+                        if (progress.isCanceled()) {
+                            break;
+                        }
                     }
-                    if (progress.isCanceled()) {
-                        break;
-                    }
+                    resultPanel.addProcessingErrorsNodeToRootIfHasAny(); // as last node
+                    rootNode.calculateCounts();
+                } catch (Throwable t) {
+                    rootNode.setRuleSetErrorMsg(t.getMessage());
+                } finally {
+                    rootNode.setRunning(false);
+                    resultPanel.reloadResultTree();
                 }
-                resultPanel.addProcessingErrorsNodeToRootIfHasAny(); // as last node
-                rootNode.calculateCounts();
-                rootNode.setRunning(false);
-                resultPanel.reloadResultTree();
             }
         });
     }
