@@ -2,7 +2,7 @@
 
 # PMDPlugin Changelog
 
-## [Unreleased 2.0.0]
+## [Unreleased]
 ### Added
 - Update to PMD version 7.1.0 
 - NOTE: custom rules built on PMD 6 will *NOT* work, if needed: stay on 1.9.2 until they are migrated
