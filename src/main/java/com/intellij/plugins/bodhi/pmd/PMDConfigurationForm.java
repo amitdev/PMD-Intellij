@@ -32,7 +32,6 @@ import java.util.*;
 
 import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_FILENAMES_KEY;
 import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_PROPERTY_FILE;
-import static com.intellij.plugins.bodhi.pmd.PMDUtil.KNOWN_CUSTOM_RULES;
 
 /**
  * This class represents the UI for settings.
@@ -53,6 +52,7 @@ public class PMDConfigurationForm {
     private final List<String> deletedRuleSetPaths = new ArrayList<>();
     private boolean isModified;
     private final Project project;
+    private Map<String, String> validKnownCustomRules;
 
     private static final List<String> columnNames = List.of("Option", "Value");
     private static final String STAT_URL_MSG_SUCCESS = "Connection success; will use Statistics URL to export anonymous usage statistics";
@@ -78,6 +78,8 @@ public class PMDConfigurationForm {
         inEditorAnnotationRuleSets.setModel(new RuleSetListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
         skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
+
+        validKnownCustomRules = PMDUtil.getValidKnownCustomRules();
     }
 
     /**
@@ -177,43 +179,49 @@ public class PMDConfigurationForm {
         db.show();
         //If ok is selected add the selected ruleset
         if (db.getDialogWrapper().getExitCode() == DialogWrapper.OK_EXIT_CODE) {
-            String rulesPath = panel.getText().trim();
-            RuleSetListModel listModel = (RuleSetListModel) ruleSetPathJList.getModel();
-            // if ruleSet by name, change to the URL
-            if (KNOWN_CUSTOM_RULES.containsKey(rulesPath)) {
-                rulesPath = KNOWN_CUSTOM_RULES.get(rulesPath);
-                ruleSetPathJList.setSelectedIndex(listModel.getSize());
-            }
-            String err;
-            if ( (err = PMDResultCollector.isValidRuleSet(rulesPath)).length() > 0) {
-                // make sense of error
-                int lastPartToShow = err.indexOf("valid file or URL");
-                int lastPos = (lastPartToShow > 0) ? lastPartToShow + 17 : Math.min(err.length(), 170);
-                String errTxt = err.substring(0, lastPos); // prevent excessive useless length
-                JOptionPane.showMessageDialog(panel, "The selected file/URL is not valid. PMD: " + errTxt,
-                        "Invalid File/URL", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            int selectedIndex = ruleSetPathJList.getSelectedIndex();
-            if (listModel.list.contains(rulesPath.trim())) {
-                selectedIndex = listModel.list.indexOf(rulesPath.trim());
-                ruleSetPathJList.setSelectedIndex(selectedIndex);
-                listModel.set(selectedIndex, rulesPath.trim()); // trigger menu update
-                return;
-            }
-            if (defaultValue != null && defaultValue.trim().length() > 0 && selectedIndex >= 0) {
-                listModel.set(selectedIndex, rulesPath);
-                return;
-            }
+            String rulesRef = panel.getText().trim();
+            if (!rulesRef.startsWith("Warn")) { // warnings are just to notify the user, ignore as rules reference
+                RuleSetListModel listModel = (RuleSetListModel) ruleSetPathJList.getModel();
+                // if ruleSet referenced by name, change to the URL
+                String rulesPath = rulesRef;
+                if (validKnownCustomRules.containsKey(rulesRef)) {
+                    rulesPath = validKnownCustomRules.get(rulesRef);
+                    ruleSetPathJList.setSelectedIndex(listModel.getSize());
+                }
+                String err;
+                if ((err = PMDResultCollector.isValidRuleSet(rulesPath)).length() > 0) {
+                    String message = "The selected file/URL is not valid.";
+                    if (err.contains("XML validation errors occurred")) {
+                        message += " The ruleset seems of PMD 6, use plugin version 1.9.x.";
+                    }
+                    // make sense of error
+                    int lastPartToShow = err.indexOf("valid file or URL");
+                    int lastPos = (lastPartToShow > 0) ? lastPartToShow + 17 : Math.min(err.length(), 170);
+                    String errTxt = err.substring(0, lastPos); // prevent excessive useless length
+                    JOptionPane.showMessageDialog(panel, message + " PMD: " + errTxt,
+                            "Invalid File/URL", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                int selectedIndex = ruleSetPathJList.getSelectedIndex();
+                if (listModel.list.contains(rulesPath.trim())) {
+                    selectedIndex = listModel.list.indexOf(rulesPath.trim());
+                    ruleSetPathJList.setSelectedIndex(selectedIndex);
+                    listModel.set(selectedIndex, rulesPath.trim()); // trigger menu update
+                    return;
+                }
+                if (defaultValue != null && defaultValue.trim().length() > 0 && selectedIndex >= 0) {
+                    listModel.set(selectedIndex, rulesPath);
+                    return;
+                }
 
-            int index = listModel.getSize();
-            listModel.add(index, rulesPath);
-            ruleSetPathJList.setSelectedIndex(index);
-            deletedRuleSetPaths.remove(rulesPath);
+                int index = listModel.getSize();
+                listModel.add(index, rulesPath);
+                ruleSetPathJList.setSelectedIndex(index);
+                deletedRuleSetPaths.remove(rulesPath);
 
-            RuleSetListModel inEditorAnnotationRuleSetsModel = (RuleSetListModel) inEditorAnnotationRuleSets.getModel();
-            inEditorAnnotationRuleSetsModel.add(inEditorAnnotationRuleSetsModel.getSize(), rulesPath);
-
+                RuleSetListModel inEditorAnnotationRuleSetsModel = (RuleSetListModel) inEditorAnnotationRuleSets.getModel();
+                inEditorAnnotationRuleSetsModel.add(inEditorAnnotationRuleSetsModel.getSize(), rulesPath);
+            }
             ruleSetPathJList.repaint();
         }
     }
@@ -468,8 +476,14 @@ public class PMDConfigurationForm {
             add(label);
             final Vector<String> elements = new Vector<>();
             elements.add(defaultValue);
-            for (String ruleSetName : KNOWN_CUSTOM_RULES.keySet()) {
-                elements.add(ruleSetName);
+            Set<String> ruleSetNames = PMDUtil.getValidKnownCustomRules().keySet();
+            if (ruleSetNames.isEmpty()) {
+                elements.add("Warn: No pmd7 compatible ruleset found, revert to plugin version 1.9.x");
+            }
+            else {
+                for (String ruleSetName : ruleSetNames) {
+                    elements.add(ruleSetName);
+                }
             }
             ComboBoxModel<String> model = new DefaultComboBoxModel<>(elements);
             model.setSelectedItem(defaultValue);
