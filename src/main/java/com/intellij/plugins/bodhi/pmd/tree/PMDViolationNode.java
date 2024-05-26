@@ -3,7 +3,7 @@ package com.intellij.plugins.bodhi.pmd.tree;
 import com.intellij.plugins.bodhi.pmd.core.HasMessage;
 import com.intellij.plugins.bodhi.pmd.core.HasRule;
 import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
-import net.sourceforge.pmd.Rule;
+import net.sourceforge.pmd.lang.rule.Rule;
 
 import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 

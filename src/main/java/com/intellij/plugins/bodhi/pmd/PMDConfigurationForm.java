@@ -321,7 +321,7 @@ public class PMDConfigurationForm {
             if (versionInput.equals(orig)) {
                 return;
             }
-            Language java = LanguageRegistry.findLanguageByTerseName("java");
+            Language java = LanguageRegistry.PMD.getLanguageById("java");
             boolean isRegistered = java.hasVersion(versionInput);
             if (isRegistered) {
                 String registeredVersion = java.getVersion(versionInput).getVersion();

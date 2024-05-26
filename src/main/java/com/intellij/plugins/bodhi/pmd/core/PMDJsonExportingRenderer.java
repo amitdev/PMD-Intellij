@@ -2,9 +2,10 @@ package com.intellij.plugins.bodhi.pmd.core;
 
 import com.google.gson.stream.JsonWriter;
 import net.sourceforge.pmd.PMDVersion;
-import net.sourceforge.pmd.Report;
-import net.sourceforge.pmd.RuleViolation;
 import net.sourceforge.pmd.renderers.AbstractIncrementingRenderer;
+import net.sourceforge.pmd.reporting.Report;
+import net.sourceforge.pmd.reporting.RuleViolation;
+import net.sourceforge.pmd.reporting.ViolationSuppressor;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.config.RequestConfig;
@@ -26,6 +27,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.UUID;
+
+import static net.sourceforge.pmd.reporting.RuleViolation.PACKAGE_NAME;
 
 /**
  * For exporting anonymized PMD results to a server in JSON format.
@@ -87,7 +90,7 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
 
         while (violations.hasNext()) {
             RuleViolation rv = violations.next();
-            String nextFilename = determineFileName(rv.getFilename());
+            String nextFilename = determineFileName(rv.getFileId());
             if (!nextFilename.equals(filename)) {
                 // New File
                 if (filename != null) {
@@ -129,7 +132,7 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
             srcRootPos = sourceRootPos(filename);
         }
         else {
-            srcRootPos = sourceRootPos(filename, rv.getPackageName());
+            srcRootPos = sourceRootPos(filename, rv.getAdditionalInfo().get(PACKAGE_NAME));
         }
         if (srcRootPos < 0) {
             srcRootPos = 0; // could not determine sourceRoot, take hash=0 and full file path.
@@ -166,7 +169,7 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
         if (!this.suppressed.isEmpty()) {
             for (Report.SuppressedViolation s : this.suppressed) {
                 RuleViolation rv = s.getRuleViolation();
-                String nextFilename = determineFileName(rv.getFilename());
+                String nextFilename = determineFileName(rv.getFileId());
                 if (!nextFilename.equals(filename)) {
                     // New File
                     if (filename != null) {
@@ -181,7 +184,7 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
                     jsonWriter.name("hashRootedPath").value(hashRootedPath);
                     jsonWriter.name("violations").beginArray();
                 }
-                renderSingleViolation(rv, s.suppressedByNOPMD() ? "nopmd" : "annotation", s.getUserMessage());
+                renderSingleViolation(rv, s.getSuppressor() == ViolationSuppressor.NOPMD_COMMENT_SUPPRESSOR ? "nopmd" : "annotation", s.getUserMessage());
             }
             jsonWriter.endArray(); // violations
             jsonWriter.endObject(); // file object
@@ -193,10 +196,10 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
         for (Report.ProcessingError error : this.errors) {
             jsonWriter.beginObject();
             //jsonWriter.name("filename").value(error.getFile());
-            String hashRootedPath = pathWithHashRoot(error.getFile(), null);
+            String hashRootedPath = pathWithHashRoot(error.getFileId().getOriginalPath(), null);
             jsonWriter.name("hashRootedPath").value(hashRootedPath);
             String msg = error.getMsg();
-            int posFile = msg.indexOf(error.getFile());
+            int posFile = msg.indexOf(error.getFileId().getOriginalPath());
             String msgWithoutFile = msg.substring(0, posFile);
             jsonWriter.name("message").value(msgWithoutFile);
             jsonWriter.name("cause").value(error.getError().getCause().getMessage());

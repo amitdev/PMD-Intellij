@@ -1,6 +1,9 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
-import net.sourceforge.pmd.Report;
+
+import net.sourceforge.pmd.reporting.Report;
+
+import static net.sourceforge.pmd.reporting.ViolationSuppressor.NOPMD_COMMENT_SUPPRESSOR;
 
 /**
  * Represents the suppressed violation node user data. This will be data for leaf
@@ -27,7 +30,7 @@ public class PMDSuppressedViolation implements HasPositionInFile {
      *         NOPMD comment.
      */
     public boolean suppressedByNOPMD() {
-        return suppressedViolation.suppressedByNOPMD();
+        return suppressedViolation.getSuppressor() == NOPMD_COMMENT_SUPPRESSOR;
     }
 
     /**
@@ -38,7 +41,7 @@ public class PMDSuppressedViolation implements HasPositionInFile {
      *         annotation.
      */
     public boolean suppressedByAnnotation() {
-        return suppressedViolation.suppressedByAnnotation();
+        return suppressedViolation.getSuppressor().getId().equals("@SuppressWarnings");
     }
 
     /**
@@ -58,8 +61,8 @@ public class PMDSuppressedViolation implements HasPositionInFile {
     }
 
     @Override
-    public String getFilename() {
-        return pmdViolation.getFilename();
+    public String getFilePath() {
+        return pmdViolation.getFilePath();
     }
 
     @Override

@@ -1,6 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
-import net.sourceforge.pmd.Report;
+import net.sourceforge.pmd.reporting.Report;
 
 /**
  * Represents the actual error node user data. This will be data for leaf
@@ -51,7 +51,7 @@ public class PMDProcessingError implements HasPositionInFile {
             return processingError.getMsg(); // error class simple name and message
         }
         // error in PMD, for instance a NullPointerException, build our own message
-        return error.getClass().getSimpleName() + ": Error while parsing " + processingError.getFile();
+        return error.getClass().getSimpleName() + ": Error while parsing " + processingError.getFileId();
     }
 
     /**
@@ -68,7 +68,7 @@ public class PMDProcessingError implements HasPositionInFile {
      * @return the file during which the error occurred.
      */
     public String getFile() {
-        return processingError.getFile();
+        return processingError.getFileId().getOriginalPath();
     }
 
     /**
@@ -107,8 +107,8 @@ public class PMDProcessingError implements HasPositionInFile {
     }
 
     @Override
-    public String getFilename() {
-        return processingError.getFile();
+    public String getFilePath() {
+        return processingError.getFileId().getOriginalPath();
     }
 
     @Override

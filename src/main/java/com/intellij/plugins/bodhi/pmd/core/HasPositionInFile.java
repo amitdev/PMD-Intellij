@@ -9,7 +9,7 @@ public interface HasPositionInFile {
      * Returns the file name.
      * @return the file name.
      */
-    String getFilename();
+    String getFilePath();
 
     /**
      * Returns the begin line of the position.

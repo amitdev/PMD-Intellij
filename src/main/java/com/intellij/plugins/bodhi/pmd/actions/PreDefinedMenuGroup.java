@@ -7,10 +7,8 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.plugins.bodhi.pmd.PMDInvoker;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
-import net.sourceforge.pmd.util.ResourceLoader;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.Properties;
 
 /**
@@ -31,7 +29,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
     private PMDProjectComponent component;
 
     //The ruleset property file which lists all the predefined rulesets
-    public static final String RULESETS_PROPERTY_FILE = "rulesets/java/rulesets.properties";
+    public static final String RULESETS_PROPERTY_FILE = "category/java/categories.properties";
     public static final String RULESETS_FILENAMES_KEY = "rulesets.filenames";
 
     /**
@@ -47,7 +45,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
         Properties props = new Properties();
         try {
             //Load the property file which has all the rulesets.
-            props.load(new ResourceLoader(getClass().getClassLoader()).loadResourceAsStream(RULESETS_PROPERTY_FILE));
+            props.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(RULESETS_PROPERTY_FILE));
             String[] rulesetFilenames = props.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER);
 
             //We have 'All' rules in addition to the rulesets
@@ -68,9 +66,6 @@ public class PreDefinedMenuGroup extends ActionGroup {
                 };
                 children.add(ruleAction);
             }
-        } catch (IOException e) {
-            //Should not happen
-            //e.printStackTrace();
         } catch (Exception e) {
             //Should not happen
             //e.printStackTrace();
@@ -78,7 +73,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
     }
 
     public AnAction[] getChildren(@Nullable AnActionEvent event) {
-        return new AnAction[] { this.children };
+        return new AnAction[]{this.children};
     }
 
     public void setComponent(PMDProjectComponent component) {

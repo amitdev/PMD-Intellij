@@ -1,7 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.annotator;
 
 import com.intellij.openapi.editor.Document;
-import net.sourceforge.pmd.Report;
+import net.sourceforge.pmd.reporting.Report;
 
 public class PMDAnnotations {
     private final Report report;

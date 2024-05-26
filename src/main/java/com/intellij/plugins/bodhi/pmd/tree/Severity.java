@@ -1,7 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
 import com.intellij.icons.AllIcons;
-import net.sourceforge.pmd.RulePriority;
+import net.sourceforge.pmd.lang.rule.RulePriority;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
