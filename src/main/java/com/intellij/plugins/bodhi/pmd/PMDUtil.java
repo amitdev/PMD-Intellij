@@ -11,6 +11,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.vfs.VirtualFileVisitor;
 import com.intellij.util.containers.OrderedSet;
+import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 
@@ -35,8 +37,9 @@ public class PMDUtil {
 
     public static final Pattern HOST_NAME_PATTERN = Pattern.compile(".+\\.([a-z]+\\.[a-z]+)/.+");
     public static final int AVAILABLE_PROCESSORS = Runtime.getRuntime().availableProcessors();
-    private static final String JPINPOINT_RULES = "https://raw.githubusercontent.com/jborgers/PMD-jPinpoint-rules/master/rulesets/java/jpinpoint-rules.xml";
-    public static final Map<String, String> KNOWN_CUSTOM_RULES = Map.of("jpinpoint-rules", JPINPOINT_RULES);
+    private static final String JPINPOINT_RULES = "https://raw.githubusercontent.com/jborgers/PMD-jPinpoint-rules/pmd7/rulesets/java/jpinpoint-rules.xml";
+    private static final Map<String, String> KNOWN_CUSTOM_RULES = Map.of("jpinpoint-rules", JPINPOINT_RULES);
+    private static volatile Map<String, String> validCustomRules; // lazy initialized
 
     /**
      * Not to be instantiated
@@ -44,7 +47,19 @@ public class PMDUtil {
     private PMDUtil() {}
 
     /**
-     * Get the the Project Component from given Action.
+     * Returns the valid known custom rules
+     * @return the valid known custom rules
+     */
+    public static Map<String, String> getValidKnownCustomRules() {
+        if (validCustomRules == null) {
+            validCustomRules = KNOWN_CUSTOM_RULES.entrySet().stream().filter(e -> PMDResultCollector.isValidRuleSet(e.getValue()).isEmpty())
+                    .collect(Collectors.toUnmodifiableMap(e -> e.getKey(), e -> e.getValue()));
+        }
+        return validCustomRules;
+    }
+
+    /**
+     * Get the Project Component from given Action.
      * @param event AnAction event
      * @return the Project component related to the action
      */

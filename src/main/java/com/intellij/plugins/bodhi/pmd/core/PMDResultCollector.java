@@ -161,7 +161,7 @@ public class PMDResultCollector {
     }
 
     /**
-     * Verifies whether the rule set specified at the path is a valid PMD rule set. Always loads from file.
+     * Verifies whether the rule set specified at the path is a valid PMD rule set. Always loads from file/URL.
      *
      * @param path path of the rule set
      * @return empty String for valid, an error message for invalid.
