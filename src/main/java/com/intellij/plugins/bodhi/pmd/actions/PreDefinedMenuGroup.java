@@ -9,6 +9,7 @@ import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.InputStream;
 import java.util.Properties;
 
 /**
@@ -45,7 +46,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
         Properties props = new Properties();
         try {
             //Load the property file which has all the rulesets.
-            props.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(RULESETS_PROPERTY_FILE));
+            props.load(getRuleResourceStream());
             String[] rulesetFilenames = props.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER);
 
             //We have 'All' rules in addition to the rulesets
@@ -67,9 +68,16 @@ public class PreDefinedMenuGroup extends ActionGroup {
                 children.add(ruleAction);
             }
         } catch (Exception e) {
-            //Should not happen
-            //e.printStackTrace();
+            throw new RuntimeException(e);
         }
+    }
+
+    private @Nullable InputStream getRuleResourceStream() {
+        InputStream resourceAsStream = getClass().getClassLoader().getResourceAsStream(RULESETS_PROPERTY_FILE);
+        if (resourceAsStream == null) {
+            return Thread.currentThread().getContextClassLoader().getResourceAsStream(RULESETS_PROPERTY_FILE);
+        }
+        return resourceAsStream;
     }
 
     public AnAction[] getChildren(@Nullable AnActionEvent event) {
