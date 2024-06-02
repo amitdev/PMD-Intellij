@@ -3,6 +3,7 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [2.0.1]
 ### Added
 - Update to PMD version 7.2.0
 - Fix issue with disabled PMD predefined rules menu
