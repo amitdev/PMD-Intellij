@@ -50,9 +50,9 @@ public class PMDUtil {
      * Returns the valid known custom rules
      * @return the valid known custom rules
      */
-    public static Map<String, String> getValidKnownCustomRules() {
+    public static Map<String, String> getValidKnownCustomRules(PMDProjectComponent projectComponent) {
         if (validCustomRules == null) {
-            validCustomRules = KNOWN_CUSTOM_RULES.entrySet().stream().filter(e -> PMDResultCollector.isValidRuleSet(e.getValue()).isEmpty())
+            validCustomRules = KNOWN_CUSTOM_RULES.entrySet().stream().filter(e -> PMDResultCollector.isValidRuleSet(e.getValue(), projectComponent).isEmpty())
                     .collect(Collectors.toUnmodifiableMap(e -> e.getKey(), e -> e.getValue()));
         }
         return validCustomRules;
