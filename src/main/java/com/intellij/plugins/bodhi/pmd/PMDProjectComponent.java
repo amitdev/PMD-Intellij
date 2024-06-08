@@ -77,7 +77,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     public void initComponent() {
         //Add custom rules as menu items if defined.
-        updateCustomRulesMenu();
+        updateCustomRulesMenu(this);
         ActionGroup actionGroup = registerActions("PMDPredefined");
         if (actionGroup != null)
             ((PreDefinedMenuGroup) actionGroup).setComponent(this);
@@ -117,7 +117,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      * one shared configuration/settings for all projects, as assumed expected by user
      * Now for > 1 projects open, merge the rule sets of shared actions (menu) and current project
      */
-    void updateCustomRulesMenu() {
+    void updateCustomRulesMenu(PMDProjectComponent projectComponent) {
         ActionManager actionManager = ActionManager.getInstance();
         PMDCustom actionGroup = (PMDCustom) actionManager.getAction("PMDCustom");
             if (numProjectsOpen.get() != 1) {
@@ -137,7 +137,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
             List<AnAction> newActionList = new ArrayList<>();
             boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
             for (final String ruleSetPath : customRuleSetPaths) {
-                String ruleSetName = PMDResultCollector.getRuleSetName(ruleSetPath);
+                String ruleSetName = PMDResultCollector.getRuleSetName(ruleSetPath, projectComponent);
                 String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
                 String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
                 String actionText = ruleSetName;

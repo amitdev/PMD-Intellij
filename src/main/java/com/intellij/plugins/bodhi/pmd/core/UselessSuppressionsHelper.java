@@ -9,6 +9,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDViolationNode;
 import net.sourceforge.pmd.lang.rule.Rule;
+import net.sourceforge.pmd.lang.rule.RuleSet;
 import net.sourceforge.pmd.reporting.Report;
 import net.sourceforge.pmd.reporting.RuleViolation;
 import org.jetbrains.annotations.NotNull;
@@ -38,7 +39,7 @@ public class UselessSuppressionsHelper {
     final Map<String, Set<String>> classMethodToRuleNameOfSuppressedViolationsMap = new HashMap<>();
     final Map<String, Set<String>> classMethodToRuleNameOfViolationsMap = new HashMap<>();
     static final RuleKey USING_SUPPRESS_KEY = new RuleKey("UsingSuppressWarnings", 5);
-    private final String ruleSetPath;
+    private final RuleSet ruleSet;
 
     /**
      * the rule names of the rule set, lazily initialized, only when needed
@@ -46,8 +47,8 @@ public class UselessSuppressionsHelper {
     private Set<String> ruleNames;
     private volatile ViolatingAnnotationHolder annotationContextResult;
 
-    UselessSuppressionsHelper(String ruleSetPath) {
-        this.ruleSetPath = ruleSetPath;
+    UselessSuppressionsHelper(RuleSet ruleSet) {
+        this.ruleSet = ruleSet;
     }
 
     void storeRuleNameForMethod(Report.SuppressedViolation suppressed) {
@@ -154,14 +155,10 @@ public class UselessSuppressionsHelper {
 
     boolean ruleSetContains(String ruleName) {
         if (ruleNames == null) {
-            try {
-                Collection<Rule> rules = PMDResultCollector.getRuleSet(ruleSetPath).getRules();
-                ruleNames = new HashSet<>(rules.size(), 1);
-                for (Rule rule : rules) {
-                    ruleNames.add(rule.getName());
-                }
-            } catch (PMDResultCollector.InvalidRuleSetException e) {
-                throw new RuntimeException(e);
+            Collection<Rule> rules = ruleSet.getRules();
+            ruleNames = new HashSet<>(rules.size(), 1);
+            for (Rule rule : rules) {
+                ruleNames.add(rule.getName());
             }
         }
         return ruleNames.contains(ruleName); // O(1) access time

@@ -7,6 +7,7 @@ import com.intellij.plugins.bodhi.pmd.tree.PMDSuppressedBranchNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
 import com.intellij.plugins.bodhi.pmd.tree.PMDUselessSuppressionBranchNode;
 import net.sourceforge.pmd.lang.rule.Rule;
+import net.sourceforge.pmd.lang.rule.RuleSet;
 import net.sourceforge.pmd.renderers.AbstractIncrementingRenderer;
 import net.sourceforge.pmd.reporting.Report;
 import net.sourceforge.pmd.reporting.RuleViolation;
@@ -31,11 +32,11 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
     private final UselessSuppressionsHelper uselessSupHelper;
     private final Map<RuleKey, PMDRuleNode> ruleKeyToNodeMap = new TreeMap<>(); // order by priority and then name
 
-    public PMDResultAsTreeRenderer(List<PMDRuleSetEntryNode> pmdRuleSetResults, PMDErrorBranchNode errorsNode, String ruleSetPath) {
+    public PMDResultAsTreeRenderer(List<PMDRuleSetEntryNode> pmdRuleSetResults, PMDErrorBranchNode errorsNode, RuleSet ruleSet) {
         super("pmdplugin", "PMD plugin renderer");
         this.pmdRuleResultNodes = pmdRuleSetResults;
         processingErrorsNode = errorsNode;
-        uselessSupHelper = new UselessSuppressionsHelper(ruleSetPath);
+        uselessSupHelper = new UselessSuppressionsHelper(ruleSet);
     }
 
     @Override

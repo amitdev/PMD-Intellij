@@ -79,7 +79,8 @@ public class PMDConfigurationForm {
         inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
         skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
 
-        validKnownCustomRules = PMDUtil.getValidKnownCustomRules();
+        var projectComponent = project.getComponent(PMDProjectComponent.class);
+        validKnownCustomRules = PMDUtil.getValidKnownCustomRules(projectComponent);
     }
 
     /**
@@ -97,19 +98,7 @@ public class PMDConfigurationForm {
     public void setDataOnUI(PMDProjectComponent dataProjComp) {
         List<String> customRuleSetPaths = dataProjComp.getCustomRuleSetPaths();
         ruleSetPathJList.setModel(new RuleSetListModel(customRuleSetPaths));
-        if (dataProjComp.getOptionToValue().isEmpty()) {
-            final int numOptions = ConfigOption.size();
-            String[][] optionDescsDefaultValues = new String[numOptions][2];
-            for (int i = 0; i < numOptions; i++) {
-                ConfigOption option = ConfigOption.values()[i];
-                optionDescsDefaultValues[i][0] = option.getDescription();
-                optionDescsDefaultValues[i][1] = option.getDefaultValue();
-            }
-            optionsTable.setModel(new MyTableModel(optionDescsDefaultValues, columnNames.toArray()));
-        }
-        else {
-            optionsTable.setModel(new MyTableModel(toDescValueArray2d(dataProjComp.getOptionToValue()), columnNames.toArray()));
-        }
+        optionsTable.setModel(new MyTableModel(toDescValueArray2d(dataProjComp.getOptionToValue()), columnNames.toArray()));
         skipTestsCheckBox.setSelected(dataProjComp.isSkipTestSources());
 
         Properties props = new Properties();
@@ -129,11 +118,12 @@ public class PMDConfigurationForm {
     }
 
     private Object[][] toDescValueArray2d(Map<ConfigOption, String> optionToValue) {
-        String[][] result = new String[optionToValue.size()][2];
-        for (int i = 0; i < optionToValue.size(); i++) {
-            ConfigOption option = ConfigOption.values()[i];
+        var result = new String[ConfigOption.size()][2];
+        int i = 0;
+        for (ConfigOption option: ConfigOption.values()) {
             result[i][0] = option.getDescription();
-            result[i][1] = optionToValue.get(option);
+            result[i][1] = optionToValue.containsKey(option) ? optionToValue.get(option) : option.getDefaultValue();
+            i++;
         }
         return result;
     }
@@ -188,8 +178,9 @@ public class PMDConfigurationForm {
                     rulesPath = validKnownCustomRules.get(rulesRef);
                     ruleSetPathJList.setSelectedIndex(listModel.getSize());
                 }
+                var projectComponent = e.getProject().getComponent(PMDProjectComponent.class);
                 String err;
-                if ((err = PMDResultCollector.isValidRuleSet(rulesPath)).length() > 0) {
+                if ((err = PMDResultCollector.isValidRuleSet(rulesPath, projectComponent)).length() > 0) {
                     String message = "The selected file/URL is not valid for PMD 7.";
                     if (err.contains("XML validation errors occurred")) {
                         message += " XML validation errors occurred.";
@@ -314,6 +305,9 @@ public class PMDConfigurationForm {
                 // row 2: threads
                 case 2: validateThreads((String) aValue, row, column, orig, origIsMod);
                 break;
+                // row 3: RuleSet classpath
+                case 3: validateRulesetClasspath((String) aValue, row, column, orig, origIsMod);
+                break;
             }
         }
 
@@ -392,6 +386,20 @@ public class PMDConfigurationForm {
             else {
                 super.setValueAt(orig, row, column);
                 optionsTable.setToolTipText("Must be an positive integer less than or equal to " + PMDUtil.AVAILABLE_PROCESSORS);
+                isModified = origIsMod;
+            }
+        }
+
+        private void validateRulesetClasspath(String classpathInput, int row, int column, Object orig, boolean origIsMod) {
+            if (classpathInput.equals(orig)) {
+                return;
+            }
+            var ok = true;
+            if (ok) {
+                optionsTable.setToolTipText("Classpath: " + classpathInput);
+            } else {
+                super.setValueAt(orig, row, column);
+                optionsTable.setToolTipText("Must be a valid classpath");
                 isModified = origIsMod;
             }
         }
@@ -475,7 +483,8 @@ public class PMDConfigurationForm {
             add(label);
             final Vector<String> elements = new Vector<>();
             elements.add(defaultValue);
-            Set<String> ruleSetNames = PMDUtil.getValidKnownCustomRules().keySet();
+            var projectComponent = project.getComponent(PMDProjectComponent.class);
+            Set<String> ruleSetNames = PMDUtil.getValidKnownCustomRules(projectComponent).keySet();
             for (String ruleSetName : ruleSetNames) {
                 elements.add(ruleSetName);
             }

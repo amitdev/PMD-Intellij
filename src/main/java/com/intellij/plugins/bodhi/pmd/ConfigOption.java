@@ -8,7 +8,8 @@ import net.sourceforge.pmd.lang.LanguageRegistry;
 public enum ConfigOption {
     TARGET_JDK("Target JDK", "Target JDK (max: " + latestSupportJavaVersionByPmd() + ")", latestSupportJavaVersionByPmd()),
     STATISTICS_URL("Statistics URL", "Statistics URL to export usage anonymously", ""),
-    THREADS("Threads", "Threads (fastest: " + PMDUtil.AVAILABLE_PROCESSORS + ")", String.valueOf(PMDUtil.AVAILABLE_PROCESSORS));
+    THREADS("Threads", "Threads (fastest: " + PMDUtil.AVAILABLE_PROCESSORS + ")", String.valueOf(PMDUtil.AVAILABLE_PROCESSORS)),
+    RULESET_CLASSPATH("Ruleset Classpath", "Ruleset Classpath used for custom rules written in Java", "");
 
     /**
      * key is used for persisting
