@@ -6,7 +6,8 @@ package com.intellij.plugins.bodhi.pmd;
 public enum ConfigOption {
     TARGET_JDK("Target JDK", "Target JDK (max: 20-preview)", "20-preview"),
     STATISTICS_URL("Statistics URL", "Statistics URL to export usage anonymously", ""),
-    THREADS("Threads", "Threads (fastest: " + PMDUtil.AVAILABLE_PROCESSORS + ")", String.valueOf(PMDUtil.AVAILABLE_PROCESSORS));
+    THREADS("Threads", "Threads (fastest: " + PMDUtil.AVAILABLE_PROCESSORS + ")", String.valueOf(PMDUtil.AVAILABLE_PROCESSORS)),
+    RULESET_CLASSPATH("Ruleset Classpath", "Ruleset Classpath used for custom rules written in Java", "");
 
     /**
      * key is used for persisting
