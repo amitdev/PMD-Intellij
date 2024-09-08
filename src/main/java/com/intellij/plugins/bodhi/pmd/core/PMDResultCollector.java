@@ -19,7 +19,13 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * Responsible for running PMD and collecting the results which can be represented in
@@ -86,30 +92,32 @@ public class PMDResultCollector {
 
         final List<PMDRuleSetEntryNode> pmdRuleSetResults = new ArrayList<>();
         try {
-            PMDConfiguration pmdConfig = getPmdConfig(ruleSetPath, options, project);
-
-            PMDErrorBranchNode errorsNode = comp.getResultPanel().getProcessingErrorsNode();
-            PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode, ruleSetPath);
-            treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFilePath().toString()));
-            treeRenderer.start();
-
-            List<Renderer> renderers = new LinkedList<>();
-            renderers.add(treeRenderer);
-
-            PMDJsonExportingRenderer exportingRenderer = addExportRenderer(options);
-            if (exportingRenderer != null) renderers.add(exportingRenderer);
-            if (extraRenderer != null) renderers.add(extraRenderer);
-
+            PMDConfiguration pmdConfig = getPmdConfig(options, project);
             try (PmdAnalysis pmd = PmdAnalysis.create(pmdConfig)) {
+                var ruleSet = getRuleSet(ruleSetPath, comp);
+                pmd.addRuleSet(ruleSet);
+
+                PMDErrorBranchNode errorsNode = comp.getResultPanel().getProcessingErrorsNode();
+                PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode, ruleSet);
+                treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFilePath().toString()));
+                treeRenderer.start();
+
+                List<Renderer> renderers = new LinkedList<>();
+                renderers.add(treeRenderer);
+
+                PMDJsonExportingRenderer exportingRenderer = addExportRenderer(options);
+                if (exportingRenderer != null) renderers.add(exportingRenderer);
+                if (extraRenderer != null) renderers.add(extraRenderer);
+
                 files.forEach(file -> pmd.files().addFile(file.toPath()));
                 textFiles.forEach(pmd.files()::addFile);
                 pmd.addRenderers(renderers);
                 report = pmd.performAnalysisAndCollectReport();
-            }
 
-            if (exportingRenderer != null) {
-                String exportErrMsg = exportingRenderer.exportJsonData();
-                comp.getResultPanel().getRootNode().setExportErrorMsg(exportErrMsg);
+                if (exportingRenderer != null) {
+                    String exportErrMsg = exportingRenderer.exportJsonData();
+                    comp.getResultPanel().getRootNode().setExportErrorMsg(exportErrMsg);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -134,7 +142,7 @@ public class PMDResultCollector {
     }
 
     @NotNull
-    private PMDConfiguration getPmdConfig(String ruleSets, Map<ConfigOption, String> options, Project project) throws IOException {
+    private PMDConfiguration getPmdConfig(Map<ConfigOption, String> options, Project project) throws IOException {
         PMDConfiguration pmdConfig = new PMDConfiguration();
         String configVersion = options.get(ConfigOption.TARGET_JDK);
         if (configVersion != null) {
@@ -144,7 +152,6 @@ public class PMDResultCollector {
         }
         pmdConfig.prependAuxClasspath(PMDUtil.getFullClassPathForAllModules(project));
 
-        pmdConfig.addRuleSet(ruleSets);
         pmdConfig.setReportFile(File.createTempFile("pmd", "report").toPath());
         pmdConfig.setShowSuppressedViolations(true);
 
@@ -163,19 +170,18 @@ public class PMDResultCollector {
     /**
      * Verifies whether the rule set specified at the path is a valid PMD rule set. Always loads from file/URL.
      *
-     * @param path path of the rule set
+     * @param path             path of the rule set
+     * @param projectComponent the project component
      * @return empty String for valid, an error message for invalid.
      */
-    public static String isValidRuleSet(String path) {
-        Thread.currentThread().setContextClassLoader(PMDResultCollector.class.getClassLoader());
-
+    public static String isValidRuleSet(String path, PMDProjectComponent projectComponent) {
         try {
-            RuleSet rs = new RuleSetLoader().loadFromResource(path);
+            RuleSet rs = ruleSetLoader(projectComponent).loadFromResource(path);
             if (!rs.getRules().isEmpty()) {
                 pathToRuleSet.put(path, rs);
                 return "";
             }
-        } catch (RuleSetLoadException e) {
+        } catch (RuleSetLoadException | MalformedURLException e) {
             return e.getMessage();
         }
         return "No rules found";
@@ -183,13 +189,15 @@ public class PMDResultCollector {
 
     /**
      * Return the name of the RuleSet or an error message when the RuleSet is not valid
-     * @param ruleSetPath the path of the rule set
+     *
+     * @param ruleSetPath      the path of the rule set
+     * @param projectComponent the project component
      * @return the name of the RuleSet or an error message when the RuleSet is not valid
      */
-    public static String getRuleSetName(String ruleSetPath) {
+    public static String getRuleSetName(String ruleSetPath, PMDProjectComponent projectComponent) {
         String ruleSetName;
         try {
-            ruleSetName = PMDResultCollector.getRuleSet(ruleSetPath).getName(); // from the xml
+            ruleSetName = PMDResultCollector.getRuleSet(ruleSetPath, projectComponent).getName(); // from the xml
         } catch (InvalidRuleSetException e) {
             String msg = (e.getCause() == null) ? e.getMessage(): e.getCause().getMessage();
             ruleSetName = msg.substring(0, Math.min(25, msg.length()));
@@ -199,13 +207,15 @@ public class PMDResultCollector {
 
     /**
      * Return the description of the RuleSet or "<invalid>" message when the RuleSet is not valid
-     * @param ruleSetPath the path of the rule set
+     *
+     * @param ruleSetPath      the path of the rule set
+     * @param projectComponent the project component
      * @return the description of the RuleSet or "<invalid>" message when the RuleSet is not valid
      */
-    public static String getRuleSetDescription(String ruleSetPath) {
+    public static String getRuleSetDescription(String ruleSetPath, PMDProjectComponent projectComponent) {
         String ruleSetDesc;
         try {
-            ruleSetDesc = PMDResultCollector.getRuleSet(ruleSetPath).getDescription(); // from the xml
+            ruleSetDesc = PMDResultCollector.getRuleSet(ruleSetPath, projectComponent).getDescription(); // from the xml
         } catch (InvalidRuleSetException e) {
             ruleSetDesc = "<invalid>";
         }
@@ -214,29 +224,54 @@ public class PMDResultCollector {
 
     /**
      * Get a ruleSet from memory, or load it from resource when not loaded yet
-     * @param path the path of the ruleSet
+     *
+     * @param path             the path of the ruleSet
+     * @param projectComponent the project component
      */
-    public static RuleSet getRuleSet(String path) throws InvalidRuleSetException {
+    public static RuleSet getRuleSet(String path, PMDProjectComponent projectComponent) throws InvalidRuleSetException {
         RuleSet rs = pathToRuleSet.get(path);
         if (rs == null) {
-            rs = loadRuleSet(path);
+            rs = loadRuleSet(path, projectComponent);
             // no exception, loading succeeds
             pathToRuleSet.put(path, rs);
         }
         return rs;
     }
 
-    public static RuleSet loadRuleSet(String path) throws InvalidRuleSetException {
-        Thread.currentThread().setContextClassLoader(PMDResultCollector.class.getClassLoader());
+    public static RuleSet loadRuleSet(String path, PMDProjectComponent projectComponent) throws InvalidRuleSetException {
         try {
-            RuleSet rs = new RuleSetLoader().loadFromResource(path);
+            RuleSet rs = ruleSetLoader(projectComponent).loadFromResource(path);
             if (!rs.getRules().isEmpty()) {
                 return rs;
             }
-        } catch (RuleSetLoadException e) {
+        } catch (RuleSetLoadException | MalformedURLException e) {
             throw new InvalidRuleSetException(e);
         }
         throw new InvalidRuleSetException("No rules found");
+    }
+
+    private static RuleSetLoader ruleSetLoader(PMDProjectComponent projectComponent) throws MalformedURLException {
+        var classPath = projectComponent.getOptionToValue().get(ConfigOption.RULESET_CLASSPATH);
+
+        if (classPath != null && !classPath.trim().isEmpty()) {
+            var basePath = Path.of(Optional.ofNullable(projectComponent.getCurrentProject().getBasePath()).orElse("/"));
+            var urls = Arrays.stream(classPath.split(File.pathSeparator))
+                    .map(basePath::resolve)
+                    .map(PMDResultCollector::toURL)
+                    .toArray(URL[]::new);
+            var classLoader = new URLClassLoader(urls, PMDResultCollector.class.getClassLoader());
+            return new RuleSetLoader().loadResourcesWith(classLoader);
+        } else {
+            return new RuleSetLoader();
+        }
+    }
+
+    private static URL toURL(Path path) {
+        try {
+            return path.toUri().toURL();
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static class InvalidRuleSetException extends Exception {
