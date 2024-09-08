@@ -121,7 +121,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
             PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
             if (numProjectsOpen.get() != 1) {
                 // merge actions from menu and from settings to not lose any when switching between projects
-                AnAction[] currentActions = actionGroup.getChildren(null);
+                AnAction[] currentActions = actionGroup.getChildren((ActionManager)null);
                 Set<String> ruleSetPathsFromMenu = new LinkedHashSet<>();
                 for (AnAction action : currentActions) {
                     if (action.getSynonyms().size() == 1) {
