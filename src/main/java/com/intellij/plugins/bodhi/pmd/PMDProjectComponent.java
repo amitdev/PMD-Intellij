@@ -118,42 +118,42 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      * Now for > 1 projects open, merge the rule sets of shared actions (menu) and current project
      */
     void updateCustomRulesMenu() {
-            PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
-            if (numProjectsOpen.get() != 1) {
-                // merge actions from menu and from settings to not lose any when switching between projects
-                AnAction[] currentActions = actionGroup.getChildren((ActionManager)null);
-                Set<String> ruleSetPathsFromMenu = new LinkedHashSet<>();
-                for (AnAction action : currentActions) {
-                    if (action.getSynonyms().size() == 1) {
-                        String ruleSetPath = action.getSynonyms().get(0).get();
-                        ruleSetPathsFromMenu.add(ruleSetPath.trim());
-                    }
+        PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
+        if (numProjectsOpen.get() != 1) {
+            // merge actions from menu and from settings to not lose any when switching between projects
+            AnAction[] currentActions = actionGroup.getChildren((ActionManager) null);
+            Set<String> ruleSetPathsFromMenu = new LinkedHashSet<>();
+            for (AnAction action : currentActions) {
+                if (action.getSynonyms().size() == 1) {
+                    String ruleSetPath = action.getSynonyms().get(0).get();
+                    ruleSetPathsFromMenu.add(ruleSetPath.trim());
                 }
-                customRuleSetPaths.addAll(ruleSetPathsFromMenu);
-                // remove the ones just explicitly deleted in config
-                customRuleSetPaths.removeAll(deletedRuleSetPaths);
             }
-            List<AnAction> newActionList = new ArrayList<>();
-            boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
-            for (final String ruleSetPath : customRuleSetPaths) {
-                String ruleSetName = PMDResultCollector.getRuleSetName(ruleSetPath);
-                String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
-                String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
-                String actionText = ruleSetName;
-                if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
-                    actionText += " (" + extFileName + ")";
+            customRuleSetPaths.addAll(ruleSetPathsFromMenu);
+            // remove the ones just explicitly deleted in config
+            customRuleSetPaths.removeAll(deletedRuleSetPaths);
+        }
+        List<AnAction> newActionList = new ArrayList<>();
+        boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
+        for (final String ruleSetPath : customRuleSetPaths) {
+            String ruleSetName = PMDResultCollector.getRuleSetName(ruleSetPath);
+            String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
+            String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
+            String actionText = ruleSetName;
+            if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
+                actionText += " (" + extFileName + ")";
+            }
+            AnAction action = new AnAction(actionText) {
+                public void actionPerformed(AnActionEvent e) {
+                    PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
+                    setLastRunActionAndRules(e, ruleSetPath, true);
                 }
-                AnAction action = new AnAction(actionText) {
-                    public void actionPerformed(AnActionEvent e) {
-                        PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
-                        setLastRunActionAndRules(e, ruleSetPath, true);
-                    }
-                };
-                action.addSynonym(() -> ruleSetPath);
-                newActionList.add(action);
-            }
-            actionGroup.removeAll();
-            actionGroup.addAll(newActionList);
+            };
+            action.addSynonym(() -> ruleSetPath);
+            newActionList.add(action);
+        }
+        actionGroup.removeAll();
+        actionGroup.addAll(newActionList);
     }
 
     public void dispose() {
