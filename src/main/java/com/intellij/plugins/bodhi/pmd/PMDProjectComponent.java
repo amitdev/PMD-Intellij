@@ -34,10 +34,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 
 @State(
-  name = "PDMPlugin",
+  name = "PMDPlugin",
   storages = {
     @Storage(
-      value = "$PROJECT_FILE$"
+      value = "PMDPlugin.xml"
     )}
 )
 public class PMDProjectComponent implements ProjectComponent, PersistentStateComponent<PersistentData>, Disposable {
