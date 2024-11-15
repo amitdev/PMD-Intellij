@@ -26,7 +26,7 @@ public enum ConfigOption {
     private final String defaultValue;
 
     private static String latestSupportJavaVersionByPmd() {
-        return LanguageRegistry.PMD.getLanguageById("java").getLatestVersion().toString();
+        return LanguageRegistry.PMD.getLanguageById("java").getLatestVersion().getVersion();
     }
 
     public static ConfigOption fromKey(String key) {
