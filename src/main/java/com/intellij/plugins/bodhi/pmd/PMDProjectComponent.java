@@ -118,10 +118,11 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      * Now for > 1 projects open, merge the rule sets of shared actions (menu) and current project
      */
     void updateCustomRulesMenu() {
-            PMDCustom actionGroup = (PMDCustom) ActionManager.getInstance().getAction("PMDCustom");
+        ActionManager actionManager = ActionManager.getInstance();
+        PMDCustom actionGroup = (PMDCustom) actionManager.getAction("PMDCustom");
             if (numProjectsOpen.get() != 1) {
                 // merge actions from menu and from settings to not lose any when switching between projects
-                AnAction[] currentActions = actionGroup.getChildren((ActionManager)null);
+                AnAction[] currentActions = actionGroup.getChildren(actionManager);
                 Set<String> ruleSetPathsFromMenu = new LinkedHashSet<>();
                 for (AnAction action : currentActions) {
                     if (action.getSynonyms().size() == 1) {
