@@ -22,9 +22,9 @@
       <add-to-group group-id="ChangesViewPopupMenu" anchor="last"/>
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
 
-      <action class="com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup" id="PMDPredefined"
+      <group id="PMDPredefined" class="com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup"
               popup="true" text="Pre Defined"/>
-      <action id="PMDCustom" class="com.intellij.plugins.bodhi.pmd.actions.PMDCustom"
+      <group id="PMDCustom" class="com.intellij.plugins.bodhi.pmd.actions.PMDCustom"
               popup="true" text="Custom Rules"/>
     </group>
 
