@@ -38,7 +38,7 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
     public FileInfo collectInformation(@NotNull PsiFile file, @NotNull Editor editor, boolean hasErrors) {
         PMDProjectComponent projectComponent = file.getProject().getComponent(PMDProjectComponent.class);
         String type = projectComponent.getOptionToValue().get(ConfigOption.TARGET_JDK);
-        LanguageVersion version = LanguageRegistry.CPD.getLanguageVersionById("java", type);
+        LanguageVersion version = LanguageRegistry.PMD.getLanguageVersionById("java", type);
 
         return new FileInfo(file, editor.getDocument(), version);
     }
