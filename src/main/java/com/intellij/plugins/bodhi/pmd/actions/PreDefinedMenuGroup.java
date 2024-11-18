@@ -19,13 +19,10 @@ import java.util.Properties;
  * @author bodhi
  * @version 1.0
  */
-public class PreDefinedMenuGroup extends ActionGroup {
+public class PreDefinedMenuGroup extends DefaultActionGroup {
 
     // A string that represents all the rulesets as comma separated value.
     private static String allRules = "";
-
-    //All the children of this group
-    private DefaultActionGroup children = new DefaultActionGroup("Pre Defined", true);
 
     private PMDProjectComponent component;
 
@@ -50,9 +47,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
             String[] rulesetFilenames = props.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER);
 
             //We have 'All' rules in addition to the rulesets
-            //First one is 'All'
-            children.removeAll();
-            children.add(action);
+            add(action);
 
             for (int i=0; i < rulesetFilenames.length; ++i) {
                 final String ruleFileName = rulesetFilenames[i];
@@ -65,7 +60,7 @@ public class PreDefinedMenuGroup extends ActionGroup {
                         getComponent().setLastRunActionAndRules(e, ruleFileName, false);
                     }
                 };
-                children.add(ruleAction);
+                add(ruleAction);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -78,10 +73,6 @@ public class PreDefinedMenuGroup extends ActionGroup {
             return Thread.currentThread().getContextClassLoader().getResourceAsStream(RULESETS_PROPERTY_FILE);
         }
         return resourceAsStream;
-    }
-
-    public AnAction[] getChildren(@Nullable AnActionEvent event) {
-        return new AnAction[]{this.children};
     }
 
     public void setComponent(PMDProjectComponent component) {
