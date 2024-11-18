@@ -1,10 +1,12 @@
 package com.intellij.plugins.bodhi.pmd;
 
+import net.sourceforge.pmd.lang.LanguageRegistry;
+
 /**
  * Configuration options enumeration. Separation between key for persistent state and description to show in the UI.
  */
 public enum ConfigOption {
-    TARGET_JDK("Target JDK", "Target JDK (max: 20-preview)", "20-preview"),
+    TARGET_JDK("Target JDK", "Target JDK (max: " + latestSupportJavaVersionByPmd() + ")", latestSupportJavaVersionByPmd()),
     STATISTICS_URL("Statistics URL", "Statistics URL to export usage anonymously", ""),
     THREADS("Threads", "Threads (fastest: " + PMDUtil.AVAILABLE_PROCESSORS + ")", String.valueOf(PMDUtil.AVAILABLE_PROCESSORS));
 
@@ -22,6 +24,10 @@ public enum ConfigOption {
      * defaultValue is used in the UI if no value is provided yet by the user
      */
     private final String defaultValue;
+
+    private static String latestSupportJavaVersionByPmd() {
+        return LanguageRegistry.PMD.getLanguageById("java").getLatestVersion().getVersion();
+    }
 
     public static ConfigOption fromKey(String key) {
         for (ConfigOption option : ConfigOption.values()) {
