@@ -52,7 +52,7 @@ public class PMDConfigurationForm {
     private final List<String> deletedRuleSetPaths = new ArrayList<>();
     private boolean isModified;
     private final Project project;
-    private Map<String, String> validKnownCustomRules;
+    private final Map<String, String> validKnownCustomRules;
 
     private static final List<String> columnNames = List.of("Option", "Value");
     private static final String STAT_URL_MSG_SUCCESS = "Connection success; will use Statistics URL to export anonymous usage statistics";
@@ -190,9 +190,9 @@ public class PMDConfigurationForm {
                 }
                 String err;
                 if ((err = PMDResultCollector.isValidRuleSet(rulesPath)).length() > 0) {
-                    String message = "The selected file/URL is not valid.";
+                    String message = "The selected file/URL is not valid for PMD 7.";
                     if (err.contains("XML validation errors occurred")) {
-                        message += " The ruleset seems of PMD 6, use plugin version 1.9.x.";
+                        message += " XML validation errors occurred.";
                     }
                     // make sense of error
                     int lastPartToShow = err.indexOf("valid file or URL");
@@ -404,11 +404,10 @@ public class PMDConfigurationForm {
         public RuleSetListModel(List<String> list) {
             // make sure the rules are trimmed and unique
             Set<String> set = new LinkedHashSet<>();
-            Iterator<String> iter = list.iterator();
-            while (iter.hasNext()) {
-                set.add(iter.next().trim());
+            for (String s : list) {
+                set.add(s.trim());
             }
-            this.list = new ArrayList(set);
+            this.list = new ArrayList<>(set);
         }
 
         public synchronized int getSize() {
@@ -477,13 +476,8 @@ public class PMDConfigurationForm {
             final Vector<String> elements = new Vector<>();
             elements.add(defaultValue);
             Set<String> ruleSetNames = PMDUtil.getValidKnownCustomRules().keySet();
-            if (ruleSetNames.isEmpty()) {
-                elements.add("Warn: No pmd7 compatible ruleset found, revert to plugin version 1.9.x");
-            }
-            else {
-                for (String ruleSetName : ruleSetNames) {
-                    elements.add(ruleSetName);
-                }
+            for (String ruleSetName : ruleSetNames) {
+                elements.add(ruleSetName);
             }
             ComboBoxModel<String> model = new DefaultComboBoxModel<>(elements);
             model.setSelectedItem(defaultValue);
