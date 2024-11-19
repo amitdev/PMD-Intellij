@@ -3,6 +3,12 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+## [2.0.3-snapshot]
+### Added
+- Update to PMD version 7.7.0
+- Support for IntelliJ 2024.3
+- Various fixes
+
 ## [2.0.2]
 ### Added
 - Update to PMD version 7.5.0

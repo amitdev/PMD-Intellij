@@ -13,6 +13,6 @@ Download it from [here](https://plugins.jetbrains.com/plugin/1137-pmdplugin) or 
 
 ## Contributing
 
-To setup the dev environment, clone this repository and open the project in Intellij.
+To set up the dev environment, clone this repository and open the project in IntelliJ.
 
 Feel free to raise pull requests!
