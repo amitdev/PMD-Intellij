@@ -18,7 +18,7 @@ import static java.util.stream.Collectors.toMap;
  */
 public enum Severity {
     BLOCKER(RulePriority.HIGH, "Blocker", AllIcons.Ide.FatalError, new Color(188, 98, 98)),
-    CRITICAL(RulePriority.MEDIUM_HIGH, "Critical", AllIcons.RunConfigurations.TestError, new Color(152, 98, 90)),
+    CRITICAL(RulePriority.MEDIUM_HIGH, "Critical", AllIcons.Debugger.KillProcess, new Color(152, 98, 90)),
     MAJOR(RulePriority.MEDIUM, "Major", AllIcons.General.Warning, new Color(142, 122, 38)),
     MINOR(RulePriority.MEDIUM_LOW, "Minor", AllIcons.Nodes.WarningIntroduction, new Color(126, 126, 126)),
     INFO(RulePriority.LOW, "Info", AllIcons.General.Information, new Color(48, 116, 148));
