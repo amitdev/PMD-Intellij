@@ -8,6 +8,7 @@
 - Update to PMD version 7.7.0
 - Support for IntelliJ 2024.3
 - Plugin configuration is now stored in `.idea/PMDPlugin.xml` (and not anymore in `misc.xml`)
+- PMD Settings moved into Settings>Tools
 - Various fixes
 
 ## [2.0.2]
