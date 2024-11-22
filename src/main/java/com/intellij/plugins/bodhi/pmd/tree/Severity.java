@@ -1,6 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
 import com.intellij.icons.AllIcons;
+import com.intellij.ui.JBColor;
 import net.sourceforge.pmd.lang.rule.RulePriority;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,11 +18,16 @@ import static java.util.stream.Collectors.toMap;
  * @author jborgers
  */
 public enum Severity {
-    BLOCKER(RulePriority.HIGH, "Blocker", AllIcons.Ide.FatalError, new Color(188, 98, 98)),
-    CRITICAL(RulePriority.MEDIUM_HIGH, "Critical", AllIcons.Debugger.KillProcess, new Color(152, 98, 90)),
-    MAJOR(RulePriority.MEDIUM, "Major", AllIcons.General.Warning, new Color(142, 122, 38)),
-    MINOR(RulePriority.MEDIUM_LOW, "Minor", AllIcons.Nodes.WarningIntroduction, new Color(126, 126, 126)),
-    INFO(RulePriority.LOW, "Info", AllIcons.General.Information, new Color(48, 116, 148));
+    BLOCKER(RulePriority.HIGH, "Blocker", AllIcons.Ide.FatalError,
+            new JBColor(new Color(218, 8, 8), new Color(255, 98, 98))),
+    CRITICAL(RulePriority.MEDIUM_HIGH, "Critical", AllIcons.Debugger.KillProcess,
+            new JBColor(new Color(208, 108, 8), new Color(255, 158, 8))),
+    MAJOR(RulePriority.MEDIUM, "Major", AllIcons.General.Warning,
+            new JBColor(new Color(178, 118, 8), new Color(248, 198, 8))),
+    MINOR(RulePriority.MEDIUM_LOW, "Minor", AllIcons.Nodes.WarningIntroduction,
+            new JBColor(new Color(128, 128, 118), new Color(208, 208, 198))),
+    INFO(RulePriority.LOW, "Info", AllIcons.General.Information,
+            new JBColor(new Color(48, 78, 208), new Color(148, 188, 255)));
 
     private final RulePriority rulePriority;
     private final String name;
