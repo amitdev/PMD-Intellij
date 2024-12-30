@@ -3,6 +3,9 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+### Added
+- Update to PMD version 7.9.0
+
 ## [2.0.3]
 ### Added
 - Update to PMD version 7.7.0
