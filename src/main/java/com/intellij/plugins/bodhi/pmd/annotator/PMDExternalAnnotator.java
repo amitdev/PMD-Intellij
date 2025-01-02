@@ -24,9 +24,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.StringReader;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Display PMD violations in the editor and in the problem view
