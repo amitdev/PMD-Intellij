@@ -34,7 +34,10 @@ public class PMDViolation implements HasPositionInFile, HasRule, HasMessage {
         String fileName = violation.getFileId().getFileName();
         String className = violation.getAdditionalInfo().get(CLASS_NAME);
         if (className == null || className.isEmpty()) {
-            className = fileName.substring(0, fileName.indexOf('.'));
+            var endIndex = fileName.indexOf('.');
+            if (endIndex != -1) {
+                className = fileName.substring(0, endIndex);
+            }
         }
         String methodName = violation.getAdditionalInfo().get(METHOD_NAME);
         if (methodName == null) {
