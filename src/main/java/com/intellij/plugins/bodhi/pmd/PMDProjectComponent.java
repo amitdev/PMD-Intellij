@@ -12,14 +12,10 @@ import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.openapi.wm.ToolWindowType;
 import com.intellij.plugins.bodhi.pmd.actions.PMDCustom;
 import com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.ui.content.Content;
-import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
@@ -52,8 +48,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     private final Project currentProject;
     private static final AtomicInteger numProjectsOpen = new AtomicInteger();
-    private PMDResultPanel resultPanel;
-    private ToolWindow resultWindow;
+    private final PMDResultPanel resultPanel;
     private String lastRunRuleSetPaths;
     private boolean lastRunRulesCustom;
     private AnActionEvent lastRunActionEvent;
@@ -173,18 +168,6 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
     }
 
     /**
-     * Registers a tool window for showing PMD results.
-     */
-    private void registerToolWindow() {
-        if (toolWindowManager.getToolWindow(TOOL_ID) == null) {
-            resultWindow = toolWindowManager.registerToolWindow(TOOL_ID, true, ToolWindowAnchor.BOTTOM);
-            Content content = ContentFactory.getInstance().createContent(resultPanel, "", false);
-            resultWindow.getContentManager().addContent(content);
-            resultWindow.setType(ToolWindowType.DOCKED, null);
-        }
-    }
-
-    /**
      * Gets the result panel where the PMD results are shown.
      *
      * @return The panel where results are shown.
@@ -197,7 +180,6 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      * Set up the tool window and initializes the result tree.
      */
     public void setupToolWindow() {
-        registerToolWindow();
         resultPanel.initializeTree();
     }
 
@@ -205,10 +187,11 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      * Close the result panel and unregister the tool window.
      */
     public void closeResultWindow() {
-        resultWindow.hide(null);
-        resultPanel.initializeTree();
-        if (toolWindowManager.getToolWindow(TOOL_ID) != null)
-            toolWindowManager.unregisterToolWindow(TOOL_ID);
+        ToolWindow window = toolWindowManager.getToolWindow(TOOL_ID);
+        if (window != null) {
+            window.hide(null);
+            resultPanel.initializeTree();
+        }
     }
 
     /**
@@ -288,7 +271,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     /**
      * Return fields in a PersistentData object
-     * @return
+     * @return the PersistentData object
      */
     @NotNull
     public PersistentData getState() {
@@ -310,7 +293,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     /**
      * load state into fields
-     * @param state
+     * @param state the PersistentData object
      */
     public void loadState(PersistentData state) {
         customRuleSetPaths.clear();

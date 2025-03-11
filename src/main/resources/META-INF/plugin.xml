@@ -36,7 +36,10 @@
     <projectConfigurable id="PMD" parentId="tools" displayName="PMD" instance="com.intellij.plugins.bodhi.pmd.PMDConfigurable"/>
     <checkinHandlerFactory id="PMDCheckinHandlerFactory"
                            implementation="com.intellij.plugins.bodhi.pmd.handlers.PMDCheckinHandlerFactory"/>
-
+    <toolWindow id="PMD"
+                factoryClass="com.intellij.plugins.bodhi.pmd.PMDToolWindowFactory"
+                anchor="bottom"
+                canCloseContents="true"/>
     <externalAnnotator
             language="JAVA"
             implementationClass="com.intellij.plugins.bodhi.pmd.annotator.PMDExternalAnnotator"/>
