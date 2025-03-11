@@ -14,8 +14,8 @@ public class PMDConfigurable implements Configurable {
     private final Project project;
 
     public PMDConfigurable(Project project) {
-        this.project=project;
-        component = project.getComponent(PMDProjectComponent.class);
+        this.project = project;
+        this.component = project.getService(PMDProjectComponent.class);
     }
 
     public String getDisplayName() {

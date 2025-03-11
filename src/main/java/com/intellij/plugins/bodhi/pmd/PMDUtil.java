@@ -10,8 +10,8 @@ import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.vfs.VirtualFileVisitor;
-import com.intellij.util.containers.OrderedSet;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
+import com.intellij.util.containers.OrderedSet;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -65,7 +65,7 @@ public class PMDUtil {
      */
     public static PMDProjectComponent getProjectComponent(AnActionEvent event) {
         Project project = event.getData(PlatformDataKeys.PROJECT);
-        return project.getComponent(PMDProjectComponent.class);
+        return project.getService(PMDProjectComponent.class);
     }
 
     /**

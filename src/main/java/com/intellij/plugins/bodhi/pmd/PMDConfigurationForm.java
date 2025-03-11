@@ -4,6 +4,7 @@ import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.vfs.VfsUtilCore;
@@ -18,17 +19,18 @@ import net.sourceforge.pmd.lang.LanguageVersion;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.event.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 
 import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_FILENAMES_KEY;
 import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_PROPERTY_FILE;
@@ -189,7 +191,7 @@ public class PMDConfigurationForm {
                     ruleSetPathJList.setSelectedIndex(listModel.getSize());
                 }
                 String err;
-                if ((err = PMDResultCollector.isValidRuleSet(rulesPath)).length() > 0) {
+                if (!(err = PMDResultCollector.isValidRuleSet(rulesPath)).isEmpty()) {
                     String message = "The selected file/URL is not valid for PMD 7.";
                     if (err.contains("XML validation errors occurred")) {
                         message += " XML validation errors occurred.";
@@ -209,7 +211,7 @@ public class PMDConfigurationForm {
                     listModel.set(selectedIndex, rulesPath.trim()); // trigger menu update
                     return;
                 }
-                if (defaultValue != null && defaultValue.trim().length() > 0 && selectedIndex >= 0) {
+                if (defaultValue != null && !defaultValue.trim().isEmpty() && selectedIndex >= 0) {
                     listModel.set(selectedIndex, rulesPath);
                     return;
                 }
@@ -476,44 +478,46 @@ public class PMDConfigurationForm {
             final Vector<String> elements = new Vector<>();
             elements.add(defaultValue);
             Set<String> ruleSetNames = PMDUtil.getValidKnownCustomRules().keySet();
-            for (String ruleSetName : ruleSetNames) {
-                elements.add(ruleSetName);
-            }
+            elements.addAll(ruleSetNames);
+
             ComboBoxModel<String> model = new DefaultComboBoxModel<>(elements);
             model.setSelectedItem(defaultValue);
-            pathComboBox = new JComboBox<>(model);
+            pathComboBox = new ComboBox<>(model);
             pathComboBox.setEditable(true);
             pathComboBox.setMinimumSize(new Dimension(200, 26));
             pathComboBox.setMaximumSize(new Dimension(800, 28));
             pathComboBox.setPreferredSize(new Dimension(230, 28));
             add(pathComboBox);
             add(Box.createHorizontalStrut(5));
-            JButton open = new JButton("Browse");
-            open.setPreferredSize(new Dimension(80, 20));
-            open.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    final VirtualFile toSelect = project.getBaseDir();
-                    // file system access takes some time, IntelliJ sometimes gives an exception that
-                    // and EDT thread should not take long. Should be solved by using a BGT thread, but how?
-                    final FileChooserDescriptor descriptor = new FileChooserDescriptor(true, false, false, false, false, false);
-                    descriptor.withFileFilter(virtualFile -> virtualFile.getName().endsWith(".xml"));
-
-                    final VirtualFile chosen = FileChooser.chooseFile(descriptor, BrowsePanel.this, project, toSelect);
-                    if (chosen != null) {
-                        final File newConfigFile = VfsUtilCore.virtualToIoFile(chosen);
-                        String ioFile = newConfigFile.getAbsolutePath();
-                        final Vector<String> elem = new Vector<>();
-                        elem.add(ioFile);
-                        ComboBoxModel<String> newModel = new DefaultComboBoxModel<>(elem);
-                        pathComboBox.setModel(newModel);
-                        pathComboBox.setSelectedItem(ioFile);
-                        pathComboBox.setEditable(false);
-                    }
-                }
-            });
+            JButton open = getJButton(project);
             add(open);
             add(Box.createVerticalGlue());
             db.setCenterPanel(this);
+        }
+
+        private @NotNull JButton getJButton(Project project) {
+            JButton open = new JButton("Browse");
+            open.setPreferredSize(new Dimension(80, 20));
+            open.addActionListener(e -> {
+                final VirtualFile toSelect = project.getBaseDir();
+                // file system access takes some time, IntelliJ sometimes gives an exception that
+                // and EDT thread should not take long. Should be solved by using a BGT thread, but how?
+                final FileChooserDescriptor descriptor = new FileChooserDescriptor(true, false, false, false, false, false);
+                descriptor.withFileFilter(virtualFile -> virtualFile.getName().endsWith(".xml"));
+
+                final VirtualFile chosen = FileChooser.chooseFile(descriptor, BrowsePanel.this, project, toSelect);
+                if (chosen != null) {
+                    final File newConfigFile = VfsUtilCore.virtualToIoFile(chosen);
+                    String ioFile = newConfigFile.getAbsolutePath();
+                    final Vector<String> elem = new Vector<>();
+                    elem.add(ioFile);
+                    ComboBoxModel<String> newModel = new DefaultComboBoxModel<>(elem);
+                    pathComboBox.setModel(newModel);
+                    pathComboBox.setSelectedItem(ioFile);
+                    pathComboBox.setEditable(false);
+                }
+            });
+            return open;
         }
 
         public String getText() {

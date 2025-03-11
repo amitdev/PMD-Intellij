@@ -7,9 +7,7 @@ import com.intellij.plugins.bodhi.pmd.core.PMDUselessSuppression;
 import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
 import net.sourceforge.pmd.lang.rule.Rule;
 
-import javax.swing.tree.MutableTreeNode;
-
-/**
+ /**
  * A Factory that creates different types of tree nodes used by PMD plugin.
  * This is a singleton.
  *

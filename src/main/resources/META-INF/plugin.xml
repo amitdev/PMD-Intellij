@@ -5,12 +5,6 @@
 
   <vendor>Amit Dev</vendor>
 
-  <project-components>
-    <component>
-      <implementation-class>com.intellij.plugins.bodhi.pmd.PMDProjectComponent</implementation-class>
-    </component>
-  </project-components>
-
   <depends>com.intellij.modules.platform</depends>
 
   <actions>

@@ -33,7 +33,10 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
-import javax.swing.tree.*;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeModel;
+import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -43,8 +46,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.HashMap;
 import java.util.List;
-import java.util.*;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -555,7 +559,7 @@ public class PMDResultPanel extends JPanel {
             Project project = e.getData(PlatformDataKeys.PROJECT);
             //Run the last run rule sets
             if (project != null) {
-                PMDProjectComponent component = project.getComponent(PMDProjectComponent.class);
+                PMDProjectComponent component = project.getService(PMDProjectComponent.class);
                 String ruleSetPaths = component.getLastRunRuleSetPaths();
                 AnActionEvent action = component.getLastRunAction();
                 boolean isCustom = component.isLastRunRulesCustom();
@@ -583,7 +587,7 @@ public class PMDResultPanel extends JPanel {
                 if (toolWindow != null) {
                     toolWindow.activate(null);
                 }
-                PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
+                PMDProjectComponent plugin = project.getService(PMDProjectComponent.class);
                 plugin.closeResultWindow();
             }
         }

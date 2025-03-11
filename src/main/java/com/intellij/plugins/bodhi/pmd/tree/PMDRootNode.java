@@ -100,7 +100,7 @@ public class PMDRootNode extends PMDBranchNode {
             result += " using " + countInText(ruleSetCount, " rule set");
         }
         if (exportErrorMessage != null) {
-            if (exportErrorMessage.length() == 0) {
+            if (exportErrorMessage.isEmpty()) {
                 result += " - exported";
             }
             else {

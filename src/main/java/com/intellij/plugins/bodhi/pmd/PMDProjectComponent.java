@@ -7,7 +7,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.components.PersistentStateComponent;
-import com.intellij.openapi.components.ProjectComponent;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.project.Project;
@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author bodhi
  * @version 1.0
  */
-
+@Service(Service.Level.PROJECT)
 @State(
   name = "PMDPlugin",
   storages = {
@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
       value = "PMDPlugin.xml"
     )}
 )
-public class PMDProjectComponent implements ProjectComponent, PersistentStateComponent<PersistentData>, Disposable {
+public final class PMDProjectComponent implements PersistentStateComponent<PersistentData>, Disposable {
 
     /**
      * The Tool ID of the results panel.
@@ -69,6 +69,8 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         this.currentProject = project;
         toolWindowManager = ToolWindowManager.getInstance(currentProject);
         numProjectsOpen.incrementAndGet();
+        initComponent();
+        resultPanel = new PMDResultPanel(this);
     }
 
     public void initComponent() {
@@ -128,7 +130,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
                 }
                 customRuleSetPaths.addAll(ruleSetPathsFromMenu);
                 // remove the ones just explicitly deleted in config
-                customRuleSetPaths.removeAll(deletedRuleSetPaths);
+                deletedRuleSetPaths.forEach(customRuleSetPaths::remove);
             }
             List<AnAction> newActionList = new ArrayList<>();
             boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
@@ -141,7 +143,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
                     actionText += " (" + extFileName + ")";
                 }
                 AnAction action = new AnAction(actionText) {
-                    public void actionPerformed(AnActionEvent e) {
+                    public void actionPerformed(@NotNull AnActionEvent e) {
                         PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
                         setLastRunActionAndRules(e, ruleSetPath, true);
                     }
@@ -163,9 +165,6 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         return COMPONENT_NAME;
     }
 
-    public void projectOpened() {
-        resultPanel = new PMDResultPanel(this);
-    }
 
     /**
      * Gets the result panel where the PMD results are shown.
