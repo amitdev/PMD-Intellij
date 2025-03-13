@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.components.State;
@@ -86,9 +87,9 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     private ActionGroup registerActions(String actionName) {
         ActionManager actionMgr = ActionManager.getInstance();
-        ActionGroup actionGroup = (ActionGroup) actionMgr.getAction(actionName);
+        DefaultActionGroup actionGroup = (DefaultActionGroup) actionMgr.getAction(actionName);
         if (actionGroup != null) {
-            for (AnAction act : actionGroup.getChildren(null)) {
+            for (AnAction act : actionGroup.getChildren(null, actionMgr)) {
                 String actName = "PMD" + act.getTemplatePresentation().getText();
                 if (actionMgr.getAction(actName) == null)
                     actionMgr.registerAction(actName, act);

@@ -5,6 +5,7 @@
 ## [Unreleased]
 ### Changed
 - Restore support for IntelliJ 2023.3+
+- Upgraded IntelliJ Platform Gradle Plugin to 2.x
 ### Fixed
 - Remove upper bound of IntelliJ compatibility (#213)
 
