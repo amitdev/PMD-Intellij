@@ -7,6 +7,7 @@
 - Restore support for IntelliJ 2023.3+
 - Upgraded IntelliJ Platform Gradle Plugin to 2.x
 ### Fixed
+- Ease pmd updates with automated dependency update tool (#208)
 - Remove upper bound of IntelliJ compatibility (#213)
 
 ## [2.0.3]
