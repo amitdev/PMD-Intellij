@@ -3,6 +3,8 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+### Changed
+- Restore support for IntelliJ 2023.3+
 ### Fixed
 - Remove upper bound of IntelliJ compatibility (#213)
 
