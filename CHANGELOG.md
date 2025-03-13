@@ -3,6 +3,9 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+### Fixed
+- Remove upper bound of IntelliJ compatibility (#213)
+
 ## [2.0.3]
 ### Added
 - Update to PMD version 7.7.0
