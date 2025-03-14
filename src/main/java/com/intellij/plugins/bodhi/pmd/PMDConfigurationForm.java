@@ -4,6 +4,7 @@ import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -499,7 +500,7 @@ public class PMDConfigurationForm {
             JButton open = new JButton("Browse");
             open.setPreferredSize(new Dimension(80, 20));
             open.addActionListener(e -> {
-                final VirtualFile toSelect = project.getBaseDir();
+                final VirtualFile toSelect = ProjectUtil.guessProjectDir(project);
                 // file system access takes some time, IntelliJ sometimes gives an exception that
                 // and EDT thread should not take long. Should be solved by using a BGT thread, but how?
                 final FileChooserDescriptor descriptor = new FileChooserDescriptor(true, false, false, false, false, false);

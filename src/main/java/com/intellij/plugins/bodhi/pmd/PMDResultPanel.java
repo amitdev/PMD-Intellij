@@ -21,7 +21,6 @@ import com.intellij.plugins.bodhi.pmd.tree.*;
 import com.intellij.pom.Navigatable;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.usageView.UsageViewBundle;
-import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.tree.TreeUtil;
 import net.sourceforge.pmd.lang.rule.Rule;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
@@ -30,6 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -80,7 +80,7 @@ public class PMDResultPanel extends JPanel {
         super();
         this.setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         this.projectComponent = projectComponent;
-        setBorder(JBUI.Borders.empty(2));
+        setBorder(new EmptyBorder(2, 2, 2, 2));
 
         // Create the tree which can show tooltips as well.
         resultTree = new JTree() {
