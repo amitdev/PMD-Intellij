@@ -63,8 +63,8 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
             return;
         }
 
-        Document document = annotationResult.getDocument();
-        for (RuleViolation violation : annotationResult.getReport().getViolations()) {
+        Document document = annotationResult.document();
+        for (RuleViolation violation : annotationResult.report().getViolations()) {
             int startLineOffset = document.getLineStartOffset(violation.getBeginLine()-1);
             int endOffset = violation.getEndLine() - violation.getBeginLine() > 5 // Only mark first line for long violations
                     ? document.getLineEndOffset(violation.getBeginLine()-1)
@@ -96,19 +96,12 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
     }
 
     private static HighlightSeverity getSeverity(RuleViolation violation) {
-        switch (violation.getRule().getPriority()) {
-            case HIGH:
-                return HighlightSeverity.ERROR;
-            case MEDIUM_HIGH:
-            case MEDIUM:
-                return HighlightSeverity.WARNING;
-            case MEDIUM_LOW:
-                return HighlightSeverity.WEAK_WARNING;
-            case LOW:
-                return HighlightSeverity.INFORMATION;
-            default:
-                throw new IllegalArgumentException();
-        }
+        return switch (violation.getRule().getPriority()) {
+            case HIGH -> HighlightSeverity.ERROR;
+            case MEDIUM_HIGH, MEDIUM -> HighlightSeverity.WARNING;
+            case MEDIUM_LOW -> HighlightSeverity.WEAK_WARNING;
+            case LOW -> HighlightSeverity.INFORMATION;
+        };
     }
 
     // Copied from PMD's StringTextFile since it was not public

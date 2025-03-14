@@ -21,6 +21,7 @@ import com.intellij.plugins.bodhi.pmd.tree.*;
 import com.intellij.pom.Navigatable;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.usageView.UsageViewBundle;
+import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.tree.TreeUtil;
 import net.sourceforge.pmd.lang.rule.Rule;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
@@ -29,10 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeListener;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
@@ -82,7 +80,7 @@ public class PMDResultPanel extends JPanel {
         super();
         this.setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         this.projectComponent = projectComponent;
-        setBorder(new EmptyBorder(2, 2, 2, 2));
+        setBorder(JBUI.Borders.empty(2));
 
         // Create the tree which can show tooltips as well.
         resultTree = new JTree() {
@@ -129,16 +127,6 @@ public class PMDResultPanel extends JPanel {
         textScrollPane.setPreferredSize(new Dimension(600, 300));
         add(textScrollPane);
 
-        //Add selection listener to support autoscroll to source.
-        resultTree.addTreeSelectionListener(new TreeSelectionListener() {
-            public void valueChanged(TreeSelectionEvent treeSelectionEvent) {
-                if (scrolling) {
-//                    DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode) treeSelectionEvent.getPath().getLastPathComponent();
-//                    highlightError(treeNode);
-
-                }
-            }
-        });
 
         //Add right-click menu to the tree
         popupMenu = new PMDPopupMenu(new ActionListener() {
@@ -286,17 +274,13 @@ public class PMDResultPanel extends JPanel {
         //Not read only, to execute a command to write to the editor
         CommandProcessor.getInstance().executeCommand(
                 projectComponent.getCurrentProject(),
-                new Runnable() {
-                    public void run() {
-                        //All writes must be through a write action.
-                        ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                            public void run() {
-                                int offset = editor.getDocument().getLineEndOffset(result.getBeginLine()-1);
-                                //Append PMD special comment to end of line.
-                                editor.getDocument().insertString(offset, " " + PMD_SUPPRESSION + " - suppressed " + result.getRuleName() + " - TODO explain reason for suppression");
-                            }
-                        });
-                    }
+                () -> {
+                    //All writes must be through a write action.
+                    ApplicationManager.getApplication().runWriteAction(() -> {
+                        int offset = editor.getDocument().getLineEndOffset(result.getBeginLine()-1);
+                        //Append PMD special comment to end of line.
+                        editor.getDocument().insertString(offset, " " + PMD_SUPPRESSION + " - suppressed " + result.getRuleName() + " - TODO explain reason for suppression");
+                    });
                 },
                 "SuppressViolation",
                 null);
@@ -346,8 +330,7 @@ public class PMDResultPanel extends JPanel {
             @Nullable
             protected Navigatable createDescriptorForNode(DefaultMutableTreeNode node) {
                 if (node.getChildCount() > 0) return null;
-                if (node instanceof Navigatable) {
-                    Navigatable navigatable = (Navigatable) node;
+                if (node instanceof Navigatable navigatable) {
                     return navigatable.canNavigate() ? navigatable : null;
                 }
                 return null;
@@ -371,11 +354,11 @@ public class PMDResultPanel extends JPanel {
                 return info;
             }
 
-            public String getNextOccurenceActionName() {
+            public @NotNull String getNextOccurenceActionName() {
                 return UsageViewBundle.message("action.next.occurrence");
             }
 
-            public String getPreviousOccurenceActionName() {
+            public @NotNull String getPreviousOccurenceActionName() {
                 return UsageViewBundle.message("action.previous.occurrence");
             }
         };
@@ -504,11 +487,7 @@ public class PMDResultPanel extends JPanel {
     }
 
     public void reloadResultTree() {
-        ApplicationManager.getApplication().invokeLater(new Runnable() {
-            public void run() {
-                ((DefaultTreeModel) resultTree.getModel()).reload();
-            }
-        });
+        ApplicationManager.getApplication().invokeLater(() -> ((DefaultTreeModel) resultTree.getModel()).reload());
     }
 
     /**
@@ -562,9 +541,8 @@ public class PMDResultPanel extends JPanel {
                 PMDProjectComponent component = project.getService(PMDProjectComponent.class);
                 String ruleSetPaths = component.getLastRunRuleSetPaths();
                 AnActionEvent action = component.getLastRunAction();
-                boolean isCustom = component.isLastRunRulesCustom();
                 AnActionEvent actionToRun = (action != null) ? action : e;
-                PMDInvoker.getInstance().runPMD(actionToRun, ruleSetPaths, isCustom);
+                PMDInvoker.getInstance().runPMD(actionToRun, ruleSetPaths);
                 resultTree.repaint();
             }
         }

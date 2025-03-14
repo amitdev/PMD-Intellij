@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.*;
 
@@ -75,9 +76,8 @@ public class PMDInvoker {
      *
      * @param actionEvent The action event that triggered run
      * @param ruleSetPaths The ruleSetPath(s) for rules to run
-     * @param isCustomRuleSet Is it a custom ruleset or not.
      */
-    public void runPMD(AnActionEvent actionEvent, String ruleSetPaths, boolean isCustomRuleSet) {
+    public void runPMD(AnActionEvent actionEvent, String ruleSetPaths) {
         //If no ruleSetPath is selected, nothing to do
         if (ruleSetPaths == null || ruleSetPaths.isEmpty()) {
             return;
@@ -85,12 +85,12 @@ public class PMDInvoker {
         //Show the tool window
         PMDUtil.getProjectComponent(actionEvent).setupToolWindow();
 
-        Project project = actionEvent.getData(PlatformDataKeys.PROJECT);
+        Project project = Objects.requireNonNull(actionEvent.getData(PlatformDataKeys.PROJECT));
         PMDProjectComponent projectComponent = project.getService(PMDProjectComponent.class);
         PMDResultPanel resultPanel = projectComponent.getResultPanel();
         PMDRootNode rootNode = resultPanel.getRootNode();
 
-        List<File> files = new LinkedList<File>();
+        List<File> files = new LinkedList<>();
         if (actionEvent.getPlace().equals(ActionPlaces.PROJECT_VIEW_POPUP)
                 || actionEvent.getPlace().equals(ActionPlaces.SCOPE_VIEW_POPUP)
                 || actionEvent.getPlace().equals(ActionPlaces.CHANGES_VIEW_POPUP)
@@ -133,7 +133,7 @@ public class PMDInvoker {
         }
 
         //Got the files, start processing now
-        processFiles(project, ruleSetPaths, files, isCustomRuleSet, projectComponent);
+        processFiles(project, ruleSetPaths, files, projectComponent);
     }
 
     /**
@@ -141,10 +141,9 @@ public class PMDInvoker {
      *  @param project the project
      * @param ruleSetPaths The ruleSetPath(s) of rules to run
      * @param files The files on which to run
-     * @param isCustomRuleSet Is it a custom ruleset or not.
      * @param projectComponent
      */
-    public void processFiles(Project project, final String ruleSetPaths, final List<File> files, final boolean isCustomRuleSet, final PMDProjectComponent projectComponent) {
+    public void processFiles(Project project, final String ruleSetPaths, final List<File> files, final PMDProjectComponent projectComponent) {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
         if (toolWindow != null) {
             toolWindow.activate(null);

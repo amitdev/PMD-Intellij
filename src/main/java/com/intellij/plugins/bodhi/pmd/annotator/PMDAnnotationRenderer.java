@@ -5,8 +5,6 @@ import net.sourceforge.pmd.lang.document.TextFile;
 import net.sourceforge.pmd.renderers.AbstractRenderer;
 import net.sourceforge.pmd.reporting.Report;
 
-import java.io.IOException;
-
 class PMDAnnotationRenderer extends AbstractRenderer {
 
     private Report report;
@@ -39,7 +37,7 @@ class PMDAnnotationRenderer extends AbstractRenderer {
     }
 
     @Override
-    public void end() throws IOException {
+    public void end()  {
     }
 
     @Override

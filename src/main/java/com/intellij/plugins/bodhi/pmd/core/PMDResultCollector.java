@@ -122,11 +122,11 @@ public class PMDResultCollector {
     private PMDJsonExportingRenderer addExportRenderer(Map<ConfigOption, String> options) {
         PMDJsonExportingRenderer exportingRenderer = null;
         String exportUrlFromForm = options.get(ConfigOption.STATISTICS_URL);
-        boolean exportStats = (PMDUtil.isValidUrl(exportUrlFromForm));
+        boolean exportStats = PMDUtil.isValidUrl(exportUrlFromForm);
         String exportUrl = exportUrlFromForm;
         if (!exportStats || exportUrl.contains("localhost")) { // cmdline arg overrides localhost from form for testing
             exportUrl = System.getProperty("pmdStatisticsUrl", exportUrl);
-            exportStats = (PMDUtil.isValidUrl(exportUrl));
+            exportStats = PMDUtil.isValidUrl(exportUrl);
         }
         if (exportStats) {
             exportingRenderer = new PMDJsonExportingRenderer(exportUrl);

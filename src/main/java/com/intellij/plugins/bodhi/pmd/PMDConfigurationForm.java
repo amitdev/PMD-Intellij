@@ -176,7 +176,7 @@ public class PMDConfigurationForm {
         DialogBuilder db = new DialogBuilder(PMDUtil.getProjectComponent(e).getCurrentProject());
         db.addOkAction();
         db.addCancelAction();
-        db.setTitle("Choose Custom RuleSet from Drop-down, File or paste URL");
+        db.setTitle("Choose Custom RuleSet from Drop-down, File or Paste URL");
         final BrowsePanel panel = new BrowsePanel(defaultValue, db, project);
         db.show();
         //If ok is selected add the selected ruleset
@@ -323,10 +323,10 @@ public class PMDConfigurationForm {
             if (versionInput.equals(orig)) {
                 return;
             }
-            Language java = LanguageRegistry.PMD.getLanguageById("java");
+            Language java = Objects.requireNonNull(LanguageRegistry.PMD.getLanguageById("java"));
             boolean isRegistered = java.hasVersion(versionInput);
             if (isRegistered) {
-                String registeredVersion = java.getVersion(versionInput).getVersion();
+                String registeredVersion = Objects.requireNonNull(java.getVersion(versionInput)).getVersion();
                 optionsTable.setToolTipText("Java version " + registeredVersion);
             }
             else {
@@ -505,7 +505,7 @@ public class PMDConfigurationForm {
                 final FileChooserDescriptor descriptor = new FileChooserDescriptor(true, false, false, false, false, false);
                 descriptor.withFileFilter(virtualFile -> virtualFile.getName().endsWith(".xml"));
 
-                final VirtualFile chosen = FileChooser.chooseFile(descriptor, BrowsePanel.this, project, toSelect);
+                final VirtualFile chosen = FileChooser.chooseFile(descriptor, this, project, toSelect);
                 if (chosen != null) {
                     final File newConfigFile = VfsUtilCore.virtualToIoFile(chosen);
                     String ioFile = newConfigFile.getAbsolutePath();

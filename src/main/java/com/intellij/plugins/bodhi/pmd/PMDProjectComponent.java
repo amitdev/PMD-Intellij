@@ -1,11 +1,7 @@
 package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.actionSystem.ActionGroup;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
@@ -33,9 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @State(
   name = "PMDPlugin",
   storages = {
-    @Storage(
-      value = "PMDPlugin.xml"
-    )}
+    @Storage("PMDPlugin.xml")}
 )
 public final class PMDProjectComponent implements PersistentStateComponent<PersistentData>, Disposable {
 
@@ -144,7 +138,7 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
                 }
                 AnAction action = new AnAction(actionText) {
                     public void actionPerformed(@NotNull AnActionEvent e) {
-                        PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
+                        PMDInvoker.getInstance().runPMD(e, ruleSetPath);
                         setLastRunActionAndRules(e, ruleSetPath, true);
                     }
                 };

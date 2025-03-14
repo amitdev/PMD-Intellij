@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class PMDMenuGroup extends DefaultActionGroup {
 
-    public void update(AnActionEvent e) {
+    public void update(@NotNull AnActionEvent e) {
         super.update(e);
         Presentation presentation = e.getPresentation();
         Project project = e.getData(PlatformDataKeys.PROJECT);

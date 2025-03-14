@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.plugins.bodhi.pmd.PMDInvoker;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.InputStream;
@@ -34,8 +35,8 @@ public class PreDefinedMenuGroup extends DefaultActionGroup {
      */
     public PreDefinedMenuGroup() {
         AnAction action = new AnAction("All") {
-            public void actionPerformed(AnActionEvent e) {
-                PMDInvoker.getInstance().runPMD(e, allRules, false);
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                PMDInvoker.getInstance().runPMD(e, allRules);
                 getComponent().setLastRunActionAndRules(e, allRules, false);
             }
         };
@@ -48,19 +49,26 @@ public class PreDefinedMenuGroup extends DefaultActionGroup {
             //We have 'All' rules in addition to the rulesets
             add(action);
 
-            for (int i=0; i < rulesetFilenames.length; ++i) {
+            StringBuilder allRulesBuilder = new StringBuilder();
+
+            for (int i = 0; i < rulesetFilenames.length; ++i) {
                 final String ruleFileName = rulesetFilenames[i];
                 final String ruleName = PMDUtil.getBareFileNameFromPath(ruleFileName);
-                allRules += ruleFileName;
-                allRules += (i == rulesetFilenames.length - 1) ? "" : PMDInvoker.RULE_DELIMITER;
+
+                allRulesBuilder.append(ruleFileName);
+                if (i < rulesetFilenames.length - 1) {
+                    allRulesBuilder.append(PMDInvoker.RULE_DELIMITER);
+                }
+
                 AnAction ruleAction = new AnAction(ruleName) {
-                    public void actionPerformed(AnActionEvent e) {
-                        PMDInvoker.getInstance().runPMD(e, ruleFileName, false);
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        PMDInvoker.getInstance().runPMD(e, ruleFileName);
                         getComponent().setLastRunActionAndRules(e, ruleFileName, false);
                     }
                 };
                 add(ruleAction);
             }
+            allRules = allRulesBuilder.toString();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
