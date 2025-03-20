@@ -122,6 +122,10 @@ tasks {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
     }
 
+    buildPlugin {
+        archiveBaseName.set("PMDPlugin")
+    }
+
     publishPlugin {
         dependsOn(patchChangelog)
     }
