@@ -11,7 +11,6 @@ plugins {
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
 }
 
-//group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
 // Set the JVM language level used to build the project.
@@ -87,9 +86,7 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            // no upper bound for the version range -> see https://github.com/amitdev/PMD-Intellij/issues/213
-            // untilBuild = providers.gradleProperty("pluginUntilBuild")
-            untilBuild = provider { null }
+            untilBuild = providers.gradleProperty("pluginUtilBuild")
         }
     }
 
