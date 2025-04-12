@@ -187,7 +187,7 @@ public class PMDInvoker {
 
                         if (!resultRuleNodes.isEmpty()) {
                             String ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
-                            String desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
+                            String desc = PMDResultCollector.getRuleSetDescription(ruleSetPath, projectComponent);
                             PMDRuleSetNode ruleSetNode = resultPanel.addCreateRuleSetNodeAtRoot(ruleSetName);
                             ruleSetNode.setToolTip(desc);
                             //Add all rule nodes to the tree
