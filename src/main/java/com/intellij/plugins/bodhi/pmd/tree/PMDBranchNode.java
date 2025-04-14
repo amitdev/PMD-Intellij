@@ -159,7 +159,7 @@ public abstract class PMDBranchNode extends BasePMDNode {
     }
 
     protected String getCountMsg(String countName, int count) {
-        return " (" + count + " " + countName + ((count != 1) ? "s" : "") + ")";
+        return " (" + count + " " + countName + ((count == 1) ? "" : "s") + ")";
     }
 
     @Override

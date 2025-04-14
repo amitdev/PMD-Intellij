@@ -1,11 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
-import com.intellij.plugins.bodhi.pmd.tree.PMDErrorBranchNode;
-import com.intellij.plugins.bodhi.pmd.tree.PMDRuleNode;
-import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
-import com.intellij.plugins.bodhi.pmd.tree.PMDSuppressedBranchNode;
-import com.intellij.plugins.bodhi.pmd.tree.PMDTreeNodeFactory;
-import com.intellij.plugins.bodhi.pmd.tree.PMDUselessSuppressionBranchNode;
+import com.intellij.plugins.bodhi.pmd.tree.*;
 import net.sourceforge.pmd.lang.rule.Rule;
 import net.sourceforge.pmd.renderers.AbstractIncrementingRenderer;
 import net.sourceforge.pmd.reporting.Report;
@@ -14,7 +9,10 @@ import net.sourceforge.pmd.reporting.ViolationSuppressor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Represents the renderer for the PMD results in a tree.
@@ -98,11 +96,11 @@ public class PMDResultAsTreeRenderer extends AbstractIncrementingRenderer {
             PMDSuppressedBranchNode suppressedByAnnotationNode = nodeFactory.createSuppressedBranchNode("Suppressed violations by Annotation");
             for (Report.SuppressedViolation suppressed : suppressed) {
                 try {
-                    if (suppressed.getSuppressor() != ViolationSuppressor.NOPMD_COMMENT_SUPPRESSOR) {
+                    if (suppressed.getSuppressor() == ViolationSuppressor.NOPMD_COMMENT_SUPPRESSOR) {
+                        suppressedByNoPmdNode.add(nodeFactory.createSuppressedLeafNode(new PMDSuppressedViolation(suppressed)));
+                    } else {
                         suppressedByAnnotationNode.add(nodeFactory.createSuppressedLeafNode(new PMDSuppressedViolation(suppressed)));
                         uselessSupHelper.storeRuleNameForMethod(suppressed);
-                    } else {
-                        suppressedByNoPmdNode.add(nodeFactory.createSuppressedLeafNode(new PMDSuppressedViolation(suppressed)));
                     }
                 }
                 catch(Exception e) {

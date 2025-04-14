@@ -355,23 +355,21 @@ public class PMDConfigurationForm {
                 return;
             }
             if (!urlInput.isEmpty()) {
-                if (!PMDUtil.isValidUrl(urlInput)) {
-                    optionsTable.setToolTipText("Previous input - Invalid URL: '" + urlInput + "'");
-                    super.setValueAt(orig, row, column);
-                    isModified = origIsMod;
-                }
-                else {
+                if (PMDUtil.isValidUrl(urlInput)) {
                     String content = "{\"test connection\"}\n";
                     String exportMsg = PMDJsonExportingRenderer.tryJsonExport(content, urlInput);
                     if (!exportMsg.isEmpty()) {
                         optionsTable.setToolTipText("Previous input - Failure for '" + urlInput + "': " + exportMsg);
                         super.setValueAt(orig, row, column);
                         isModified = origIsMod;
-                    }
-                    else {
+                    } else {
                         isModified = true;
                         optionsTable.setToolTipText(STAT_URL_MSG_SUCCESS);
                     }
+                } else {
+                    optionsTable.setToolTipText("Previous input - Invalid URL: '" + urlInput + "'");
+                    super.setValueAt(orig, row, column);
+                    isModified = origIsMod;
                 }
             }
         }

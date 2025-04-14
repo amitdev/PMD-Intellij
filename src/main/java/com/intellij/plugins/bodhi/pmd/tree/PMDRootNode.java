@@ -115,6 +115,6 @@ public class PMDRootNode extends PMDBranchNode {
     }
 
     private String countInText(int count, String text) {
-        return count + text + ((count != 1) ? "s" : "");
+        return count + text + ((count == 1) ? "" : "s");
     }
 }

@@ -151,7 +151,7 @@ public class PMDCheckinHandler extends CheckinHandler {
     }
 
     private int promptUser(Project project, int violations) {
-        String[] buttons = new String[]{message("handler.before.checkin.error.review"),
+        String[] buttons = {message("handler.before.checkin.error.review"),
                 checkinProjectPanel.getCommitActionName(),
                 CommonBundle.getCancelButtonText()};
 

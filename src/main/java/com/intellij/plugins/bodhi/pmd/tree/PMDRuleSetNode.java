@@ -1,6 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
 import com.intellij.ui.SimpleTextAttributes;
+
 import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 import static com.intellij.ui.SimpleTextAttributes.STYLE_PLAIN;
 
@@ -18,7 +19,7 @@ public class PMDRuleSetNode extends PMDBranchNode {
     public synchronized void render(PMDCellRenderer cellRenderer, boolean expanded) {
         cellRenderer.append(getNodeName());
         if (getViolationCount() > 0 ) {
-            cellRenderer.append(" (" + getViolationCount() + " violation" + ((getViolationCount() != 1) ? "s: " : ": "), GRAYED_ATTRIBUTES);
+            cellRenderer.append(" (" + getViolationCount() + " violation" + ((getViolationCount() == 1) ? ": " : "s: "), GRAYED_ATTRIBUTES);
             boolean first = true;
             for (Severity sev : Severity.values()) {
                 int count = getSevViolationCount(sev);
