@@ -38,8 +38,11 @@ public class PMDUtil {
 
     public static final Pattern HOST_NAME_PATTERN = Pattern.compile(".+\\.([a-z]+\\.[a-z]+)/.+");
     public static final int AVAILABLE_PROCESSORS = Runtime.getRuntime().availableProcessors();
-    private static final String JPINPOINT_RULES = "https://raw.githubusercontent.com/jborgers/PMD-jPinpoint-rules/pmd7/rulesets/java/jpinpoint-rules.xml";
-    private static final Map<String, String> KNOWN_CUSTOM_RULES = Map.of("jpinpoint-rules", JPINPOINT_RULES);
+    private static final String JPINPOINT_JAVA_RULES = "https://raw.githubusercontent.com/jborgers/PMD-jPinpoint-rules/pmd7/rulesets/java/jpinpoint-rules.xml";
+    private static final String JPINPOINT_KOTLIN_RULES = "https://raw.githubusercontent.com/jborgers/PMD-jPinpoint-rules/pmd7/rulesets/kotlin/jpinpoint-kotlin-rules.xml";
+    private static final Map<String, String> KNOWN_CUSTOM_RULES = Map.of(
+            "jpinpoint-java-rules", JPINPOINT_JAVA_RULES,
+            "jpinpoint-kotlin-rules", JPINPOINT_KOTLIN_RULES);
     private static volatile Map<String, String> validCustomRules; // lazy initialized
 
     /**
