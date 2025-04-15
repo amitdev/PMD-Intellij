@@ -1,7 +1,6 @@
 package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.options.Configurable;
-import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.Nullable;
@@ -10,12 +9,12 @@ import javax.swing.*;
 
 public class PMDConfigurable implements Configurable {
     private PMDConfigurationForm form;
-    private PMDProjectComponent component;
+    private final PMDProjectComponent component;
     private final Project project;
 
     public PMDConfigurable(Project project) {
-        this.project=project;
-        component = project.getComponent(PMDProjectComponent.class);
+        this.project = project;
+        this.component = project.getService(PMDProjectComponent.class);
     }
 
     public String getDisplayName() {
@@ -39,7 +38,7 @@ public class PMDConfigurable implements Configurable {
         return form != null && form.isModified(component);
     }
 
-    public void apply() throws ConfigurationException {
+    public void apply()  {
         if (form != null) {
             form.getDataFromUi(component);
         }

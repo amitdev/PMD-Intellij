@@ -100,7 +100,7 @@ public class PMDRootNode extends PMDBranchNode {
             result += " using " + countInText(ruleSetCount, " rule set");
         }
         if (exportErrorMessage != null) {
-            if (exportErrorMessage.length() == 0) {
+            if (exportErrorMessage.isEmpty()) {
                 result += " - exported";
             }
             else {
@@ -115,6 +115,6 @@ public class PMDRootNode extends PMDBranchNode {
     }
 
     private String countInText(int count, String text) {
-        return count + text + ((count != 1) ? "s" : "");
+        return count + text + ((count == 1) ? "" : "s");
     }
 }

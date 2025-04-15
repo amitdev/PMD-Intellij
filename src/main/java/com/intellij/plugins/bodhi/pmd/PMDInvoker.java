@@ -18,8 +18,9 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.core.PMDProgressRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.plugins.bodhi.pmd.handlers.PMDCheckinHandler;
-import com.intellij.plugins.bodhi.pmd.tree.*;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRootNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetNode;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NotNull;
@@ -27,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.*;
 
@@ -74,22 +76,21 @@ public class PMDInvoker {
      *
      * @param actionEvent The action event that triggered run
      * @param ruleSetPaths The ruleSetPath(s) for rules to run
-     * @param isCustomRuleSet Is it a custom ruleset or not.
      */
-    public void runPMD(AnActionEvent actionEvent, String ruleSetPaths, boolean isCustomRuleSet) {
+    public void runPMD(AnActionEvent actionEvent, String ruleSetPaths) {
         //If no ruleSetPath is selected, nothing to do
-        if (ruleSetPaths == null || ruleSetPaths.length() == 0) {
+        if (ruleSetPaths == null || ruleSetPaths.isEmpty()) {
             return;
         }
         //Show the tool window
         PMDUtil.getProjectComponent(actionEvent).setupToolWindow();
 
-        Project project = actionEvent.getData(PlatformDataKeys.PROJECT);
-        PMDProjectComponent projectComponent = project.getComponent(PMDProjectComponent.class);
+        Project project = Objects.requireNonNull(actionEvent.getData(PlatformDataKeys.PROJECT));
+        PMDProjectComponent projectComponent = project.getService(PMDProjectComponent.class);
         PMDResultPanel resultPanel = projectComponent.getResultPanel();
         PMDRootNode rootNode = resultPanel.getRootNode();
 
-        List<File> files = new LinkedList<File>();
+        List<File> files = new LinkedList<>();
         if (actionEvent.getPlace().equals(ActionPlaces.PROJECT_VIEW_POPUP)
                 || actionEvent.getPlace().equals(ActionPlaces.SCOPE_VIEW_POPUP)
                 || actionEvent.getPlace().equals(ActionPlaces.CHANGES_VIEW_POPUP)
@@ -97,19 +98,14 @@ public class PMDInvoker {
         ) {
 
             //If selected by right-click on file/folder (s)
-            VirtualFile[] selectedFiles;
-            switch (actionEvent.getPlace()) {
-                case ActionPlaces.CHANGES_VIEW_POPUP:
-                    selectedFiles = actionEvent.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
-                    break;
-                case ActionPlaces.MAIN_MENU:
+            @SuppressWarnings("SwitchStatementWithTooFewBranches")
+            VirtualFile[] selectedFiles = switch (actionEvent.getPlace()) {
+                case ActionPlaces.MAIN_MENU -> {
                     VirtualFile[] contentRoots = ProjectRootManager.getInstance(project).getContentRoots();
-                    selectedFiles = VfsUtil.getCommonAncestors(contentRoots);
-                    break;
-                default:
-                    selectedFiles = actionEvent.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
-                    break;
-            }
+                    yield VfsUtil.getCommonAncestors(contentRoots);
+                }
+                default -> actionEvent.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
+            };
 
             if (selectedFiles == null || selectedFiles.length == 0) {
                 //toolWindow.displayErrorMessage("Please select a file to process first");
@@ -137,7 +133,7 @@ public class PMDInvoker {
         }
 
         //Got the files, start processing now
-        processFiles(project, ruleSetPaths, files, isCustomRuleSet, projectComponent);
+        processFiles(project, ruleSetPaths, files, projectComponent);
     }
 
     /**
@@ -145,17 +141,16 @@ public class PMDInvoker {
      *  @param project the project
      * @param ruleSetPaths The ruleSetPath(s) of rules to run
      * @param files The files on which to run
-     * @param isCustomRuleSet Is it a custom ruleset or not.
      * @param projectComponent
      */
-    public void processFiles(Project project, final String ruleSetPaths, final List<File> files, final boolean isCustomRuleSet, final PMDProjectComponent projectComponent) {
+    public void processFiles(Project project, final String ruleSetPaths, final List<File> files, final PMDProjectComponent projectComponent) {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
         if (toolWindow != null) {
             toolWindow.activate(null);
         }
 
         //Save all files
-        ApplicationManager.getApplication().saveAll();
+        ApplicationManager.getApplication().saveSettings();
 
         //Run PMD asynchronously
         ProgressManager.getInstance().run(new Task.Backgroundable(project, "Running PMD", true) {

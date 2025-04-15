@@ -5,8 +5,6 @@ import net.sourceforge.pmd.lang.document.TextFile;
 import net.sourceforge.pmd.renderers.AbstractRenderer;
 import net.sourceforge.pmd.reporting.Report;
 
-import java.io.IOException;
-
 public class PMDProgressRenderer extends AbstractRenderer {
     private final ProgressIndicator progress;
     private final int totalFiles;
@@ -36,15 +34,15 @@ public class PMDProgressRenderer extends AbstractRenderer {
     }
 
     @Override
-    public void start() throws IOException {
+    public void start() {
     }
 
     @Override
-    public void renderFileReport(Report report) throws IOException {
+    public void renderFileReport(Report report) {
     }
 
     @Override
-    public void end() throws IOException {
+    public void end() {
     }
 
 }

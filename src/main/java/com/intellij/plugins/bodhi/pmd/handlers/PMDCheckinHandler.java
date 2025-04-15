@@ -51,7 +51,7 @@ public class PMDCheckinHandler extends CheckinHandler {
         final JCheckBox checkBox = new JCheckBox(message("handler.before.checkin.checkbox"));
 
         Project project = checkinProjectPanel.getProject();
-        final PMDProjectComponent projectComponent = project.getComponent(PMDProjectComponent.class);
+        final PMDProjectComponent projectComponent = project.getService(PMDProjectComponent.class);
 
         return new RefreshableOnComponent() {
             @Override
@@ -61,9 +61,6 @@ public class PMDCheckinHandler extends CheckinHandler {
                 return panel;
             }
 
-            @Override
-            public void refresh() {
-            }
 
             @Override
             public void saveState() {
@@ -87,7 +84,7 @@ public class PMDCheckinHandler extends CheckinHandler {
                                       PairConsumer<Object, Object> additionalDataConsumer) {
         Project project = checkinProjectPanel.getProject();
 
-        PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
+        PMDProjectComponent plugin = project.getService(PMDProjectComponent.class);
         if (plugin == null) {
             log.error("Could not find the PMD plugin, skipping");
             return ReturnResult.COMMIT;
@@ -154,7 +151,7 @@ public class PMDCheckinHandler extends CheckinHandler {
     }
 
     private int promptUser(Project project, int violations) {
-        String[] buttons = new String[]{message("handler.before.checkin.error.review"),
+        String[] buttons = {message("handler.before.checkin.error.review"),
                 checkinProjectPanel.getCommitActionName(),
                 CommonBundle.getCancelButtonText()};
 
@@ -163,7 +160,7 @@ public class PMDCheckinHandler extends CheckinHandler {
     }
 
     private void showToolWindow(List<PMDRuleSetNode> ruleSetResultNodes, Project project) {
-        PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
+        PMDProjectComponent plugin = project.getService(PMDProjectComponent.class);
         PMDResultPanel resultPanel = plugin.getResultPanel();
         plugin.setupToolWindow();
 

@@ -2,6 +2,8 @@ package com.intellij.plugins.bodhi.pmd;
 
 import net.sourceforge.pmd.lang.LanguageRegistry;
 
+import java.util.Objects;
+
 /**
  * Configuration options enumeration. Separation between key for persistent state and description to show in the UI.
  */
@@ -26,7 +28,7 @@ public enum ConfigOption {
     private final String defaultValue;
 
     private static String latestSupportJavaVersionByPmd() {
-        return LanguageRegistry.PMD.getLanguageById("java").getLatestVersion().getVersion();
+        return Objects.requireNonNull(LanguageRegistry.PMD.getLanguageById("java")).getLatestVersion().getVersion();
     }
 
     public static ConfigOption fromKey(String key) {

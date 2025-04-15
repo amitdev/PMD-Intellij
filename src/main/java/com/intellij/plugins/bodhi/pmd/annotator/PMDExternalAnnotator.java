@@ -24,9 +24,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.StringReader;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Display PMD violations in the editor and in the problem view
@@ -36,7 +34,7 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
 
     @Override
     public FileInfo collectInformation(@NotNull PsiFile file, @NotNull Editor editor, boolean hasErrors) {
-        PMDProjectComponent projectComponent = file.getProject().getComponent(PMDProjectComponent.class);
+        PMDProjectComponent projectComponent = file.getProject().getService(PMDProjectComponent.class);
         String type = projectComponent.getOptionToValue().get(ConfigOption.TARGET_JDK);
         LanguageVersion version = LanguageRegistry.PMD.getLanguageVersionById("java", type);
 
@@ -45,7 +43,7 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
 
     @Override
     public @Nullable PMDAnnotations doAnnotate(FileInfo info) {
-        PMDProjectComponent projectComponent = info.getProject().getComponent(PMDProjectComponent.class);
+        PMDProjectComponent projectComponent = info.getProject().getService(PMDProjectComponent.class);
         if (projectComponent.getInEditorAnnotationRuleSets().isEmpty()) {
             return null;
         }
@@ -65,8 +63,8 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
             return;
         }
 
-        Document document = annotationResult.getDocument();
-        for (RuleViolation violation : annotationResult.getReport().getViolations()) {
+        Document document = annotationResult.document();
+        for (RuleViolation violation : annotationResult.report().getViolations()) {
             int startLineOffset = document.getLineStartOffset(violation.getBeginLine()-1);
             int endOffset = violation.getEndLine() - violation.getBeginLine() > 5 // Only mark first line for long violations
                     ? document.getLineEndOffset(violation.getBeginLine()-1)
@@ -98,19 +96,12 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
     }
 
     private static HighlightSeverity getSeverity(RuleViolation violation) {
-        switch (violation.getRule().getPriority()) {
-            case HIGH:
-                return HighlightSeverity.ERROR;
-            case MEDIUM_HIGH:
-            case MEDIUM:
-                return HighlightSeverity.WARNING;
-            case MEDIUM_LOW:
-                return HighlightSeverity.WEAK_WARNING;
-            case LOW:
-                return HighlightSeverity.INFORMATION;
-            default:
-                throw new IllegalArgumentException();
-        }
+        return switch (violation.getRule().getPriority()) {
+            case HIGH -> HighlightSeverity.ERROR;
+            case MEDIUM_HIGH, MEDIUM -> HighlightSeverity.WARNING;
+            case MEDIUM_LOW -> HighlightSeverity.WEAK_WARNING;
+            case LOW -> HighlightSeverity.INFORMATION;
+        };
     }
 
     // Copied from PMD's StringTextFile since it was not public

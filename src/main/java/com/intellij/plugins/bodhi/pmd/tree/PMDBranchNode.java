@@ -58,10 +58,9 @@ public abstract class PMDBranchNode extends BasePMDNode {
         Enumeration<TreeNode> children = children();
         while (children.hasMoreElements()) {
             Object child = children.nextElement();
-            if (child instanceof BasePMDNode) {
-                BasePMDNode node = (BasePMDNode) child;
-                if (node instanceof PMDBranchNode) {
-                    ((PMDBranchNode) node).calculateCounts();
+            if (child instanceof BasePMDNode node) {
+                if (node instanceof PMDBranchNode pmdBranchNode) {
+                    pmdBranchNode.calculateCounts();
                 }
                 violationCount += node.getViolationCount();
                 suppressedCount += node.getSuppressedCount();
@@ -160,7 +159,7 @@ public abstract class PMDBranchNode extends BasePMDNode {
     }
 
     protected String getCountMsg(String countName, int count) {
-        return " (" + count + " " + countName + ((count != 1) ? "s" : "") + ")";
+        return " (" + count + " " + countName + ((count == 1) ? "" : "s") + ")";
     }
 
     @Override

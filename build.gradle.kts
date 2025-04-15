@@ -118,6 +118,9 @@ changelog {
 }
 
 tasks {
+    withType<JavaCompile> {
+        options.compilerArgs.add("-Xlint:deprecation")
+    }
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
     }

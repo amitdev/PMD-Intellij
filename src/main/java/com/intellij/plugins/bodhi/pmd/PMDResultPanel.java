@@ -31,9 +31,10 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeListener;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.TreeSelectionListener;
-import javax.swing.tree.*;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeModel;
+import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -43,8 +44,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.HashMap;
 import java.util.List;
-import java.util.*;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -125,16 +127,6 @@ public class PMDResultPanel extends JPanel {
         textScrollPane.setPreferredSize(new Dimension(600, 300));
         add(textScrollPane);
 
-        //Add selection listener to support autoscroll to source.
-        resultTree.addTreeSelectionListener(new TreeSelectionListener() {
-            public void valueChanged(TreeSelectionEvent treeSelectionEvent) {
-                if (scrolling) {
-//                    DefaultMutableTreeNode treeNode = (DefaultMutableTreeNode) treeSelectionEvent.getPath().getLastPathComponent();
-//                    highlightError(treeNode);
-
-                }
-            }
-        });
 
         //Add right-click menu to the tree
         popupMenu = new PMDPopupMenu(new ActionListener() {
@@ -282,17 +274,13 @@ public class PMDResultPanel extends JPanel {
         //Not read only, to execute a command to write to the editor
         CommandProcessor.getInstance().executeCommand(
                 projectComponent.getCurrentProject(),
-                new Runnable() {
-                    public void run() {
-                        //All writes must be through a write action.
-                        ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                            public void run() {
-                                int offset = editor.getDocument().getLineEndOffset(result.getBeginLine()-1);
-                                //Append PMD special comment to end of line.
-                                editor.getDocument().insertString(offset, " " + PMD_SUPPRESSION + " - suppressed " + result.getRuleName() + " - TODO explain reason for suppression");
-                            }
-                        });
-                    }
+                () -> {
+                    //All writes must be through a write action.
+                    ApplicationManager.getApplication().runWriteAction(() -> {
+                        int offset = editor.getDocument().getLineEndOffset(result.getBeginLine()-1);
+                        //Append PMD special comment to end of line.
+                        editor.getDocument().insertString(offset, " " + PMD_SUPPRESSION + " - suppressed " + result.getRuleName() + " - TODO explain reason for suppression");
+                    });
                 },
                 "SuppressViolation",
                 null);
@@ -342,8 +330,7 @@ public class PMDResultPanel extends JPanel {
             @Nullable
             protected Navigatable createDescriptorForNode(DefaultMutableTreeNode node) {
                 if (node.getChildCount() > 0) return null;
-                if (node instanceof Navigatable) {
-                    Navigatable navigatable = (Navigatable) node;
+                if (node instanceof Navigatable navigatable) {
                     return navigatable.canNavigate() ? navigatable : null;
                 }
                 return null;
@@ -367,11 +354,11 @@ public class PMDResultPanel extends JPanel {
                 return info;
             }
 
-            public String getNextOccurenceActionName() {
+            public @NotNull String getNextOccurenceActionName() {
                 return UsageViewBundle.message("action.next.occurrence");
             }
 
-            public String getPreviousOccurenceActionName() {
+            public @NotNull String getPreviousOccurenceActionName() {
                 return UsageViewBundle.message("action.previous.occurrence");
             }
         };
@@ -500,11 +487,7 @@ public class PMDResultPanel extends JPanel {
     }
 
     public void reloadResultTree() {
-        ApplicationManager.getApplication().invokeLater(new Runnable() {
-            public void run() {
-                ((DefaultTreeModel) resultTree.getModel()).reload();
-            }
-        });
+        ApplicationManager.getApplication().invokeLater(() -> ((DefaultTreeModel) resultTree.getModel()).reload());
     }
 
     /**
@@ -555,12 +538,11 @@ public class PMDResultPanel extends JPanel {
             Project project = e.getData(PlatformDataKeys.PROJECT);
             //Run the last run rule sets
             if (project != null) {
-                PMDProjectComponent component = project.getComponent(PMDProjectComponent.class);
+                PMDProjectComponent component = project.getService(PMDProjectComponent.class);
                 String ruleSetPaths = component.getLastRunRuleSetPaths();
                 AnActionEvent action = component.getLastRunAction();
-                boolean isCustom = component.isLastRunRulesCustom();
                 AnActionEvent actionToRun = (action != null) ? action : e;
-                PMDInvoker.getInstance().runPMD(actionToRun, ruleSetPaths, isCustom);
+                PMDInvoker.getInstance().runPMD(actionToRun, ruleSetPaths);
                 resultTree.repaint();
             }
         }
@@ -583,7 +565,7 @@ public class PMDResultPanel extends JPanel {
                 if (toolWindow != null) {
                     toolWindow.activate(null);
                 }
-                PMDProjectComponent plugin = project.getComponent(PMDProjectComponent.class);
+                PMDProjectComponent plugin = project.getService(PMDProjectComponent.class);
                 plugin.closeResultWindow();
             }
         }

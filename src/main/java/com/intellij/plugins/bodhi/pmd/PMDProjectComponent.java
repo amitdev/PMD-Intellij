@@ -1,25 +1,17 @@
 package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.actionSystem.ActionGroup;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.components.PersistentStateComponent;
-import com.intellij.openapi.components.ProjectComponent;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.openapi.wm.ToolWindowType;
 import com.intellij.plugins.bodhi.pmd.actions.PMDCustom;
 import com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
-import com.intellij.ui.content.Content;
-import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,15 +25,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author bodhi
  * @version 1.0
  */
-
+@Service(Service.Level.PROJECT)
 @State(
   name = "PMDPlugin",
   storages = {
-    @Storage(
-      value = "PMDPlugin.xml"
-    )}
+    @Storage("PMDPlugin.xml")}
 )
-public class PMDProjectComponent implements ProjectComponent, PersistentStateComponent<PersistentData>, Disposable {
+public final class PMDProjectComponent implements PersistentStateComponent<PersistentData>, Disposable {
 
     /**
      * The Tool ID of the results panel.
@@ -52,8 +42,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     private final Project currentProject;
     private static final AtomicInteger numProjectsOpen = new AtomicInteger();
-    private PMDResultPanel resultPanel;
-    private ToolWindow resultWindow;
+    private final PMDResultPanel resultPanel;
     private String lastRunRuleSetPaths;
     private boolean lastRunRulesCustom;
     private AnActionEvent lastRunActionEvent;
@@ -74,6 +63,8 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         this.currentProject = project;
         toolWindowManager = ToolWindowManager.getInstance(currentProject);
         numProjectsOpen.incrementAndGet();
+        initComponent();
+        resultPanel = new PMDResultPanel(this);
     }
 
     public void initComponent() {
@@ -133,7 +124,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
                 }
                 customRuleSetPaths.addAll(ruleSetPathsFromMenu);
                 // remove the ones just explicitly deleted in config
-                customRuleSetPaths.removeAll(deletedRuleSetPaths);
+                deletedRuleSetPaths.forEach(customRuleSetPaths::remove);
             }
             List<AnAction> newActionList = new ArrayList<>();
             boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
@@ -146,8 +137,8 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
                     actionText += " (" + extFileName + ")";
                 }
                 AnAction action = new AnAction(actionText) {
-                    public void actionPerformed(AnActionEvent e) {
-                        PMDInvoker.getInstance().runPMD(e, ruleSetPath, true);
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        PMDInvoker.getInstance().runPMD(e, ruleSetPath);
                         setLastRunActionAndRules(e, ruleSetPath, true);
                     }
                 };
@@ -168,21 +159,6 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
         return COMPONENT_NAME;
     }
 
-    public void projectOpened() {
-        resultPanel = new PMDResultPanel(this);
-    }
-
-    /**
-     * Registers a tool window for showing PMD results.
-     */
-    private void registerToolWindow() {
-        if (toolWindowManager.getToolWindow(TOOL_ID) == null) {
-            resultWindow = toolWindowManager.registerToolWindow(TOOL_ID, true, ToolWindowAnchor.BOTTOM);
-            Content content = ContentFactory.getInstance().createContent(resultPanel, "", false);
-            resultWindow.getContentManager().addContent(content);
-            resultWindow.setType(ToolWindowType.DOCKED, null);
-        }
-    }
 
     /**
      * Gets the result panel where the PMD results are shown.
@@ -197,7 +173,6 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      * Set up the tool window and initializes the result tree.
      */
     public void setupToolWindow() {
-        registerToolWindow();
         resultPanel.initializeTree();
     }
 
@@ -205,10 +180,11 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
      * Close the result panel and unregister the tool window.
      */
     public void closeResultWindow() {
-        resultWindow.hide(null);
-        resultPanel.initializeTree();
-        if (toolWindowManager.getToolWindow(TOOL_ID) != null)
-            toolWindowManager.unregisterToolWindow(TOOL_ID);
+        ToolWindow window = toolWindowManager.getToolWindow(TOOL_ID);
+        if (window != null) {
+            window.hide(null);
+            resultPanel.initializeTree();
+        }
     }
 
     /**
@@ -288,7 +264,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     /**
      * Return fields in a PersistentData object
-     * @return
+     * @return the PersistentData object
      */
     @NotNull
     public PersistentData getState() {
@@ -310,7 +286,7 @@ public class PMDProjectComponent implements ProjectComponent, PersistentStateCom
 
     /**
      * load state into fields
-     * @param state
+     * @param state the PersistentData object
      */
     public void loadState(PersistentData state) {
         customRuleSetPaths.clear();

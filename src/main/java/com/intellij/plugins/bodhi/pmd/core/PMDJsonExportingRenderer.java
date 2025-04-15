@@ -9,7 +9,6 @@ import net.sourceforge.pmd.reporting.ViolationSuppressor;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.config.RequestConfig;
-//import org.apache.http.client.fluent.Request;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -116,9 +115,7 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
         int srcPos = fullFileName.indexOf(sep + "src") + 4;
         int mainPos = fullFileName.indexOf(sep + "main") + 5;
         int javaPos = fullFileName.indexOf(sep + "java") + 5;
-        int srcRootPos = Math.max(srcPos, Math.max(mainPos, javaPos));
-
-        return srcRootPos;
+        return Math.max(srcPos, Math.max(mainPos, javaPos));
     }
 
     private int sourceRootPos(String fullFileName, String packageName) {
@@ -250,7 +247,7 @@ public class PMDJsonExportingRenderer extends AbstractIncrementingRenderer {
                     .setConnectionRequestTimeout(CONNECT_TIMEOUT).setConnectTimeout(CONNECT_TIMEOUT)
                     .setSocketTimeout(SOCKET_TIMEOUT).build();
             try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(requestConfig).build();
-                 CloseableHttpResponse response = (CloseableHttpResponse) client.execute(httpPost)) {
+                 CloseableHttpResponse ignored = client.execute(httpPost)) {
             } catch (SocketTimeoutException e) {
             // no-op, expected because no response back
         }

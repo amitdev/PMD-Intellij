@@ -5,12 +5,6 @@
 
   <vendor>Amit Dev</vendor>
 
-  <project-components>
-    <component>
-      <implementation-class>com.intellij.plugins.bodhi.pmd.PMDProjectComponent</implementation-class>
-    </component>
-  </project-components>
-
   <depends>com.intellij.modules.platform</depends>
 
   <actions>
@@ -36,7 +30,10 @@
     <projectConfigurable id="PMD" parentId="tools" displayName="PMD" instance="com.intellij.plugins.bodhi.pmd.PMDConfigurable"/>
     <checkinHandlerFactory id="PMDCheckinHandlerFactory"
                            implementation="com.intellij.plugins.bodhi.pmd.handlers.PMDCheckinHandlerFactory"/>
-
+    <toolWindow id="PMD"
+                factoryClass="com.intellij.plugins.bodhi.pmd.PMDToolWindowFactory"
+                anchor="bottom"
+                canCloseContents="true"/>
     <externalAnnotator
             language="JAVA"
             implementationClass="com.intellij.plugins.bodhi.pmd.annotator.PMDExternalAnnotator"/>

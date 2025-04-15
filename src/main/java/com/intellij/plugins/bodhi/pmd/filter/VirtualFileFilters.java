@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
+import org.jetbrains.annotations.NotNull;
 
 public class VirtualFileFilters
 {
@@ -52,7 +53,7 @@ public class VirtualFileFilters
         }
 
 
-        public boolean accept(VirtualFile file)
+        public boolean accept(@NotNull VirtualFile file)
         {
             for (VirtualFileFilter filter : filters)
             {
@@ -75,7 +76,7 @@ public class VirtualFileFilters
         }
 
 
-        public boolean accept(VirtualFile file)
+        public boolean accept(@NotNull VirtualFile file)
         {
             for (VirtualFileFilter filter : filters)
             {
@@ -120,7 +121,7 @@ public class VirtualFileFilters
             this.project = project;
         }
 
-        public boolean accept(VirtualFile file)
+        public boolean accept(@NotNull VirtualFile file)
         {
             return ProjectRootManager.getInstance(project).getFileIndex().isInSource(file);
         }
@@ -135,7 +136,7 @@ public class VirtualFileFilters
             this.project = project;
         }
 
-        public boolean accept(VirtualFile file)
+        public boolean accept(@NotNull VirtualFile file)
         {
             return ProjectRootManager.getInstance(project).getFileIndex().isInTestSourceContent(file);
         }
@@ -150,7 +151,7 @@ public class VirtualFileFilters
             this.filter = filter;
         }
 
-        public boolean accept(VirtualFile file)
+        public boolean accept(@NotNull VirtualFile file)
         {
             return !filter.accept(file);
         }

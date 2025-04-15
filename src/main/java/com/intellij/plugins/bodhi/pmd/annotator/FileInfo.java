@@ -5,8 +5,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import net.sourceforge.pmd.lang.LanguageVersion;
 
-import java.io.File;
-
 public class FileInfo {
 
     private final PsiFile file;

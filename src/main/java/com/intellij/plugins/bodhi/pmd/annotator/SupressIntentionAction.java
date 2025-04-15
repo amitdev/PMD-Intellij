@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import static com.intellij.plugins.bodhi.pmd.PMDResultPanel.PMD_SUPPRESSION;
 
 public class SupressIntentionAction implements IntentionAction {
+    @SafeFieldForPreview
     private final RuleViolation violation;
 
     public SupressIntentionAction(RuleViolation violation) {

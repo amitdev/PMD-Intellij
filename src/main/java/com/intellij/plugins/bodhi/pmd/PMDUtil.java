@@ -10,8 +10,8 @@ import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.vfs.VirtualFileVisitor;
-import com.intellij.util.containers.OrderedSet;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
+import com.intellij.util.containers.OrderedSet;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -20,6 +20,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -53,7 +54,7 @@ public class PMDUtil {
     public static Map<String, String> getValidKnownCustomRules() {
         if (validCustomRules == null) {
             validCustomRules = KNOWN_CUSTOM_RULES.entrySet().stream().filter(e -> PMDResultCollector.isValidRuleSet(e.getValue()).isEmpty())
-                    .collect(Collectors.toUnmodifiableMap(e -> e.getKey(), e -> e.getValue()));
+                    .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
         }
         return validCustomRules;
     }
@@ -64,8 +65,8 @@ public class PMDUtil {
      * @return the Project component related to the action
      */
     public static PMDProjectComponent getProjectComponent(AnActionEvent event) {
-        Project project = event.getData(PlatformDataKeys.PROJECT);
-        return project.getComponent(PMDProjectComponent.class);
+        Project project = Objects.requireNonNull(event.getData(PlatformDataKeys.PROJECT));
+        return project.getService(PMDProjectComponent.class);
     }
 
     /**
@@ -80,8 +81,7 @@ public class PMDUtil {
             fileList.add(root);
             return;
         }
-        for (int x = 0; x < files.length; x++) {
-            File file = files[x];
+        for (File file : files) {
             if (file.isDirectory()) {
                 listFiles(file, fileList, filter);
             } else {
@@ -91,7 +91,7 @@ public class PMDUtil {
     }
 
     public static void listFiles(VirtualFile item, final List<File> result, final VirtualFileFilter filter, final boolean skipDirectories) {
-        VfsUtilCore.visitChildrenRecursively(item, new VirtualFileVisitor() {
+        VfsUtilCore.visitChildrenRecursively(item, new VirtualFileVisitor<>() {
             @Override
             public boolean visitFile(@NotNull VirtualFile file) {
                 if(!filter.accept(file)) {
@@ -130,11 +130,7 @@ public class PMDUtil {
      * @return the file filter
      */
     public static FileFilter createFileExtensionFilter(final String extension) {
-        return new FileFilter() {
-            public boolean accept(File pathname) {
-                return isMatchingExtension(pathname, extension);
-            }
-        };
+        return pathname -> isMatchingExtension(pathname, extension);
     }
 
     /**
