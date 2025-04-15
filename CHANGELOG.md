@@ -4,6 +4,7 @@
 
 ## [Unreleased]
 ### Changed
+- Update to PMD version 7.12.0
 - Restore support for IntelliJ 2023.3+
 - Upgraded IntelliJ Platform Gradle Plugin to 2.x
 ### Fixed
