@@ -237,6 +237,22 @@ public class PMDUtil {
         return fileBase;
     }
 
+    /**
+     * The category name is the first part of the path, before the first '/'.
+     * For example: "category/java/...": the category name is "java"
+     * @param ruleFileName the path of the rule set
+     * @return the category name
+     */
+    public static String getCategoryNameFromPath(String ruleFileName) {
+        int firstSlashIndex = ruleFileName.indexOf('/');
+        if (firstSlashIndex <= 0 || firstSlashIndex == ruleFileName.length() - 1) {
+            return "";
+        }
+        String[] parts = ruleFileName.split("/");
+        return parts.length > 1 ? parts[1] : "";
+    }
+
+
     private static boolean isMatchingExtension(File pathname, String extension) {
         return pathname.isDirectory() || pathname.getName().endsWith("." + extension);
     }
@@ -270,4 +286,5 @@ public class PMDUtil {
         }
         return isValid;
     }
+
 }
