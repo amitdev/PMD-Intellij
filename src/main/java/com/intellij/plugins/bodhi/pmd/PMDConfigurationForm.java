@@ -33,8 +33,10 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
-import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_FILENAMES_KEY;
-import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_PROPERTY_JAVA_FILE;
+import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedAbstractClass.RULESETS_FILENAMES_KEY;
+import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedJavaMenuGroup.RULESETS_JAVA_PROPERTY_FILE;
+import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedKotlinMenuGroup.RULESETS_KOTLIN_PROPERTY_FILE;
+
 
 /**
  * This class represents the UI for settings.
@@ -117,7 +119,7 @@ public class PMDConfigurationForm {
 
         Properties props = new Properties();
         try {
-            props.load(getClass().getClassLoader().getResourceAsStream(RULESETS_PROPERTY_JAVA_FILE));
+            props.load(getClass().getClassLoader().getResourceAsStream(RULESETS_JAVA_PROPERTY_FILE));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

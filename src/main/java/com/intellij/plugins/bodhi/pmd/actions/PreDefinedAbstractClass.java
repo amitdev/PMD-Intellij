@@ -20,52 +20,25 @@ import java.util.*;
  * @author bodhi
  * @version 1.0
  */
-public class PreDefinedMenuGroup extends DefaultActionGroup {
+public abstract class PreDefinedAbstractClass extends DefaultActionGroup {
 
     private PMDProjectComponent component;
 
-    //The ruleset property file which lists all the predefined rulesets
-    public static final String RULESETS_PROPERTY_JAVA_FILE = "category/java/categories.properties";
-    public static final String RULESETS_PROPERTY_KOTLIN_FILE = "category/kotlin/categories.properties";
     public static final String RULESETS_FILENAMES_KEY = "rulesets.filenames";
 
     /**
      * Loads all the predefined rulesets in PMD and create actions for them.
      */
-    public PreDefinedMenuGroup() {
-        Properties propsJava = new Properties();
-        Properties propsKotlin = new Properties();
+    PreDefinedAbstractClass(String rulesetFilename) {
+        Properties props = new Properties();
         try {
             // Load the property file which has all the rulesets for Java and Kotlin.
-            propsJava.load(getRuleResourceStream(RULESETS_PROPERTY_JAVA_FILE));
-            propsKotlin.load(getRuleResourceStream(RULESETS_PROPERTY_KOTLIN_FILE));
+            props.load(getRuleResourceStream(rulesetFilename));
 
-            List<String> javaRules = List.of(propsJava.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER));
-            List<String> kotlinRules = List.of(propsKotlin.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER));
-            
-            Map<String, List<String>> categoryToRulesMap = new HashMap<>();
-            categoryToRulesMap.put("java", javaRules);
-            categoryToRulesMap.put("kotlin", kotlinRules);
-
-            List<String> rulesetFilenames = new ArrayList<>();
-            rulesetFilenames.addAll(javaRules);
-            rulesetFilenames.addAll(kotlinRules);
-
-            // Group rules by category for menu usage
-            Map<String, DefaultActionGroup> categoryGroups = new HashMap<>();
+            List<String> rulesetFilenames = List.of(props.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER));
 
             for (final String ruleFileName : rulesetFilenames) {
                 final String ruleName = PMDUtil.getBareFileNameFromPath(ruleFileName);
-                final String categoryName = PMDUtil.getCategoryNameFromPath(ruleFileName);
-
-                // Create category group if not already created
-                categoryGroups.computeIfAbsent(categoryName, k -> {
-                    DefaultActionGroup categoryGroup = new DefaultActionGroup(categoryName, true);
-                    add(categoryGroup);
-                    return categoryGroup;
-                });
-
-                DefaultActionGroup categoryGroup = categoryGroups.get(categoryName);
 
                 // Add rule action to the respective category group
                 AnAction ruleAction = new AnAction(ruleName) {
@@ -74,18 +47,18 @@ public class PreDefinedMenuGroup extends DefaultActionGroup {
                         getComponent().setLastRunActionAndRules(e, ruleFileName, false);
                     }
                 };
-                categoryGroup.add(ruleAction);
+                this.add(ruleAction);
 
                 // Ensure an "All" action for the category group if not already added
-                if (categoryGroup.getChildrenCount() == 1) { // First action being added to the group
+                if (this.getChildrenCount() == 1) { // First action being added to the group
                     AnAction allAction = new AnAction("All") {
                         public void actionPerformed(@NotNull AnActionEvent e) {
-                            String categoryAllRules = String.join(PMDInvoker.RULE_DELIMITER, categoryToRulesMap.get(categoryName));
+                            String categoryAllRules = String.join(PMDInvoker.RULE_DELIMITER, rulesetFilenames);
                             PMDInvoker.getInstance().runPMD(e, categoryAllRules);
                             getComponent().setLastRunActionAndRules(e, categoryAllRules, false);
                         }
                     };
-                    categoryGroup.add(allAction, Constraints.FIRST);
+                    this.add(allAction, Constraints.FIRST);
                 }
             }
         } catch (Exception e) {

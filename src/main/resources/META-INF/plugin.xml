@@ -16,8 +16,11 @@
       <add-to-group group-id="ChangesViewPopupMenu" anchor="last"/>
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
 
-      <group id="PMDPredefined" class="com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup"
-              popup="true" text="Pre Defined"/>
+      <group id="PMDPredefinedJava" class="com.intellij.plugins.bodhi.pmd.actions.PreDefinedJavaMenuGroup"
+             popup="true" text="Pre Defined - Java"/>
+      <group id="PMDPredefinedKotlin" class="com.intellij.plugins.bodhi.pmd.actions.PreDefinedKotlinMenuGroup"
+             popup="true" text="Pre Defined - Kotlin"/>
+
       <group id="PMDCustom" class="com.intellij.plugins.bodhi.pmd.actions.PMDCustom"
               popup="true" text="Custom Rules"/>
     </group>
