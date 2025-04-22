@@ -22,7 +22,7 @@
              popup="true" text="Pre Defined - Kotlin"/>
 
       <group id="PMDCustom" class="com.intellij.plugins.bodhi.pmd.actions.PMDCustom"
-              popup="true" text="Custom Rules"/>
+              popup="true" text="Custom"/>
     </group>
 
     <!-- The group representing toolbar items in settings -->
