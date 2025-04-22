@@ -45,6 +45,9 @@ class PMDAnnotationRenderer extends AbstractRenderer {
     }
 
     public PMDAnnotations getResult(Document document) {
+        if (report == null) {
+            throw new IllegalStateException("Report is null. Did you call renderFileReports?");
+        }
         return new PMDAnnotations(report, document);
     }
 }

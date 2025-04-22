@@ -25,6 +25,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Display PMD violations in the editor and in the problem view
@@ -54,13 +56,18 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
     @Override
     public @Nullable PMDAnnotations doAnnotate(FileInfo info) {
         PMDProjectComponent projectComponent = info.getProject().getService(PMDProjectComponent.class);
-        if (projectComponent.getInEditorAnnotationRuleSets().isEmpty()) {
+
+        Set<String> inEditorAnnotationActiveRuleSets = projectComponent.getInEditorAnnotationRuleSets().stream()
+                .filter(ruleSetPath -> isRuleSetForGivenFile(info, ruleSetPath))
+                .collect(Collectors.toSet());
+
+        if (inEditorAnnotationActiveRuleSets.isEmpty()) {
             return null;
         }
 
         PMDResultCollector collector = new PMDResultCollector();
         PMDAnnotationRenderer renderer = new PMDAnnotationRenderer();
-        for (String ruleSetPath : projectComponent.getInEditorAnnotationRuleSets()) {
+        for (String ruleSetPath : inEditorAnnotationActiveRuleSets) {
             if (isRuleSetForGivenFile(info, ruleSetPath)) {
                 collector.runPMDAndGetResults(List.of(), List.of(asTextFile(info)), ruleSetPath, projectComponent, renderer);
             }
