@@ -77,6 +77,7 @@ public class PMDConfigurationForm {
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
 
         optionsTable.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
+        optionsTable.setRowHeight(optionsTable.getRowHeight() + 5); // increase space around text
         ruleSetPathJList.setModel(new RuleSetListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.setModel(new RuleSetListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
@@ -338,7 +339,8 @@ public class PMDConfigurationForm {
                 for (LanguageVersion langVersion : langVersions) {
                     versions.add(langVersion.getVersion());
                 }
-                String tipText = "For " + langId + " version take one of: " + String.join(",", versions.subList(5, versions.size()));
+                String maxTenMostRecentVersions = String.join(",", versions.subList(Math.max(versions.size() - 10, 0), versions.size()));
+                String tipText = "For " + langId + " version take one of: " + maxTenMostRecentVersions;
                 optionsTable.setToolTipText(tipText);
                 isModified = origIsMod;
             }
