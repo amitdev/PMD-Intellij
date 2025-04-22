@@ -69,8 +69,6 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
     }
 
     public void initComponent() {
-        //Add custom rules as menu items if defined.
-        updateCustomRulesMenu();
 
         ActionGroup actionGroupJava = registerActions("PMDPredefinedJava");
         if (actionGroupJava != null)
@@ -297,8 +295,9 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
      */
     public void loadState(PersistentData state) {
         customRuleSetPaths.clear();
-        optionToValue.clear();
         customRuleSetPaths.addAll(state.getCustomRuleSets());
+
+        optionToValue.clear();
         for (String key : state.getOptionKeyToValue().keySet()) {
             if (key.equals("Encoding")) { // replace unused 'Encoding' by 'Statistics URL'
                 optionToValue.put(ConfigOption.STATISTICS_URL, "");
@@ -313,6 +312,9 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
 
         this.skipTestSources = state.isSkipTestSources();
         this.scanFilesBeforeCheckin = state.isScanFilesBeforeCheckin();
+
+        // Add custom rules as menu items if defined.
+        updateCustomRulesMenu();
     }
 
     public void skipTestSources(boolean skipTestSources)
@@ -332,7 +334,4 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
     public boolean isScanFilesBeforeCheckin() {
         return scanFilesBeforeCheckin;
     }
-
-
-
 }
