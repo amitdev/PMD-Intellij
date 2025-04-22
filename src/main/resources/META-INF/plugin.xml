@@ -40,5 +40,9 @@
     <externalAnnotator
             language="JAVA"
             implementationClass="com.intellij.plugins.bodhi.pmd.annotator.PMDExternalAnnotator"/>
+    <!-- same implementation for both Java and Kotlin: split into specific classes when necessary -->
+    <externalAnnotator
+            language="kotlin"
+            implementationClass="com.intellij.plugins.bodhi.pmd.annotator.PMDExternalAnnotator"/>
   </extensions>
 </idea-plugin>

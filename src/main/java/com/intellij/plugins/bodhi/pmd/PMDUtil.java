@@ -16,12 +16,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -38,6 +36,7 @@ public class PMDUtil {
 
     public static final Pattern HOST_NAME_PATTERN = Pattern.compile(".+\\.([a-z]+\\.[a-z]+)/.+");
     public static final int AVAILABLE_PROCESSORS = Runtime.getRuntime().availableProcessors();
+    public static final String RULESETS_FILENAMES_KEY = "rulesets.filenames";
     private static final String JPINPOINT_JAVA_RULES = "https://raw.githubusercontent.com/jborgers/PMD-jPinpoint-rules/pmd7/rulesets/java/jpinpoint-java-rules.xml";
     private static final String JPINPOINT_KOTLIN_RULES = "https://raw.githubusercontent.com/jborgers/PMD-jPinpoint-rules/pmd7/rulesets/kotlin/jpinpoint-kotlin-rules.xml";
     private static final Map<String, String> KNOWN_CUSTOM_RULES = Map.of(
@@ -285,6 +284,16 @@ public class PMDUtil {
             isValid = false;
         }
         return isValid;
+    }
+
+    public static @NotNull List<String> loadRules(String rulesetsPropertyFile) {
+        Properties props = new Properties();
+        try {
+            props.load(PMDUtil.class.getClassLoader().getResourceAsStream(rulesetsPropertyFile));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load rule set property file: " + rulesetsPropertyFile, e);
+        }
+        return new ArrayList<>(List.of(props.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER)));
     }
 
 }

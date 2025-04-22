@@ -1,6 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
 
+import net.sourceforge.pmd.lang.document.FileId;
 import net.sourceforge.pmd.lang.rule.Rule;
 import net.sourceforge.pmd.lang.rule.RulePriority;
 import net.sourceforge.pmd.reporting.RuleViolation;
@@ -31,10 +32,16 @@ public class PMDViolation implements HasPositionInFile, HasRule, HasMessage {
     public PMDViolation(RuleViolation violation) {
         this.ruleViolation = violation;
         this.positionText = "(" + violation.getBeginLine() + ", " + violation.getBeginColumn() + ") ";
+        // seems the file can be unknown in some cases (for kotlin?)
+        boolean unknownFile = violation.getFileId() == FileId.UNKNOWN;
         String fileName = violation.getFileId().getFileName();
         String className = violation.getAdditionalInfo().get(CLASS_NAME);
         if (className == null || className.isEmpty()) {
-            className = fileName.substring(0, fileName.indexOf('.'));
+            if (unknownFile) {
+                className = "(unknown)";
+            } else {
+                className = fileName.substring(0, fileName.lastIndexOf('.'));
+            }
         }
         String methodName = violation.getAdditionalInfo().get(METHOD_NAME);
         if (methodName == null) {

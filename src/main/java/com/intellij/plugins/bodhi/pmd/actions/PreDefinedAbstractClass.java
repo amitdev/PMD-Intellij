@@ -24,18 +24,12 @@ public abstract class PreDefinedAbstractClass extends DefaultActionGroup {
 
     private PMDProjectComponent component;
 
-    public static final String RULESETS_FILENAMES_KEY = "rulesets.filenames";
-
     /**
      * Loads all the predefined rulesets in PMD and create actions for them.
      */
     PreDefinedAbstractClass(String rulesetFilename) {
-        Properties props = new Properties();
         try {
-            // Load the property file which has all the rulesets for Java and Kotlin.
-            props.load(getRuleResourceStream(rulesetFilename));
-
-            List<String> rulesetFilenames = List.of(props.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER));
+            List<String> rulesetFilenames = PMDUtil.loadRules(rulesetFilename);
 
             for (final String ruleFileName : rulesetFilenames) {
                 final String ruleName = PMDUtil.getBareFileNameFromPath(ruleFileName);
@@ -62,7 +56,7 @@ public abstract class PreDefinedAbstractClass extends DefaultActionGroup {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to add pre defined rules for '" + rulesetFilename + "' to action group", e);
         }
     }
 
