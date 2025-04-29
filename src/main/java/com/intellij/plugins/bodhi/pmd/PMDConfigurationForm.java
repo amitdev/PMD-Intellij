@@ -29,12 +29,12 @@ import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
-import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_FILENAMES_KEY;
-import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup.RULESETS_PROPERTY_FILE;
+import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedJavaMenuGroup.RULESETS_JAVA_PROPERTY_FILE;
+import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedKotlinMenuGroup.RULESETS_KOTLIN_PROPERTY_FILE;
+
 
 /**
  * This class represents the UI for settings.
@@ -77,6 +77,7 @@ public class PMDConfigurationForm {
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
 
         optionsTable.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
+        optionsTable.setRowHeight(optionsTable.getRowHeight() + 5); // increase space around text
         ruleSetPathJList.setModel(new RuleSetListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.setModel(new RuleSetListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
@@ -115,13 +116,11 @@ public class PMDConfigurationForm {
         }
         skipTestsCheckBox.setSelected(dataProjComp.isSkipTestSources());
 
-        Properties props = new Properties();
-        try {
-            props.load(getClass().getClassLoader().getResourceAsStream(RULESETS_PROPERTY_FILE));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        List<String> allRules = new ArrayList<>(List.of(props.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER)));
+        List<String> javaRules = PMDUtil.loadRules(RULESETS_JAVA_PROPERTY_FILE);
+        List<String> kotlinRules = PMDUtil.loadRules(RULESETS_KOTLIN_PROPERTY_FILE);
+
+        List<String> allRules = new ArrayList<>(javaRules);
+        allRules.addAll(kotlinRules);
         allRules.addAll(customRuleSetPaths);
 
         RuleSetListModel inEditorAnnotationModel = new RuleSetListModel(allRules);
@@ -309,35 +308,39 @@ public class PMDConfigurationForm {
             isModified = isModified || orig == null || !orig.equals(aValue);
             switch (row) {
                 // row 0: Target JDK
-                case 0: validateJavaVersion((String) aValue, row, column, orig, origIsMod);
+                case 0: validateLanguageVersion((String) aValue, row, column, orig, origIsMod, "java");
                 break;
-                // row 1: statistics URL
-                case 1: validateStatUrl((String) aValue, row, column, orig, origIsMod);
+                // row 1: Target Kotlin Version
+                case 1: validateLanguageVersion((String) aValue, row, column, orig, origIsMod, "kotlin");
                 break;
-                // row 2: threads
-                case 2: validateThreads((String) aValue, row, column, orig, origIsMod);
+                // row 2: statistics URL
+                case 2: validateStatUrl((String) aValue, row, column, orig, origIsMod);
+                break;
+                // row 3: threads
+                case 3: validateThreads((String) aValue, row, column, orig, origIsMod);
                 break;
             }
         }
 
-        private void validateJavaVersion(String versionInput, int row, int column, Object orig, boolean origIsMod) {
+        private void validateLanguageVersion(String versionInput, int row, int column, Object orig, boolean origIsMod, String langId) {
             if (versionInput.equals(orig)) {
                 return;
             }
-            Language java = Objects.requireNonNull(LanguageRegistry.PMD.getLanguageById("java"));
-            boolean isRegistered = java.hasVersion(versionInput);
+            Language language = Objects.requireNonNull(LanguageRegistry.PMD.getLanguageById(langId));
+            boolean isRegistered = language.hasVersion(versionInput);
             if (isRegistered) {
-                String registeredVersion = Objects.requireNonNull(java.getVersion(versionInput)).getVersion();
-                optionsTable.setToolTipText("Java version " + registeredVersion);
+                String registeredVersion = Objects.requireNonNull(language.getVersion(versionInput)).getVersion();
+                optionsTable.setToolTipText(langId + " version " + registeredVersion);
             }
             else {
                 super.setValueAt(orig, row, column);
-                List<LanguageVersion> langVersions = java.getVersions();
+                List<LanguageVersion> langVersions = language.getVersions();
                 List<String> versions = new ArrayList<>();
                 for (LanguageVersion langVersion : langVersions) {
                     versions.add(langVersion.getVersion());
                 }
-                String tipText = "For JDK take one of: " + String.join(",", versions.subList(5, versions.size()));
+                String maxTenMostRecentVersions = String.join(",", versions.subList(Math.max(versions.size() - 10, 0), versions.size()));
+                String tipText = "For " + langId + " version take one of: " + maxTenMostRecentVersions;
                 optionsTable.setToolTipText(tipText);
                 isModified = origIsMod;
             }

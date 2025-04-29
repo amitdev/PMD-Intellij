@@ -10,7 +10,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.actions.PMDCustom;
-import com.intellij.plugins.bodhi.pmd.actions.PreDefinedMenuGroup;
+import com.intellij.plugins.bodhi.pmd.actions.PreDefinedJavaMenuGroup;
+import com.intellij.plugins.bodhi.pmd.actions.PreDefinedKotlinMenuGroup;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -68,11 +69,15 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
     }
 
     public void initComponent() {
-        //Add custom rules as menu items if defined.
-        updateCustomRulesMenu();
-        ActionGroup actionGroup = registerActions("PMDPredefined");
-        if (actionGroup != null)
-            ((PreDefinedMenuGroup) actionGroup).setComponent(this);
+
+        ActionGroup actionGroupJava = registerActions("PMDPredefinedJava");
+        if (actionGroupJava != null)
+            ((PreDefinedJavaMenuGroup) actionGroupJava).setComponent(this);
+
+        ActionGroup actionGroupKotlin = registerActions("PMDPredefinedKotlin");
+        if (actionGroupKotlin != null)
+            ((PreDefinedKotlinMenuGroup) actionGroupKotlin).setComponent(this);
+
         registerActions("PMDCustom");
     }
 
@@ -290,8 +295,9 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
      */
     public void loadState(PersistentData state) {
         customRuleSetPaths.clear();
-        optionToValue.clear();
         customRuleSetPaths.addAll(state.getCustomRuleSets());
+
+        optionToValue.clear();
         for (String key : state.getOptionKeyToValue().keySet()) {
             if (key.equals("Encoding")) { // replace unused 'Encoding' by 'Statistics URL'
                 optionToValue.put(ConfigOption.STATISTICS_URL, "");
@@ -306,6 +312,9 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
 
         this.skipTestSources = state.isSkipTestSources();
         this.scanFilesBeforeCheckin = state.isScanFilesBeforeCheckin();
+
+        // Add custom rules as menu items if defined.
+        updateCustomRulesMenu();
     }
 
     public void skipTestSources(boolean skipTestSources)
@@ -325,7 +334,4 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
     public boolean isScanFilesBeforeCheckin() {
         return scanFilesBeforeCheckin;
     }
-
-
-
 }

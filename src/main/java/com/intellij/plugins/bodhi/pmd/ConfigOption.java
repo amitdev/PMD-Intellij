@@ -8,7 +8,8 @@ import java.util.Objects;
  * Configuration options enumeration. Separation between key for persistent state and description to show in the UI.
  */
 public enum ConfigOption {
-    TARGET_JDK("Target JDK", "Target JDK (max: " + latestSupportJavaVersionByPmd() + ")", latestSupportJavaVersionByPmd()),
+    TARGET_JDK("Target JDK", "Target JDK (max: " + latestSupportLanguageVersionByPmd("java") + ")", latestSupportLanguageVersionByPmd("java")),
+    TARGET_KOTLIN_VERSION("Target Kotlin version", "Target Kotlin version (max: " + latestSupportLanguageVersionByPmd("kotlin") + ")", latestSupportLanguageVersionByPmd("kotlin")),
     STATISTICS_URL("Statistics URL", "Statistics URL to export usage anonymously", ""),
     THREADS("Threads", "Threads (fastest: " + PMDUtil.AVAILABLE_PROCESSORS + ")", String.valueOf(PMDUtil.AVAILABLE_PROCESSORS));
 
@@ -27,8 +28,8 @@ public enum ConfigOption {
      */
     private final String defaultValue;
 
-    private static String latestSupportJavaVersionByPmd() {
-        return Objects.requireNonNull(LanguageRegistry.PMD.getLanguageById("java")).getLatestVersion().getVersion();
+    private static String latestSupportLanguageVersionByPmd(String langId) {
+        return Objects.requireNonNull(LanguageRegistry.PMD.getLanguageById(langId)).getLatestVersion().getVersion();
     }
 
     public static ConfigOption fromKey(String key) {

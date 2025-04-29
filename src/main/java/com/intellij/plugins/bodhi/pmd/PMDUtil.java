@@ -16,12 +16,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -38,8 +36,12 @@ public class PMDUtil {
 
     public static final Pattern HOST_NAME_PATTERN = Pattern.compile(".+\\.([a-z]+\\.[a-z]+)/.+");
     public static final int AVAILABLE_PROCESSORS = Runtime.getRuntime().availableProcessors();
-    private static final String JPINPOINT_RULES = "https://raw.githubusercontent.com/jborgers/PMD-jPinpoint-rules/pmd7/rulesets/java/jpinpoint-rules.xml";
-    private static final Map<String, String> KNOWN_CUSTOM_RULES = Map.of("jpinpoint-rules", JPINPOINT_RULES);
+    public static final String RULESETS_FILENAMES_KEY = "rulesets.filenames";
+    private static final String JPINPOINT_JAVA_RULES = "https://raw.githubusercontent.com/jborgers/PMD-jPinpoint-rules/pmd7/rulesets/java/jpinpoint-java-rules.xml";
+    private static final String JPINPOINT_KOTLIN_RULES = "https://raw.githubusercontent.com/jborgers/PMD-jPinpoint-rules/pmd7/rulesets/kotlin/jpinpoint-kotlin-rules.xml";
+    private static final Map<String, String> KNOWN_CUSTOM_RULES = Map.of(
+            "jpinpoint-java-rules", JPINPOINT_JAVA_RULES,
+            "jpinpoint-kotlin-rules", JPINPOINT_KOTLIN_RULES);
     private static volatile Map<String, String> validCustomRules; // lazy initialized
 
     /**
@@ -234,6 +236,22 @@ public class PMDUtil {
         return fileBase;
     }
 
+    /**
+     * The category name is the first part of the path, before the first '/'.
+     * For example: "category/java/...": the category name is "java"
+     * @param ruleFileName the path of the rule set
+     * @return the category name
+     */
+    public static String getCategoryNameFromPath(String ruleFileName) {
+        int firstSlashIndex = ruleFileName.indexOf('/');
+        if (firstSlashIndex <= 0 || firstSlashIndex == ruleFileName.length() - 1) {
+            return "";
+        }
+        String[] parts = ruleFileName.split("/");
+        return parts.length > 1 ? parts[1] : "";
+    }
+
+
     private static boolean isMatchingExtension(File pathname, String extension) {
         return pathname.isDirectory() || pathname.getName().endsWith("." + extension);
     }
@@ -267,4 +285,15 @@ public class PMDUtil {
         }
         return isValid;
     }
+
+    public static @NotNull List<String> loadRules(String rulesetsPropertyFile) {
+        Properties props = new Properties();
+        try {
+            props.load(PMDUtil.class.getClassLoader().getResourceAsStream(rulesetsPropertyFile));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load rule set property file: " + rulesetsPropertyFile, e);
+        }
+        return new ArrayList<>(List.of(props.getProperty(RULESETS_FILENAMES_KEY).split(PMDInvoker.RULE_DELIMITER)));
+    }
+
 }

@@ -25,6 +25,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Display PMD violations in the editor and in the problem view
@@ -35,8 +37,18 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
     @Override
     public FileInfo collectInformation(@NotNull PsiFile file, @NotNull Editor editor, boolean hasErrors) {
         PMDProjectComponent projectComponent = file.getProject().getService(PMDProjectComponent.class);
-        String type = projectComponent.getOptionToValue().get(ConfigOption.TARGET_JDK);
-        LanguageVersion version = LanguageRegistry.PMD.getLanguageVersionById("java", type);
+
+        LanguageVersion version;
+        String fileExtension = file.getName().substring(file.getName().lastIndexOf('.') + 1);
+        if ("kt".equalsIgnoreCase(fileExtension) || "kts".equalsIgnoreCase(fileExtension)) {
+            // Kotlin file
+            String languageVersion = projectComponent.getOptionToValue().get(ConfigOption.TARGET_KOTLIN_VERSION);
+            version = LanguageRegistry.PMD.getLanguageVersionById("kotlin", languageVersion);
+        } else {
+            // Java file (default)
+            String languageVersion = projectComponent.getOptionToValue().get(ConfigOption.TARGET_JDK);
+            version = LanguageRegistry.PMD.getLanguageVersionById("java", languageVersion);
+        }
 
         return new FileInfo(file, editor.getDocument(), version);
     }
@@ -44,17 +56,32 @@ public class PMDExternalAnnotator extends ExternalAnnotator<FileInfo, PMDAnnotat
     @Override
     public @Nullable PMDAnnotations doAnnotate(FileInfo info) {
         PMDProjectComponent projectComponent = info.getProject().getService(PMDProjectComponent.class);
-        if (projectComponent.getInEditorAnnotationRuleSets().isEmpty()) {
+
+        Set<String> inEditorAnnotationActiveRuleSets = projectComponent.getInEditorAnnotationRuleSets().stream()
+                .filter(ruleSetPath -> isRuleSetForGivenFile(info, ruleSetPath))
+                .collect(Collectors.toSet());
+
+        if (inEditorAnnotationActiveRuleSets.isEmpty()) {
             return null;
         }
 
         PMDResultCollector collector = new PMDResultCollector();
         PMDAnnotationRenderer renderer = new PMDAnnotationRenderer();
-        for (String ruleSetPath : projectComponent.getInEditorAnnotationRuleSets()) {
-            collector.runPMDAndGetResults(List.of(), List.of(asTextFile(info)), ruleSetPath, projectComponent, renderer);
+        for (String ruleSetPath : inEditorAnnotationActiveRuleSets) {
+            if (isRuleSetForGivenFile(info, ruleSetPath)) {
+                collector.runPMDAndGetResults(List.of(), List.of(asTextFile(info)), ruleSetPath, projectComponent, renderer);
+            }
         }
 
         return renderer.getResult(info.getDocument());
+    }
+
+    private static boolean isRuleSetForGivenFile(FileInfo info, String ruleSetPath) {
+        // This is a very basic check to see if RuleSet applies to the file:
+        // it assumes the language id (e.g. "java" or "kotlin") is exclusively part of rule set path
+        // (e.g. /category/java/bestpractices.xml or /home/user/jpinpoint-java-rules.xml).
+        // This can fail if for (unexpected?) paths like: /home/user/kotlin/jpinpoint-java-rules.xml
+        return ruleSetPath.contains(info.getLanguageVersion().getLanguage().getId());
     }
 
     @Override

@@ -138,9 +138,19 @@ public class PMDResultCollector {
     @NotNull
     private PMDConfiguration getPmdConfig(String ruleSets, Map<ConfigOption, String> options, Project project) throws IOException {
         PMDConfiguration pmdConfig = new PMDConfiguration();
-        String configVersion = options.get(ConfigOption.TARGET_JDK);
+
+        String configVersion;
+        String language;
+        if (ruleSets != null && ruleSets.contains("kotlin")) {
+            language = "kotlin";
+            configVersion = options.get(ConfigOption.TARGET_KOTLIN_VERSION);
+        } else {
+            language = "java";
+            configVersion = options.get(ConfigOption.TARGET_JDK);
+        }
+
         if (configVersion != null) {
-            LanguageVersion version = LanguageRegistry.PMD.getLanguageVersionById("java", configVersion);
+            LanguageVersion version = LanguageRegistry.PMD.getLanguageVersionById(language, configVersion);
             if (version != null)
                 pmdConfig.setDefaultLanguageVersion(version);
         }

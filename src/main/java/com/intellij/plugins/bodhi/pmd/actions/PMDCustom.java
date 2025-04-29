@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 public class PMDCustom extends DefaultActionGroup {
 
     public PMDCustom() {
-        super("Custom Rules", true);
+        super("Custom", true);
     }
 
     @Override
