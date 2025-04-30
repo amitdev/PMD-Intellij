@@ -8,7 +8,7 @@ import java.util.Objects;
  * Configuration options enumeration. Separation between key for persistent state and description to show in the UI.
  */
 public enum ConfigOption {
-    TARGET_JDK("Target JDK", "Target JDK (max: " + latestSupportLanguageVersionByPmd("java") + ")", latestSupportLanguageVersionByPmd("java")),
+    TARGET_JDK("Target JDK", "Target Java version (max: " + latestSupportLanguageVersionByPmd("java") + ")", latestSupportLanguageVersionByPmd("java")),
     TARGET_KOTLIN_VERSION("Target Kotlin version", "Target Kotlin version (max: " + latestSupportLanguageVersionByPmd("kotlin") + ")", latestSupportLanguageVersionByPmd("kotlin")),
     STATISTICS_URL("Statistics URL", "Statistics URL to export usage anonymously", ""),
     THREADS("Threads", "Threads (fastest: " + PMDUtil.AVAILABLE_PROCESSORS + ")", String.valueOf(PMDUtil.AVAILABLE_PROCESSORS));

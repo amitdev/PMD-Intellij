@@ -303,7 +303,12 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
                 optionToValue.put(ConfigOption.STATISTICS_URL, "");
             }
             else {
-                optionToValue.put(ConfigOption.fromKey(key), state.getOptionKeyToValue().get(key));
+                // make sure the value is not null, if so, make it the default value, see #226
+                String optionValue = state.getOptionKeyToValue().get(key);
+                if (optionValue == null) {
+                    optionValue = ConfigOption.fromKey(key).getDefaultValue();
+                }
+                optionToValue.put(ConfigOption.fromKey(key), optionValue);
             }
         }
 
