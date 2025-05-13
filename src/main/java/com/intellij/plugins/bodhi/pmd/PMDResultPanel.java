@@ -30,6 +30,7 @@ import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.usageView.UsageViewBundle;
+import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.tree.TreeUtil;
 import net.sourceforge.pmd.lang.rule.Rule;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
@@ -40,6 +41,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeListener;
+import javax.swing.text.View;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
@@ -72,9 +74,10 @@ public class PMDResultPanel extends JPanel {
     private final Tree resultTree;
     private final PMDProjectComponent projectComponent;
     // html documentation
-    private final JEditorPane htmlRuleDocPane = new JEditorPane();
+    private final JEditorPane htmlPane = new JEditorPane();
     // code example with syntax highlighting
     private final EditorTextField ruleDetailExampleField = new EditorTextField();
+    private final OnePixelSplitter detailSplit = new OnePixelSplitter(true);
     private PMDRootNode rootNode;
     private PMDErrorBranchNode processingErrorsNode;
     private boolean scrolling;
@@ -115,8 +118,7 @@ public class PMDResultPanel extends JPanel {
         TreeUtil.expandAll(resultTree);
         resultTree.setExpandsSelectedPaths(true);
         resultTree.getSelectionModel().setSelectionMode(SINGLE_TREE_SELECTION);
-        OnePixelSplitter mainSplit = getMainSplit();
-        add(mainSplit);
+        add(buildMainSplit());
 
         //Add right-click menu to the tree
         createPmdPopupMenu();
@@ -229,11 +231,12 @@ public class PMDResultPanel extends JPanel {
      *
      * @return a configured OnePixelSplitter instance representing the main split view of the panel
      */
-    private @NotNull OnePixelSplitter getMainSplit() {
+    private @NotNull OnePixelSplitter buildMainSplit() {
         ruleDetailExampleField.setOneLineMode(false);
         ruleDetailExampleField.setFocusable(false);
         ruleDetailExampleField.setOpaque(false);
         ruleDetailExampleField.setViewer(true);
+        ruleDetailExampleField.setBorder(JBUI.Borders.empty(1, 2));
         FileType java = FileTypeManager.getInstance().getFileTypeByExtension("java");
         ruleDetailExampleField.setFileType(java);
                 //Language.findLanguageByID("JAVA").getAssociatedFileType()); // TODO use chosen language
@@ -243,7 +246,7 @@ public class PMDResultPanel extends JPanel {
             p.setHorizontalScrollbarVisible(true);
             p.getSettings().setUseSoftWraps(false);
             });
-        Document exampleDocument = new DocumentImpl("// The code example will show here");
+        Document exampleDocument = new DocumentImpl("// Example code shows here");
         ruleDetailExampleField.setDocument(exampleDocument);
 
         // Scrolling en viewport
@@ -256,27 +259,27 @@ public class PMDResultPanel extends JPanel {
         mainSplit.setFirstComponent(scrollPane);
 
         // Vertical split for the two detail-doc
-        OnePixelSplitter docSplit = new OnePixelSplitter(true); // vertical
-        docSplit.setFirstComponent(createHtmlRuleDetailPanel());
-        docSplit.setSecondComponent(ruleDetailExampleField);
+        detailSplit.setFirstComponent(createHtmlRuleDetailPanel());
+        detailSplit.setSecondComponent(ruleDetailExampleField);
 
-        // Add docSplit to the main split
-        mainSplit.setSecondComponent(docSplit);
+        // Add detailSplit to the main split
+        mainSplit.setSecondComponent(detailSplit);
 
         // Set initial divider positions
         mainSplit.setProportion(0.5f); // 50% each
-        docSplit.setProportion(0.5f);
+        detailSplit.setProportion(0.5f);
         return mainSplit;
     }
 
     private @NotNull JComponent createHtmlRuleDetailPanel() {
-        htmlRuleDocPane.setEditable(false);
-        htmlRuleDocPane.setContentType("text/html");
-        htmlRuleDocPane.setOpaque(false);
-        htmlRuleDocPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
-        htmlRuleDocPane.setText("Click on a rule or violation node to see details.");
-        htmlRuleDocPane.setCaretPosition(0);
-        JBScrollPane scrollPane = new JBScrollPane(htmlRuleDocPane);
+        htmlPane.setEditable(false);
+        htmlPane.setContentType("text/html");
+        htmlPane.setOpaque(false);
+        htmlPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
+        htmlPane.setBorder(JBUI.Borders.empty(0, 5, 10, 5));
+        htmlPane.setText("Click on a rule or violation for details.");
+        htmlPane.setCaretPosition(0);
+        JBScrollPane scrollPane = new JBScrollPane(htmlPane);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         return scrollPane;
@@ -297,8 +300,10 @@ public class PMDResultPanel extends JPanel {
         if (node instanceof HasMessage) {
             message = ((HasMessage) node).getMessage();
         }
-        htmlRuleDocPane.setText(getHtmlText(message, rule));
-        htmlRuleDocPane.setCaretPosition(0);
+        htmlPane.setText(getHtmlText(message, rule));
+        htmlPane.setCaretPosition(0);
+        adjustSplitProportionBasedOnContent(detailSplit, htmlPane);
+
         ruleDetailExampleField.setText(getFormattedExamples(rule));
         ruleDetailExampleField.setCaretPosition(0);
     }
@@ -327,6 +332,22 @@ public class PMDResultPanel extends JPanel {
             }
         }
         return examples;
+    }
+
+    private void adjustSplitProportionBasedOnContent(OnePixelSplitter splitter, JEditorPane htmlPane) {
+        SwingUtilities.invokeLater(() -> {
+            // Calculate the necessary height for the htmlPane
+            View view = htmlPane.getUI().getRootView(htmlPane);
+            float preferredHeight = view.getPreferredSpan(View.Y_AXIS);
+            // Calculate the necessary height for the splitter
+            float totalHeight = splitter.getHeight();
+            if (totalHeight > 0) {
+                preferredHeight += 10; // extra space for the border
+                // Calculate the proportion of the splitter to use based on the preferred height
+                float proportion = Math.min(0.85f, Math.max(0.15f, preferredHeight / totalHeight));
+                splitter.setProportion(proportion);
+            }
+        });
     }
 
     /**
