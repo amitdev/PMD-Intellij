@@ -33,6 +33,7 @@ import com.intellij.usageView.UsageViewBundle;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.tree.TreeUtil;
 import net.sourceforge.pmd.lang.rule.Rule;
+import net.sourceforge.pmd.properties.PropertyDescriptor;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
 import net.sourceforge.pmd.reporting.Report;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.HyperlinkEvent;
 import javax.swing.text.View;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -71,6 +73,7 @@ public class PMDResultPanel extends JPanel {
 
     private static final Pattern PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN = Pattern.compile("\\s*(Problem: |Solution: |Note: |Exceptions: )");
     private static final Pattern BRACED_RULES_NAME_PATTERN = Pattern.compile("\\([\\w-]+-rules\\)\\s*$", Pattern.MULTILINE);
+    private static final Pattern COMMA_PATTERN = Pattern.compile(",([^\\s])");
     private final Tree resultTree;
     private final PMDProjectComponent projectComponent;
     // html documentation
@@ -83,7 +86,6 @@ public class PMDResultPanel extends JPanel {
     private boolean scrolling;
     private PMDPopupMenu popupMenu;
     public static final String PMD_SUPPRESSION = "//NOPMD";
-
 
     /**
      * Create an instance of the result panel.
@@ -238,8 +240,7 @@ public class PMDResultPanel extends JPanel {
         ruleDetailExampleField.setViewer(true);
         ruleDetailExampleField.setBorder(JBUI.Borders.empty(1, 2));
         FileType java = FileTypeManager.getInstance().getFileTypeByExtension("java");
-        ruleDetailExampleField.setFileType(java);
-                //Language.findLanguageByID("JAVA").getAssociatedFileType()); // TODO use chosen language
+        ruleDetailExampleField.setFileType(java); // default to start with
         ruleDetailExampleField.addSettingsProvider(p -> {
             setSyntaxHighlighting(p, java);
             p.setVerticalScrollbarVisible(true);
@@ -276,9 +277,15 @@ public class PMDResultPanel extends JPanel {
         htmlPane.setContentType("text/html");
         htmlPane.setOpaque(false);
         htmlPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
-        htmlPane.setBorder(JBUI.Borders.empty(0, 5, 10, 5));
+        htmlPane.setBorder(JBUI.Borders.empty(0, 4, 10, 4));
         htmlPane.setText("Click on a rule or violation for details.");
         htmlPane.setCaretPosition(0);
+        htmlPane.addHyperlinkListener(e -> {
+            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                BrowserUtil.browse(e.getURL().toString());
+            }
+        });
+
         JBScrollPane scrollPane = new JBScrollPane(htmlPane);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -296,6 +303,10 @@ public class PMDResultPanel extends JPanel {
         if (node instanceof HasRule) {
             rule = ((HasRule) node).getRule();
             message = rule.getMessage();
+            String langId = rule.getLanguage().getId(); // java or kotlin
+            String name = langId.equals("kotlin") ? "Kotlin" : "JAVA";
+            FileType fileType = FileTypeManager.getInstance().findFileTypeByName(name);
+            ruleDetailExampleField.setFileType(fileType);
         }
         if (node instanceof HasMessage) {
             message = ((HasMessage) node).getMessage();
@@ -309,15 +320,38 @@ public class PMDResultPanel extends JPanel {
     }
 
     private static @NotNull String getHtmlText(String message, @Nullable Rule rule) {
-        String header = message.trim().replaceAll(" +", " "); // remove redundant spaces
-        String desc = "";
+        StringBuilder htmlBuilder = new StringBuilder("<html>");
+        // style for hyperlink
+        htmlBuilder.append("<head><style>a { color: #589df6; text-decoration: none; } a:hover { text-decoration: underline; }</style></head>");
+        // header
+        htmlBuilder.append("<body><b>").append(message.trim().replaceAll(" +", " ")).append("</b>"); // remove redundant spaces
+
         if (rule != null) {
-            desc = rule.getDescription();
+            PropertyDescriptor<?> tagsDescriptor = rule.getPropertyDescriptor("tags");
+            if (tagsDescriptor != null) {
+                Object value = rule.getProperty(tagsDescriptor);
+                if (value != null) {
+                    String tags = COMMA_PATTERN.matcher(value.toString()).replaceAll(", $1"); // add space after comma
+                    htmlBuilder.append("<br><br><b><i>Tags:</i></b>");
+                    htmlBuilder.append("<span style='color: rgb(205, 115, 0)").append("'>").append(tags).append("</span>");
+                }
+            }
+            String desc = rule.getDescription();
             desc = PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN.matcher(desc).replaceAll("<br>\n<b><i>$1</i></b>");
             desc = BRACED_RULES_NAME_PATTERN.matcher(desc).replaceAll("");
             desc = desc.trim();
+            if (!desc.startsWith("<br>")) {
+                desc = "<br>" + desc;
+            }
+            String url = rule.getExternalInfoUrl();
+            String link = "";
+            if (url != null && !url.isEmpty()) {
+                link = "<br><a href=\"" + url + "\">Full documentation</a>";
+            }
+            htmlBuilder.append(desc).append(link);
         }
-        return "<html lang=\"en\"><body><b>" + header + "</b><br>" + desc + "</body></html>";
+        htmlBuilder.append("</body></html>");
+        return htmlBuilder.toString();
     }
 
     private static @NotNull String getFormattedExamples(@Nullable Rule rule) {
