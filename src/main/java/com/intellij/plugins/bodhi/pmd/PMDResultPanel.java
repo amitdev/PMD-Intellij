@@ -332,7 +332,7 @@ public class PMDResultPanel extends JPanel {
                 Object value = rule.getProperty(tagsDescriptor);
                 if (value != null) {
                     String tags = COMMA_PATTERN.matcher(value.toString()).replaceAll(", $1"); // add space after comma
-                    htmlBuilder.append("<br><br><b><i>Tags:</i></b>");
+                    htmlBuilder.append("<br><br><b><i>Tags: </i></b>");
                     htmlBuilder.append("<span style='color: rgb(205, 115, 0)").append("'>").append(tags).append("</span>");
                 }
             }
