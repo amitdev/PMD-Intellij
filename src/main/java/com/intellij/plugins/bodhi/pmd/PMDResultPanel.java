@@ -6,10 +6,16 @@ import com.intellij.ide.*;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.ex.EditorEx;
+import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory;
+import com.intellij.openapi.editor.impl.DocumentImpl;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
+import com.intellij.openapi.fileTypes.FileType;
+import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -19,10 +25,15 @@ import com.intellij.plugins.bodhi.pmd.actions.AnEDTAction;
 import com.intellij.plugins.bodhi.pmd.core.*;
 import com.intellij.plugins.bodhi.pmd.tree.*;
 import com.intellij.pom.Navigatable;
+import com.intellij.ui.EditorTextField;
+import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.treeStructure.Tree;
 import com.intellij.usageView.UsageViewBundle;
+import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.tree.TreeUtil;
 import net.sourceforge.pmd.lang.rule.Rule;
+import net.sourceforge.pmd.properties.PropertyDescriptor;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
 import net.sourceforge.pmd.reporting.Report;
 import org.jetbrains.annotations.NotNull;
@@ -31,13 +42,13 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.text.View;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -49,6 +60,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static javax.swing.tree.TreeSelectionModel.SINGLE_TREE_SELECTION;
+
 /**
  * The result panel where the PMD results are shown. This includes a toolbar and
  * tree to show the violations found in a pmd run.
@@ -58,17 +71,20 @@ import java.util.regex.Pattern;
  */
 public class PMDResultPanel extends JPanel {
 
-    private static final Pattern PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN = Pattern.compile("\\s+(Problem: |Solution: |Note: |Exceptions:)");
-    private static final Pattern INNER_LINE_BREAK_PATTERN = Pattern.compile("([^\\.\\n])\\n");
-    private static final Pattern DOT_ENDLINE_SPACE_PATTERN = Pattern.compile("\\.\\n ");
-    private static final Pattern BRACED_RULES_NAME_PATTERN = Pattern.compile("\\s+\\([\\w-]+-rules\\)\\s*");
-    private final JTree resultTree;
+    private static final Pattern PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN = Pattern.compile("\\s*(Problem: |Solution: |Note: |Exceptions: )");
+    private static final Pattern BRACED_RULES_NAME_PATTERN = Pattern.compile("\\([\\w-]+-rules\\)\\s*$", Pattern.MULTILINE);
+    private static final Pattern COMMA_PATTERN = Pattern.compile(",([^\\s])");
+    private final Tree resultTree;
     private final PMDProjectComponent projectComponent;
-    private final JTextArea ruleDetailjTextArea;
+    // html documentation
+    private final JEditorPane htmlPane = new JEditorPane();
+    // code example with syntax highlighting
+    private final EditorTextField ruleDetailExampleField = new EditorTextField();
+    private final OnePixelSplitter detailSplit = new OnePixelSplitter(true);
     private PMDRootNode rootNode;
     private PMDErrorBranchNode processingErrorsNode;
     private boolean scrolling;
-    private final PMDPopupMenu popupMenu;
+    private PMDPopupMenu popupMenu;
     public static final String PMD_SUPPRESSION = "//NOPMD";
 
     /**
@@ -83,20 +99,8 @@ public class PMDResultPanel extends JPanel {
         setBorder(new EmptyBorder(2, 2, 2, 2));
 
         // Create the tree which can show tooltips as well.
-        resultTree = new JTree() {
-            public String getToolTipText(MouseEvent evt) {
-                if (getRowForLocation(evt.getX(), evt.getY()) == -1)
-                    return null;
-                TreePath curPath = getPathForLocation(evt.getX(), evt.getY());
-                if (curPath != null) {
-                    DefaultMutableTreeNode node = (DefaultMutableTreeNode)curPath.getLastPathComponent();
-                    if (node instanceof BasePMDNode) {
-                        return ((BasePMDNode) node).getToolTip();
-                    }
-                }
-                return super.getToolTipText(evt);
-            }
-        };
+        resultTree = createResultTree();
+
         ToolTipManager.sharedInstance().registerComponent(resultTree);
 
         //Create the actions of the toolbar and create it.
@@ -114,49 +118,77 @@ public class PMDResultPanel extends JPanel {
 
         resultTree.setCellRenderer(new PMDCellRenderer());
         TreeUtil.expandAll(resultTree);
-        JBScrollPane treeScrollPane = new JBScrollPane(resultTree);
-        treeScrollPane.setPreferredSize(new Dimension(600, 300));
-        add(treeScrollPane);
-
-        ruleDetailjTextArea = new JTextArea("Click on a rule or violation node to see its description with example.");
-        ruleDetailjTextArea.setEditable(false);
-        ruleDetailjTextArea.setLineWrap(true);
-        ruleDetailjTextArea.setWrapStyleWord(true);
-        JBScrollPane textScrollPane = new JBScrollPane(ruleDetailjTextArea);
-
-        textScrollPane.setPreferredSize(new Dimension(600, 300));
-        add(textScrollPane);
-
+        resultTree.setExpandsSelectedPaths(true);
+        resultTree.getSelectionModel().setSelectionMode(SINGLE_TREE_SELECTION);
+        add(buildMainSplit());
 
         //Add right-click menu to the tree
-        popupMenu = new PMDPopupMenu(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                final List<PMDViolation> violations = popupMenu.getViolations();
-                if (e.getActionCommand().equals(PMDPopupMenu.SUPPRESS)) {
-                    // suppress all selected violations, max 1 per file+line
-                    Map<String, PMDViolation> uniqueViolationsMap = new HashMap<>();
-                    for (PMDViolation violation : violations) {
-                        uniqueViolationsMap.put(violation.getFilePath() + ":" + violation.getBeginLine(), violation);
+        createPmdPopupMenu();
+
+        //Add mouse listener to support single and double click and popup actions.
+        MouseAdapter treeMouseListener = createTreeMouseListener();
+        resultTree.addMouseListener(treeMouseListener);
+    }
+
+    private @NotNull Tree createResultTree() {
+        final Tree resultTree;
+        resultTree = new Tree() {
+            public String getToolTipText(MouseEvent evt) {
+                if (getRowForLocation(evt.getX(), evt.getY()) == -1)
+                    return null;
+                TreePath curPath = getPathForLocation(evt.getX(), evt.getY());
+                if (curPath != null) {
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode)curPath.getLastPathComponent();
+                    if (node instanceof BasePMDNode) {
+                        return ((BasePMDNode) node).getToolTip();
                     }
-                    for (PMDViolation violation : uniqueViolationsMap.values()) {
-                        //Suppress the violation
-                        final Editor editor = openEditor(violation);
-                        if (editor != null) {
-                            executeWrite(editor, violation);
-                        }
+                }
+                return super.getToolTipText(evt);
+            }
+        };
+        return resultTree;
+    }
+
+    /**
+     * Creates an instance of {@link PMDPopupMenu} configured with actions for handling PMD violations.
+     * The menu includes actions for suppressing selected violations and displaying rule details.
+     */
+    private void createPmdPopupMenu() {
+        popupMenu = new PMDPopupMenu(e -> {
+            final List<PMDViolation> violations = popupMenu.getViolations();
+            if (e.getActionCommand().equals(PMDPopupMenu.SUPPRESS)) {
+                // suppress all selected violations, max 1 per file+line
+                Map<String, PMDViolation> uniqueViolationsMap = new HashMap<>();
+                for (PMDViolation violation : violations) {
+                    uniqueViolationsMap.put(violation.getFilePath() + ":" + violation.getBeginLine(), violation);
+                }
+                for (PMDViolation violation : uniqueViolationsMap.values()) {
+                    //Suppress the violation
+                    final Editor editor = openEditor(violation);
+                    if (editor != null) {
+                        executeWrite(editor, violation);
                     }
-                } else if (e.getActionCommand().equals(PMDPopupMenu.DETAILS)) {
-                    // show rule details documentation in browser
-                    String url = popupMenu.getDetailsUrl();
-                    if (!url.isEmpty()) {
-                        BrowserUtil.browse(url);
-                    }
+                }
+            } else if (e.getActionCommand().equals(PMDPopupMenu.DETAILS)) {
+                // show rule details documentation in browser
+                String url = popupMenu.getDetailsUrl();
+                if (!url.isEmpty()) {
+                    BrowserUtil.browse(url);
                 }
             }
         });
+    }
 
-        //Add mouse listener to support double click and popup actions.
-        resultTree.addMouseListener(new MouseAdapter() {
+    /**
+     * Creates a MouseAdapter to handle mouse interactions with the result tree.
+     * - On single click: Updates the rule details in the UI.
+     * - On double click: Highlights the finding in the editor for all selected nodes.
+     * - On right-click (popup trigger): Displays a context menu for the selected nodes.
+     *
+     * @return A MouseAdapter instance responsible for handling tree mouse interactions.
+     */
+    private @NotNull MouseAdapter createTreeMouseListener() {
+        return new MouseAdapter() {
             //Get the current tree node where the mouse event happened
             private DefaultMutableTreeNode[] getNodeFromEvent(MouseEvent e) {
                 TreePath[] selectionPaths = resultTree.getSelectionPaths();
@@ -174,14 +206,13 @@ public class PMDResultPanel extends JPanel {
                 DefaultMutableTreeNode[] treeNodes = getNodeFromEvent(e);
                 if (treeNodes != null) {
                     DefaultMutableTreeNode node = treeNodes[0];
-                    setRuleDetailsOnTextArea(node);
+                    setRuleDetailsOnDocField(node);
 
                     if (e.getClickCount() == 2) {
                         for (DefaultMutableTreeNode treeNode : treeNodes) {
                             highlightFindingInEditor(treeNode);
                         }
-                    }
-                    else {
+                    } else {
                         showPopup(treeNodes, e);
                     }
                 }
@@ -191,44 +222,166 @@ public class PMDResultPanel extends JPanel {
                 DefaultMutableTreeNode[] treeNodes = getNodeFromEvent(e);
                 showPopup(treeNodes, e);
             }
-        });
+        };
     }
 
-    private void setRuleDetailsOnTextArea(DefaultMutableTreeNode node) {
+    /**
+     * Configures and returns the main split view of the panel, which consists of two sections:
+     * a primary tree view on the left and a detailed documentation view on the right.
+     * The detailed documentation view itself is composed of two vertically split sections:
+     * a rule description field and an example field.
+     *
+     * @return a configured OnePixelSplitter instance representing the main split view of the panel
+     */
+    private @NotNull OnePixelSplitter buildMainSplit() {
+        ruleDetailExampleField.setOneLineMode(false);
+        ruleDetailExampleField.setFocusable(false);
+        ruleDetailExampleField.setOpaque(false);
+        ruleDetailExampleField.setViewer(true);
+        ruleDetailExampleField.setBorder(JBUI.Borders.empty(1, 2));
+        FileType java = FileTypeManager.getInstance().getFileTypeByExtension("java");
+        ruleDetailExampleField.setFileType(java); // default to start with
+        ruleDetailExampleField.addSettingsProvider(p -> {
+            setSyntaxHighlighting(p, java);
+            p.setVerticalScrollbarVisible(true);
+            p.setHorizontalScrollbarVisible(true);
+            p.getSettings().setUseSoftWraps(false);
+            });
+        Document exampleDocument = new DocumentImpl("// Example code shows here");
+        ruleDetailExampleField.setDocument(exampleDocument);
+
+        // Scrolling en viewport
+        JBScrollPane scrollPane = new JBScrollPane(resultTree);
+        scrollPane.setHorizontalScrollBarPolicy(JBScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(JBScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+        // Main horizontal split between primary-tree and detail-doc
+        OnePixelSplitter mainSplit = new OnePixelSplitter(false); // horizontal
+        mainSplit.setFirstComponent(scrollPane);
+
+        // Vertical split for the two detail-doc
+        detailSplit.setFirstComponent(createHtmlRuleDetailPanel());
+        detailSplit.setSecondComponent(ruleDetailExampleField);
+
+        // Add detailSplit to the main split
+        mainSplit.setSecondComponent(detailSplit);
+
+        // Set initial divider positions
+        mainSplit.setProportion(0.5f); // 50% each
+        detailSplit.setProportion(0.5f);
+        return mainSplit;
+    }
+
+    private @NotNull JComponent createHtmlRuleDetailPanel() {
+        htmlPane.setEditable(false);
+        htmlPane.setContentType("text/html");
+        htmlPane.setOpaque(false);
+        htmlPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
+        htmlPane.setBorder(JBUI.Borders.empty(0, 4, 10, 4));
+        htmlPane.setText("Click on a rule or violation for details.");
+        htmlPane.setCaretPosition(0);
+        htmlPane.addHyperlinkListener(e -> {
+            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                BrowserUtil.browse(e.getURL().toString());
+            }
+        });
+
+        JBScrollPane scrollPane = new JBScrollPane(htmlPane);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        return scrollPane;
+    }
+
+    private void setSyntaxHighlighting(EditorEx p, FileType fileType) {
+        ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() ->
+                p.setHighlighter(EditorHighlighterFactory.getInstance().createEditorHighlighter(projectComponent.getCurrentProject(), fileType))));
+    }
+
+    private void setRuleDetailsOnDocField(DefaultMutableTreeNode node) {
         Rule rule = null;
         String message = "";
         if (node instanceof HasRule) {
             rule = ((HasRule) node).getRule();
             message = rule.getMessage();
+            String langId = rule.getLanguage().getId(); // java or kotlin
+            String name = langId.equals("kotlin") ? "Kotlin" : "JAVA";
+            FileType fileType = FileTypeManager.getInstance().findFileTypeByName(name);
+            ruleDetailExampleField.setFileType(fileType);
         }
         if (node instanceof HasMessage) {
             message = ((HasMessage) node).getMessage();
         }
-        ruleDetailjTextArea.setText(getFormattedText(message, rule));
-        ruleDetailjTextArea.setCaretPosition(0);
+        htmlPane.setText(getHtmlText(message, rule));
+        htmlPane.setCaretPosition(0);
+        adjustSplitProportionBasedOnContent(detailSplit, htmlPane);
+
+        ruleDetailExampleField.setText(getFormattedExamples(rule));
+        ruleDetailExampleField.setCaretPosition(0);
     }
 
-    private static @NotNull String getFormattedText(String message, @Nullable Rule rule) {
-        String header = message.trim().replaceAll(" +", " ") + "\n\n"; // remove redundant spaces
-        String desc = "";
-        String examples = "";
+    private static @NotNull String getHtmlText(String message, @Nullable Rule rule) {
+        StringBuilder htmlBuilder = new StringBuilder("<html>");
+        // style for hyperlink
+        htmlBuilder.append("<head><style>a { color: #589df6; text-decoration: none; } a:hover { text-decoration: underline; }</style></head>");
+        // header
+        htmlBuilder.append("<body><b>").append(message.trim().replaceAll(" +", " ")).append("</b>"); // remove redundant spaces
+
         if (rule != null) {
-            desc = rule.getDescription();
-            desc = PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN.matcher(desc).replaceAll("\n\n$1");
-            desc = INNER_LINE_BREAK_PATTERN.matcher(desc).replaceAll("$1 ");
-            desc = desc.replaceAll(" +", " "); // remove multiple spaces
-            desc = DOT_ENDLINE_SPACE_PATTERN.matcher(desc).replaceAll(". ");
+            PropertyDescriptor<?> tagsDescriptor = rule.getPropertyDescriptor("tags");
+            if (tagsDescriptor != null) {
+                Object value = rule.getProperty(tagsDescriptor);
+                if (value != null) {
+                    String tags = COMMA_PATTERN.matcher(value.toString()).replaceAll(", $1"); // add space after comma
+                    htmlBuilder.append("<br><br><b><i>Tags: </i></b>");
+                    htmlBuilder.append("<span style='color: rgb(205, 115, 0)").append("'>").append(tags).append("</span>");
+                }
+            }
+            String desc = rule.getDescription();
+            desc = PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN.matcher(desc).replaceAll("<br>\n<b><i>$1</i></b>");
             desc = BRACED_RULES_NAME_PATTERN.matcher(desc).replaceAll("");
             desc = desc.trim();
+            if (!desc.startsWith("<br>")) {
+                desc = "<br>" + desc;
+            }
+            String url = rule.getExternalInfoUrl();
+            String link = "";
+            if (url != null && !url.isEmpty()) {
+                link = "<br><a href=\"" + url + "\">Full documentation</a>";
+            }
+            htmlBuilder.append(desc).append(link);
+        }
+        htmlBuilder.append("</body></html>");
+        return htmlBuilder.toString();
+    }
+
+    private static @NotNull String getFormattedExamples(@Nullable Rule rule) {
+        String examples = "";
+        if (rule != null) {
             StringBuilder examplesBld = new StringBuilder();
             for (String example : rule.getExamples()) {
                 examplesBld.append(example.trim()).append("\n\n");
             }
             if (!rule.getExamples().isEmpty()) {
-                examples += "\n\nExample:\n\n" + examplesBld;
+                examples += "// Example:\n" + examplesBld;
             }
         }
-        return header + desc + examples;
+        return examples;
+    }
+
+    private void adjustSplitProportionBasedOnContent(OnePixelSplitter splitter, JEditorPane htmlPane) {
+        SwingUtilities.invokeLater(() -> {
+            // Calculate the necessary height for the htmlPane
+            View view = htmlPane.getUI().getRootView(htmlPane);
+            float preferredHeight = view.getPreferredSpan(View.Y_AXIS);
+            // Calculate the necessary height for the splitter
+            float totalHeight = splitter.getHeight();
+            if (totalHeight > 0) {
+                preferredHeight += 10; // extra space for the border
+                // Calculate the proportion of the splitter to use based on the preferred height
+                float proportion = Math.min(0.85f, Math.max(0.15f, preferredHeight / totalHeight));
+                splitter.setProportion(proportion);
+            }
+        });
     }
 
     /**
@@ -340,16 +493,16 @@ public class PMDResultPanel extends JPanel {
             public OccurenceInfo goNextOccurence() {
                 OccurenceInfo info = super.goNextOccurence();
                 if (info.getNavigateable() instanceof DefaultMutableTreeNode node) {
-                    setRuleDetailsOnTextArea(node);
+                    setRuleDetailsOnDocField(node);
                 }
                 return info;
             }
 
             @Override
             public OccurenceInfo goPreviousOccurence() {
-                OccurenceInfo info = super.goNextOccurence();
+                OccurenceInfo info = super.goPreviousOccurence();
                 if (info.getNavigateable() instanceof DefaultMutableTreeNode node) {
-                    setRuleDetailsOnTextArea(node);
+                    setRuleDetailsOnDocField(node);
                 }
                 return info;
             }
