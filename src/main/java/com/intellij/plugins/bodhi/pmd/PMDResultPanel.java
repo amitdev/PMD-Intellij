@@ -405,8 +405,10 @@ public class PMDResultPanel extends JPanel {
                     popupMenu.setDetailsUrl(((HasRule)treeNode).getRule().getExternalInfoUrl());
                 }
             }
-            //Display popup
-            popupMenu.getMenu().show(resultTree, e.getX(), e.getY());
+            //Display popup only if actions are possible
+            if (popupMenu.hasVisibleMenuItems()) {
+                popupMenu.getMenu().show(resultTree, e.getX(), e.getY());
+            }
         }
     }
 
