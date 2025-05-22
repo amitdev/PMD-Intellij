@@ -323,10 +323,17 @@ public class PMDResultPanel extends JPanel {
         StringBuilder htmlBuilder = new StringBuilder("<html>");
         // style for hyperlink
         htmlBuilder.append("<head><style>a { color: #589df6; text-decoration: none; } a:hover { text-decoration: underline; }</style></head>");
-        // header
-        htmlBuilder.append("<body><b>").append(message.trim().replaceAll(" +", " ")).append("</b>"); // remove redundant spaces
-
-        if (rule != null) {
+        if (rule == null) {
+            // header
+            String[] splits = message.split("\n\n", 2);
+            htmlBuilder.append("<body><b>").append(splits[0]).append("</b>");
+            if (splits.length > 1) {
+                htmlBuilder.append("<br><br>");
+                htmlBuilder.append("<pre>").append(splits[1]).append("</pre>");
+            }
+        } else {
+            // header
+            htmlBuilder.append("<body><b>").append(message.trim().replaceAll(" +", " ")).append("</b>"); // remove redundant spaces
             PropertyDescriptor<?> tagsDescriptor = rule.getPropertyDescriptor("tags");
             if (tagsDescriptor != null) {
                 Object value = rule.getProperty(tagsDescriptor);
