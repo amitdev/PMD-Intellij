@@ -92,7 +92,7 @@ public class PMDUtil {
         }
     }
 
-    public static void listFiles(VirtualFile item, final List<File> result, final VirtualFileFilter filter, final boolean skipDirectories) {
+    public static void listFiles(VirtualFile item, final List<VirtualFile> result, final VirtualFileFilter filter, final boolean skipDirectories) {
         VfsUtilCore.visitChildrenRecursively(item, new VirtualFileVisitor<>() {
             @Override
             public boolean visitFile(@NotNull VirtualFile file) {
@@ -100,7 +100,7 @@ public class PMDUtil {
                     return false;
                 }
                 if(!file.isDirectory() || !skipDirectories) {
-                    result.add(new File(file.getPresentableUrl()));
+                    result.add(file);
                 }
                 return true;
             }

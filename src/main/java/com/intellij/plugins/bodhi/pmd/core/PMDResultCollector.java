@@ -1,6 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.plugins.bodhi.pmd.ConfigOption;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
@@ -58,7 +59,7 @@ public class PMDResultCollector {
      * @param ruleSetPath      The path of the ruleSet to run
      * @return list of results
      */
-    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSetPath, PMDProjectComponent comp) {
+    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<VirtualFile> files, String ruleSetPath, PMDProjectComponent comp) {
         return this.runPMDAndGetResults(files, ruleSetPath, comp, null);
     }
 
@@ -69,8 +70,8 @@ public class PMDResultCollector {
      * @param ruleSetPath The path of the ruleSet to run
      * @return list of results
      */
-    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, String ruleSetPath, PMDProjectComponent comp, Renderer extraRenderer) {
-        return runPMDAndGetResults(files,List.of(), ruleSetPath, comp, extraRenderer);
+    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<VirtualFile> files, String ruleSetPath, PMDProjectComponent comp, Renderer extraRenderer) {
+        return runPMDAndGetResults(files, List.of(), ruleSetPath, comp, extraRenderer);
     }
 
     /**
@@ -80,7 +81,7 @@ public class PMDResultCollector {
      * @param ruleSetPath The path of the ruleSet to run
      * @return list of results
      */
-    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<File> files, List<TextFile> textFiles, String ruleSetPath, PMDProjectComponent comp, Renderer extraRenderer) {
+    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<VirtualFile> files, List<TextFile> textFiles, String ruleSetPath, PMDProjectComponent comp, Renderer extraRenderer) {
         Map<ConfigOption, String> options = comp.getOptionToValue();
         Project project = comp.getCurrentProject();
 
@@ -103,7 +104,10 @@ public class PMDResultCollector {
             if (extraRenderer != null) renderers.add(extraRenderer);
 
             try (PmdAnalysis pmd = PmdAnalysis.create(pmdConfig)) {
-                files.forEach(file -> pmd.files().addFile(file.toPath()));
+                files.forEach(file -> {
+                    pmd.files().setCharset(file.getCharset());
+                    pmd.files().addFile(file.toNioPath());
+                });
                 textFiles.forEach(pmd.files()::addFile);
                 pmd.addRenderers(renderers);
                 report = pmd.performAnalysisAndCollectReport();
