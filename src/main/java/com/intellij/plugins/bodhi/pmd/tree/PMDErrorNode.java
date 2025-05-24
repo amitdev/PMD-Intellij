@@ -4,6 +4,8 @@ import com.intellij.plugins.bodhi.pmd.core.HasMessage;
 import com.intellij.plugins.bodhi.pmd.core.PMDProcessingError;
 import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 
+import java.nio.file.Path;
+
 /**
  * PMD leaf tree node for processing errors. It is Navigatable,
  * so that the user can navigate to the source of the processing error.
@@ -20,7 +22,7 @@ public class PMDErrorNode extends PMDLeafNode implements HasMessage {
 
     @Override
     public String getToolTip() {
-        return pmdProcessingError.getCauseMsg();
+        return pmdProcessingError.getMsg();
     }
 
     @Override
@@ -33,7 +35,8 @@ public class PMDErrorNode extends PMDLeafNode implements HasMessage {
         cellRenderer.setIcon(Severity.BLOCKER.getIcon());
         // Show error position greyed, like idea shows.
         cellRenderer.append(pmdProcessingError.getPositionText(), GRAYED_ATTRIBUTES);
-        cellRenderer.append(pmdProcessingError.getMsg()); // includes simple class and file name
+        cellRenderer.append(Path.of(pmdProcessingError.getFilePath()).getFileName().toString());
+        cellRenderer.append(" " + pmdProcessingError.getError().getClass().getSimpleName(), GRAYED_ATTRIBUTES);
     }
 
     @Override
