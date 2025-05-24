@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toMap;
@@ -20,11 +21,11 @@ import static java.util.stream.Collectors.toMap;
 public enum Severity {
     BLOCKER(RulePriority.HIGH, "Blocker", AllIcons.Ide.FatalError,
             new JBColor(new Color(218, 8, 8), new Color(255, 98, 98))),
-    CRITICAL(RulePriority.MEDIUM_HIGH, "Critical", AllIcons.Debugger.KillProcess,
+    HIGH(RulePriority.MEDIUM_HIGH, "High", PMDIcons.ICON_HIGH,
             new JBColor(new Color(208, 108, 8), new Color(255, 158, 8))),
-    MAJOR(RulePriority.MEDIUM, "Major", AllIcons.General.Warning,
+    MEDIUM(RulePriority.MEDIUM, "Medium", AllIcons.General.Warning,
             new JBColor(new Color(178, 118, 8), new Color(248, 198, 8))),
-    MINOR(RulePriority.MEDIUM_LOW, "Minor", AllIcons.Nodes.WarningIntroduction,
+    LOW(RulePriority.MEDIUM_LOW, "Low", AllIcons.Nodes.WarningIntroduction,
             new JBColor(new Color(128, 128, 118), new Color(208, 208, 198))),
     INFO(RulePriority.LOW, "Info", AllIcons.General.Information,
             new JBColor(new Color(48, 78, 208), new Color(148, 188, 255)));
@@ -33,6 +34,8 @@ public enum Severity {
     private final String name;
     private final Icon icon;
     private final Color color;
+
+    private static final Map<RulePriority, Severity> prioToSeverity = Stream.of(values()).collect(toMap(Severity::getRulePriority, Function.identity()));
     private static final Map<RulePriority, Icon> prioToIcon = Stream.of(values()).collect(toMap(Severity::getRulePriority, Severity::getIcon));
 
 
@@ -47,7 +50,10 @@ public enum Severity {
         return rulePriority;
     }
 
-    public static Icon iconOf(RulePriority rulePrio) {
+    public static Severity of(@NotNull RulePriority rulePrio) {
+        return prioToSeverity.get(rulePrio);
+    }
+    public static Icon iconOf(@NotNull RulePriority rulePrio) {
         return prioToIcon.get(rulePrio);
     }
 
