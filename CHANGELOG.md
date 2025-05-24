@@ -3,6 +3,10 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+### Changed
+- Bug fixes
+- Support for Kotlin rul0es
+- Update to PMD version 7.13.0
 
 ## [2.0.6] - 2025-05-04
 
