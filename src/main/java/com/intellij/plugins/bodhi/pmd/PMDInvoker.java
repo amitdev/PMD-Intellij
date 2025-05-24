@@ -91,7 +91,7 @@ public class PMDInvoker {
         PMDResultPanel resultPanel = projectComponent.getResultPanel();
         PMDRootNode rootNode = resultPanel.getRootNode();
 
-        List<File> files = new LinkedList<>();
+        List<VirtualFile> files = new LinkedList<>();
         if (actionEvent.getPlace().equals(ActionPlaces.PROJECT_VIEW_POPUP)
                 || actionEvent.getPlace().equals(ActionPlaces.SCOPE_VIEW_POPUP)
                 || actionEvent.getPlace().equals(ActionPlaces.CHANGES_VIEW_POPUP)
@@ -130,7 +130,7 @@ public class PMDInvoker {
                 rootNode.setFileCount(0);
                 return;
             }
-            files.add(new File(selectedFiles[0].getPresentableUrl()));
+            files.add(selectedFiles[0]);
         }
 
         //Got the files, start processing now
@@ -144,7 +144,7 @@ public class PMDInvoker {
      * @param files The files on which to run
      * @param projectComponent
      */
-    public void processFiles(Project project, final String ruleSetPaths, final List<File> files, final PMDProjectComponent projectComponent) {
+    public void processFiles(Project project, final String ruleSetPaths, final List<VirtualFile> files, final PMDProjectComponent projectComponent) {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PMDProjectComponent.TOOL_ID);
         if (toolWindow != null) {
             toolWindow.activate(null);

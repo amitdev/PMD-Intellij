@@ -8,6 +8,7 @@ import com.intellij.openapi.vcs.CheckinProjectPanel;
 import com.intellij.openapi.vcs.changes.CommitExecutor;
 import com.intellij.openapi.vcs.checkin.CheckinHandler;
 import com.intellij.openapi.vcs.ui.RefreshableOnComponent;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.plugins.bodhi.pmd.PMDInvoker;
@@ -107,7 +108,7 @@ public class PMDCheckinHandler extends CheckinHandler {
     private PMDRuleSetNode scanFiles(String ruleSetPath, PMDProjectComponent plugin) {
         PMDRuleSetNode ruleSetResultNode = null;
         PMDResultCollector collector = new PMDResultCollector();
-        List<File> files = new ArrayList<>(checkinProjectPanel.getFiles());
+        List<VirtualFile> files = new ArrayList<>(checkinProjectPanel.getVirtualFiles());
 
         List<PMDRuleSetEntryNode> ruleSetResultNodes = collector.runPMDAndGetResults(files, ruleSetPath, plugin);
         if (!ruleSetResultNodes.isEmpty()) {
