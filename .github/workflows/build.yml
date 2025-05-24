@@ -32,7 +32,6 @@ jobs:
     outputs:
       version: ${{ steps.properties.outputs.version }}
       changelog: ${{ steps.properties.outputs.changelog }}
-      pluginVerifierHomeDir: ${{ steps.properties.outputs.pluginVerifierHomeDir }}
     steps:
 
       # Check out the current repository
@@ -64,7 +63,6 @@ jobs:
           CHANGELOG="$(./gradlew getChangelog --unreleased --no-header --console=plain -q)"
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "pluginVerifierHomeDir=~/.pluginVerifier" >> $GITHUB_OUTPUT
           
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
@@ -154,17 +152,19 @@ jobs:
       # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      # Cache Plugin Verifier IDEs
-      - name: Setup Plugin Verifier IDEs Cache
-        uses: actions/cache@v4
         with:
-          path: ${{ needs.build.outputs.pluginVerifierHomeDir }}/ides
-          key: plugin-verifier-${{ hashFiles('build/listProductsReleases.txt') }}
+          # We don't store the cache of the verify job, as it takes too much space.
+          # It contains each IntelliJ IDEA version we test against. These versions
+          # are stored in ~/.gradle/caches/*/transforms/*/*/ideaIC* and each takes about 3GB.
+          # Use "du -hs ~/.gradle/caches/*/transforms/*/*/ideaIC*" to verify.
+          # This would be part of the cache "gradle-transforms-v1-...".
+          # Also, the cache "gradle-dependencies-v1-..." is much bigger for verify job.
+          # In total, the new caches are bigger than 10GB, which are available on GitHub by default.
+          cache-read-only: true
 
       # Run Verify Plugin task and IntelliJ Plugin Verifier tool
       - name: Run Plugin Verification tasks
-        run: ./gradlew verifyPlugin -Dplugin.verifier.home.dir=${{ needs.build.outputs.pluginVerifierHomeDir }}
+        run: ./gradlew verifyPlugin
 
       # Collect Plugin Verifier Result
       - name: Collect Plugin Verifier Result
