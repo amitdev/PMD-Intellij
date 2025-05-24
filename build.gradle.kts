@@ -106,6 +106,8 @@ intellijPlatform {
 
     pluginVerification {
         ides {
+            // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html#intellijPlatform-pluginVerification-ides
+            // recommended() automatically tests based on the current platformVersion
             recommended()
         }
     }
