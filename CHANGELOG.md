@@ -3,7 +3,11 @@
 # PMDPlugin Changelog
 
 ## [Unreleased]
+
+## [2.0.7] - 2025-05-24
+
 ### Changed
+
 - Bug fixes
 - Support for Kotlin rul0es
 - Update to PMD version 7.13.0
@@ -134,7 +138,8 @@
 
 - Update to PMD version 6.35.0 and optional anonymous status reporting
 
-[Unreleased]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.6...HEAD
+[Unreleased]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.7...HEAD
+[2.0.7]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.6...v2.0.7
 [2.0.6]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.4...v2.0.6
 [2.0.4]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.3...v2.0.4
 [2.0.3]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.2...v2.0.3
