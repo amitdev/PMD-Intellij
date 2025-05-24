@@ -9,19 +9,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The is the presentation class for the popup menu on violation result tree.
+ * This is the presentation class for the popup menu on violation result tree.
  *
  * @author bodhi
  * @version 1.0
  */
 public class PMDPopupMenu {
-
-    private final List<PMDViolation> violations = new ArrayList<>();
-    private final JPopupMenu menu;
     /** Menu label for suppress */
     public static final String SUPPRESS = "Suppress";
     /** Menu label for details - showing rule details */
-    public static final String DETAILS = "Details";
+    public static final String DETAILS = "Show online rule documentation";
+
+    private final JPopupMenu menu;
+    private final JMenuItem suppressMenuItem;
+    private final JMenuItem detailsMenuItem;
+
+    private final List<PMDViolation> violations = new ArrayList<>();
     private String detailsUrl = "";
 
 
@@ -32,13 +35,15 @@ public class PMDPopupMenu {
      */
     public PMDPopupMenu(@NotNull ActionListener actionListener) {
         this.menu = new JPopupMenu();
-        JMenuItem item = new JMenuItem(SUPPRESS);
-        item.addActionListener(actionListener);
-        this.menu.add(item);
+        this.suppressMenuItem = new JMenuItem(SUPPRESS);
+        suppressMenuItem.addActionListener(actionListener);
+        suppressMenuItem.setVisible(false);
+        this.menu.add(suppressMenuItem);
 
-        item = new JMenuItem(DETAILS);
-        item.addActionListener(actionListener);
-        this.menu.add(item);
+        detailsMenuItem = new JMenuItem(DETAILS);
+        detailsMenuItem.addActionListener(actionListener);
+        detailsMenuItem.setVisible(false);
+        this.menu.add(detailsMenuItem);
     }
 
     /**
@@ -47,9 +52,10 @@ public class PMDPopupMenu {
      * @param violation The PMD Violation of the node on which menu is shown
      */
     public void addViolation(PMDViolation violation) {
+        suppressMenuItem.setVisible(true);
         this.violations.add(violation);
         if (detailsUrl.isEmpty()) {
-            detailsUrl = violation.getExternalUrl();
+            setDetailsUrl(violation.getExternalUrl());
         }
     }
 
@@ -63,8 +69,9 @@ public class PMDPopupMenu {
     }
 
     public void clearViolationsAndUrl() {
+        suppressMenuItem.setVisible(false);
         violations.clear();
-        detailsUrl = "";
+        setDetailsUrl("");
     }
 
     /**
@@ -76,11 +83,17 @@ public class PMDPopupMenu {
         return menu;
     }
 
+    @NotNull
     public String getDetailsUrl() {
         return detailsUrl;
     }
 
     public void setDetailsUrl(String externalInfoUrl) {
-        detailsUrl = externalInfoUrl;
+        detailsUrl = externalInfoUrl != null ? externalInfoUrl : "";
+        detailsMenuItem.setVisible(!detailsUrl.isBlank());
+    }
+
+    public boolean hasVisibleMenuItems() {
+        return detailsMenuItem.isVisible() || suppressMenuItem.isVisible();
     }
 }
