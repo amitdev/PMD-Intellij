@@ -85,7 +85,7 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
         ActionManager actionMgr = ActionManager.getInstance();
         DefaultActionGroup actionGroup = (DefaultActionGroup) actionMgr.getAction(actionName);
         if (actionGroup != null) {
-            for (AnAction act : actionGroup.getChildren(null, actionMgr)) {
+            for (AnAction act : actionGroup.getChildActionsOrStubs()) {
                 String actName = "PMD" + act.getTemplatePresentation().getText();
                 if (actionMgr.getAction(actName) == null)
                     actionMgr.registerAction(actName, act);
@@ -119,7 +119,7 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
         PMDCustom actionGroup = (PMDCustom) actionManager.getAction("PMDCustom");
             if (numProjectsOpen.get() != 1) {
                 // merge actions from menu and from settings to not lose any when switching between projects
-                AnAction[] currentActions = actionGroup.getChildren(null, actionManager);
+                AnAction[] currentActions = actionGroup.getChildActionsOrStubs();
                 Set<String> ruleSetPathsFromMenu = new LinkedHashSet<>();
                 for (AnAction action : currentActions) {
                     if (action.getSynonyms().size() == 1) {
