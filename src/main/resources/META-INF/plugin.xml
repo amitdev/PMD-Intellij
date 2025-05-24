@@ -36,6 +36,7 @@
     <toolWindow id="PMD"
                 factoryClass="com.intellij.plugins.bodhi.pmd.PMDToolWindowFactory"
                 anchor="bottom"
+                icon="com.intellij.plugins.bodhi.pmd.tree.PMDIcons.PMD_GRAY"
                 canCloseContents="true"/>
     <externalAnnotator
             language="JAVA"

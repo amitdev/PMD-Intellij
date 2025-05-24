@@ -26,6 +26,7 @@ import com.intellij.plugins.bodhi.pmd.core.*;
 import com.intellij.plugins.bodhi.pmd.tree.*;
 import com.intellij.pom.Navigatable;
 import com.intellij.ui.EditorTextField;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
@@ -33,6 +34,7 @@ import com.intellij.usageView.UsageViewBundle;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.tree.TreeUtil;
 import net.sourceforge.pmd.lang.rule.Rule;
+import net.sourceforge.pmd.lang.rule.RulePriority;
 import net.sourceforge.pmd.properties.PropertyDescriptor;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
 import net.sourceforge.pmd.reporting.Report;
@@ -71,15 +73,14 @@ import static javax.swing.tree.TreeSelectionModel.SINGLE_TREE_SELECTION;
  */
 public class PMDResultPanel extends JPanel {
 
-    private static final Pattern PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN = Pattern.compile("\\s*(Problem: |Solution: |Note: |Exceptions: )");
     private static final Pattern BRACED_RULES_NAME_PATTERN = Pattern.compile("\\([\\w-]+-rules\\)\\s*$", Pattern.MULTILINE);
-    private static final Pattern COMMA_PATTERN = Pattern.compile(",([^\\s])");
     private final Tree resultTree;
     private final PMDProjectComponent projectComponent;
     // html documentation
-    private final JEditorPane htmlPane = new JEditorPane();
+    private final JEditorPane ruleHtmlPane = new JEditorPane();
     // code example with syntax highlighting
-    private final EditorTextField ruleDetailExampleField = new EditorTextField();
+    private final EditorTextField ruleExampleFieldJava = new EditorTextField();
+    private final EditorTextField ruleExampleFieldKotlin = new EditorTextField();
     private final OnePixelSplitter detailSplit = new OnePixelSplitter(true);
     private PMDRootNode rootNode;
     private PMDErrorBranchNode processingErrorsNode;
@@ -138,7 +139,7 @@ public class PMDResultPanel extends JPanel {
                     return null;
                 TreePath curPath = getPathForLocation(evt.getX(), evt.getY());
                 if (curPath != null) {
-                    DefaultMutableTreeNode node = (DefaultMutableTreeNode)curPath.getLastPathComponent();
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) curPath.getLastPathComponent();
                     if (node instanceof BasePMDNode) {
                         return ((BasePMDNode) node).getToolTip();
                     }
@@ -190,37 +191,32 @@ public class PMDResultPanel extends JPanel {
     private @NotNull MouseAdapter createTreeMouseListener() {
         return new MouseAdapter() {
             //Get the current tree node where the mouse event happened
-            private DefaultMutableTreeNode[] getNodeFromEvent(MouseEvent e) {
+            private DefaultMutableTreeNode getNodeFromEvent(MouseEvent e) {
+                DefaultMutableTreeNode result = null;
                 TreePath[] selectionPaths = resultTree.getSelectionPaths();
-                if (selectionPaths != null) {
-                    DefaultMutableTreeNode[] result = new DefaultMutableTreeNode[selectionPaths.length];
-                    for (int i = 0; i < result.length; i++) {
-                        result[i] = (DefaultMutableTreeNode) selectionPaths[i].getLastPathComponent();
-                    }
-                    return result;
+                if (selectionPaths != null && selectionPaths.length > 0 && selectionPaths[0] != null && selectionPaths[0].getLastPathComponent() instanceof DefaultMutableTreeNode) {
+                        result = (DefaultMutableTreeNode) selectionPaths[0].getLastPathComponent();
                 }
-                return null;
+                return result;
             }
 
             public void mousePressed(MouseEvent e) {
-                DefaultMutableTreeNode[] treeNodes = getNodeFromEvent(e);
-                if (treeNodes != null) {
-                    DefaultMutableTreeNode node = treeNodes[0];
-                    setRuleDetailsOnDocField(node);
-
+                DefaultMutableTreeNode treeNode = getNodeFromEvent(e);
+                if (treeNode != null) {
                     if (e.getClickCount() == 2) {
-                        for (DefaultMutableTreeNode treeNode : treeNodes) {
-                            highlightFindingInEditor(treeNode);
-                        }
+                        highlightFindingInEditor(treeNode);
                     } else {
-                        showPopup(treeNodes, e);
+                        showPopup(treeNode, e);
                     }
                 }
             }
 
             public void mouseReleased(MouseEvent e) {
-                DefaultMutableTreeNode[] treeNodes = getNodeFromEvent(e);
-                showPopup(treeNodes, e);
+                DefaultMutableTreeNode treeNode = getNodeFromEvent(e);
+                if (treeNode != null) {
+                    setRuleDetailsOnDocField(treeNode);
+                    showPopup(treeNode, e);
+                }
             }
         };
     }
@@ -234,21 +230,8 @@ public class PMDResultPanel extends JPanel {
      * @return a configured OnePixelSplitter instance representing the main split view of the panel
      */
     private @NotNull OnePixelSplitter buildMainSplit() {
-        ruleDetailExampleField.setOneLineMode(false);
-        ruleDetailExampleField.setFocusable(false);
-        ruleDetailExampleField.setOpaque(false);
-        ruleDetailExampleField.setViewer(true);
-        ruleDetailExampleField.setBorder(JBUI.Borders.empty(1, 2));
-        FileType java = FileTypeManager.getInstance().getFileTypeByExtension("java");
-        ruleDetailExampleField.setFileType(java); // default to start with
-        ruleDetailExampleField.addSettingsProvider(p -> {
-            setSyntaxHighlighting(p, java);
-            p.setVerticalScrollbarVisible(true);
-            p.setHorizontalScrollbarVisible(true);
-            p.getSettings().setUseSoftWraps(false);
-            });
-        Document exampleDocument = new DocumentImpl("// Example code shows here");
-        ruleDetailExampleField.setDocument(exampleDocument);
+        configureExampleField(ruleExampleFieldJava, FileTypeManager.getInstance().findFileTypeByName("JAVA"));
+        configureExampleField(ruleExampleFieldKotlin, FileTypeManager.getInstance().findFileTypeByName("Kotlin"));
 
         // Scrolling en viewport
         JBScrollPane scrollPane = new JBScrollPane(resultTree);
@@ -260,8 +243,8 @@ public class PMDResultPanel extends JPanel {
         mainSplit.setFirstComponent(scrollPane);
 
         // Vertical split for the two detail-doc
-        detailSplit.setFirstComponent(createHtmlRuleDetailPanel());
-        detailSplit.setSecondComponent(ruleDetailExampleField);
+        detailSplit.setFirstComponent(configureHtmlPanel());
+        detailSplit.setSecondComponent(ruleExampleFieldJava);
 
         // Add detailSplit to the main split
         mainSplit.setSecondComponent(detailSplit);
@@ -272,21 +255,37 @@ public class PMDResultPanel extends JPanel {
         return mainSplit;
     }
 
-    private @NotNull JComponent createHtmlRuleDetailPanel() {
-        htmlPane.setEditable(false);
-        htmlPane.setContentType("text/html");
-        htmlPane.setOpaque(false);
-        htmlPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
-        htmlPane.setBorder(JBUI.Borders.empty(0, 4, 10, 4));
-        htmlPane.setText("Click on a rule or violation for details.");
-        htmlPane.setCaretPosition(0);
-        htmlPane.addHyperlinkListener(e -> {
+    private void configureExampleField(EditorTextField exampleField, FileType fileType) {
+        exampleField.setOneLineMode(false);
+        exampleField.setFocusable(false);
+        exampleField.setOpaque(false);
+        exampleField.setViewer(true);
+        exampleField.setBorder(JBUI.Borders.empty(1, 2));
+        exampleField.setFileType(fileType);
+        exampleField.addSettingsProvider(p -> {
+            setSyntaxHighlighting(p, fileType);
+            p.setVerticalScrollbarVisible(true);
+            p.setHorizontalScrollbarVisible(true);
+            p.getSettings().setUseSoftWraps(false);
+        });
+        Document exampleDocument = new DocumentImpl("// Example " + fileType.getName() + " code shows here");
+        exampleField.setDocument(exampleDocument);
+    }
+
+    private @NotNull JComponent configureHtmlPanel() {
+        ruleHtmlPane.setEditable(false);
+        ruleHtmlPane.setContentType("text/html");
+        ruleHtmlPane.setOpaque(false);
+        ruleHtmlPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
+        ruleHtmlPane.setBorder(JBUI.Borders.empty(0, 4, 10, 4));
+        ruleHtmlPane.setText("Click on a rule or violation for details.");
+        ruleHtmlPane.setCaretPosition(0);
+        ruleHtmlPane.addHyperlinkListener(e -> {
             if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
                 BrowserUtil.browse(e.getURL().toString());
             }
         });
-
-        JBScrollPane scrollPane = new JBScrollPane(htmlPane);
+        JBScrollPane scrollPane = new JBScrollPane(ruleHtmlPane);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         return scrollPane;
@@ -297,85 +296,159 @@ public class PMDResultPanel extends JPanel {
                 p.setHighlighter(EditorHighlighterFactory.getInstance().createEditorHighlighter(projectComponent.getCurrentProject(), fileType))));
     }
 
-    private void setRuleDetailsOnDocField(DefaultMutableTreeNode node) {
-        Rule rule = null;
-        String message = "";
-        if (node instanceof HasRule) {
-            rule = ((HasRule) node).getRule();
-            message = rule.getMessage();
-            String langId = rule.getLanguage().getId(); // java or kotlin
-            String name = langId.equals("kotlin") ? "Kotlin" : "JAVA";
-            FileType fileType = FileTypeManager.getInstance().findFileTypeByName(name);
-            ruleDetailExampleField.setFileType(fileType);
-        }
-        if (node instanceof HasMessage) {
-            message = ((HasMessage) node).getMessage();
-        }
-        htmlPane.setText(getHtmlText(message, rule));
-        htmlPane.setCaretPosition(0);
-        adjustSplitProportionBasedOnContent(detailSplit, htmlPane);
-
-        ruleDetailExampleField.setText(getFormattedExamples(rule));
-        ruleDetailExampleField.setCaretPosition(0);
-    }
-
-    private static @NotNull String getHtmlText(String message, @Nullable Rule rule) {
-        StringBuilder htmlBuilder = new StringBuilder("<html>");
-        // style for hyperlink
-        htmlBuilder.append("<head><style>a { color: #589df6; text-decoration: none; } a:hover { text-decoration: underline; }</style></head>");
-        if (rule == null) {
-            // header
-            String[] splits = message.split("\n\n", 2);
-            htmlBuilder.append("<body><b>").append(splits[0]).append("</b>");
-            if (splits.length > 1) {
-                htmlBuilder.append("<br><br>");
-                htmlBuilder.append("<pre>").append(splits[1]).append("</pre>");
-            }
-        } else {
-            // header
-            htmlBuilder.append("<body><b>").append(message.trim().replaceAll(" +", " ")).append("</b>"); // remove redundant spaces
-            PropertyDescriptor<?> tagsDescriptor = rule.getPropertyDescriptor("tags");
-            if (tagsDescriptor != null) {
-                Object value = rule.getProperty(tagsDescriptor);
-                if (value != null) {
-                    String tags = COMMA_PATTERN.matcher(value.toString()).replaceAll(", $1"); // add space after comma
-                    htmlBuilder.append("<br><br><b><i>Tags: </i></b>");
-                    htmlBuilder.append("<span style='color: rgb(205, 115, 0)").append("'>").append(tags).append("</span>");
+    private void setRuleDetailsOnDocField(@Nullable DefaultMutableTreeNode node) {
+        String htmlText = "Click on a rule or violation for details.";
+        String exampleText = "Code example(s) shows here.";
+        EditorTextField exampleFieldToShow = ruleExampleFieldJava; // default
+        if (node != null) {
+            Rule rule = null;
+            String message = "";
+            if (node instanceof HasRule) {
+                rule = ((HasRule) node).getRule();
+                message = rule.getMessage();
+                String langId = rule.getLanguage().getId(); // java or kotlin
+                if (langId.equals("kotlin")) {
+                    exampleText = getFormattedExamples(rule, "Kotlin");
+                    exampleFieldToShow = ruleExampleFieldKotlin;
+                } else { // java
+                    exampleText = getFormattedExamples(rule, "Java");
+                    exampleFieldToShow = ruleExampleFieldJava;
                 }
             }
-            String desc = rule.getDescription();
-            desc = PROBLEM_SOLUTION_NOTE_EXCEPTIONS_PATTERN.matcher(desc).replaceAll("<br>\n<b><i>$1</i></b>");
-            desc = BRACED_RULES_NAME_PATTERN.matcher(desc).replaceAll("");
-            desc = desc.trim();
-            if (!desc.startsWith("<br>")) {
-                desc = "<br>" + desc;
+            if (node instanceof HasMessage) {
+                message = ((HasMessage) node).getMessage();
             }
+            htmlText = getHtmlText(message, rule);
+        }
+        ruleHtmlPane.setText(htmlText);
+        exampleFieldToShow.setText(exampleText);
+        detailSplit.setSecondComponent(exampleFieldToShow);
+        adjustSplitProportionBasedOnContent(detailSplit, ruleHtmlPane, exampleFieldToShow);
+    }
+
+    private static @NotNull String getHtmlText(@NotNull String message, @Nullable Rule rule) {
+        StringBuilder htmlBuilder = new StringBuilder("<html>");
+        appendHeadStyleTo(htmlBuilder);
+
+        htmlBuilder.append("<body>");
+        if (rule == null) {
+            appendWithOptionalPreTo(htmlBuilder, message);
+        }
+        else {
+            // Start with the title and severity on the same line using table layout
+            htmlBuilder.append("<table width='100%' cellpadding='0' cellspacing='0' border='0'><tr>");
+            htmlBuilder.append("<td align='left'><strong>").append(message).append("</strong></td>");
+
+            // Add severity badge using table cell
+            RulePriority rulePriority = rule.getPriority();
+            Severity severity = Severity.of(rulePriority);
+            String severityName = severity.getName();
+            String severityColor = colorToHex(severity.getColor());
+
+            htmlBuilder.append("<td align='right'><span class='severity' style='background-color: ").append(severityColor)
+                    .append("; color:#FFEEEE;'>&thinsp;").append(severityName).append("&thinsp;</span></td>");
+
+            htmlBuilder.append("</tr></table>");
+
+            // Add rule name and tags in badge format
+            appendRuleNameAndTagsTo(htmlBuilder, rule);
+
+            String descMd = rule.getDescription();
+            descMd = BRACED_RULES_NAME_PATTERN.matcher(descMd).replaceAll("");
+            String descHtml = MdToHtmlConverter.convertToHtml(descMd);
+
+            htmlBuilder.append(descHtml);
+
             String url = rule.getExternalInfoUrl();
-            String link = "";
+            String linkHtml = "";
             if (url != null && !url.isEmpty()) {
-                link = "<br><a href=\"" + url + "\">Full documentation</a>";
+                linkHtml = "<p><a href=\"" + url + "\">Full documentation</a></p>";
             }
-            htmlBuilder.append(desc).append(link);
+            htmlBuilder.append(linkHtml);
         }
         htmlBuilder.append("</body></html>");
         return htmlBuilder.toString();
     }
 
-    private static @NotNull String getFormattedExamples(@Nullable Rule rule) {
-        String examples = "";
+    private static void appendHeadStyleTo(StringBuilder htmlBuilder) {
+        htmlBuilder.append("<head><style>");
+        htmlBuilder.append("a { color: #589df6; text-decoration: none; } a:hover { text-decoration: underline; }");
+        htmlBuilder.append(".severity { display: inline-block; padding: 4px 10px; border-radius: 4px; font-weight: bold; margin-left: 15px; }");
+        htmlBuilder.append(".rule-info { margin-top: 4px; margin-bottom: 4px; }");
+        htmlBuilder.append("</style></head>");
+    }
+
+    private static void appendRuleNameAndTagsTo(StringBuilder htmlBuilder, @Nullable Rule rule) {
+        htmlBuilder.append("<div class='rule-info'>");
+
+        String bgColor, textColor;
+        if (!JBColor.isBright()) {
+            // Dark mode
+            bgColor = "#BBBBBB";
+            textColor = "#333333";
+        } else {
+            // Light mode
+            bgColor = "#333333";
+            textColor = "#DDDDDD";
+        }
+
+        // Add rule name / ID
+        String ruleName = rule.getName();
+        if (ruleName != null && !ruleName.isEmpty()) {
+            htmlBuilder.append("<sup>Rule ID: ").append(ruleName).append(" </sup>");
+        }
+
+        // Add tags as badges, note style has limited support in this html component
+        PropertyDescriptor<?> tagsDescriptor = rule.getPropertyDescriptor("tags");
+        if (tagsDescriptor != null) {
+            Object value = rule.getProperty(tagsDescriptor);
+            if (value != null) {
+                String tagsString = value.toString();
+                String[] tags = tagsString.split(",");
+                for (String tag : tags) {
+                    tag = tag.trim();
+                    if (!tag.isEmpty() && !tag.endsWith("-rule")) {
+                        htmlBuilder.append(" <span style='background-color: ").append(bgColor).append("; color: ").append(textColor);
+                        htmlBuilder.append("; padding: 3px 7px; margin-right: 8px; border-radius: 3px; display: inline-block;'>");
+                        htmlBuilder.append("<sup>&thinsp;").append(tag).append("&thinsp;</sup></span> ");
+                    }
+                }
+            }
+        }
+        htmlBuilder.append("</div>");
+    }
+
+
+    /**
+     * Converts a Color object to its hexadecimal representation for HTML/CSS
+     */
+    private static String colorToHex(Color color) {
+        return String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
+    }
+
+    private static void appendWithOptionalPreTo(StringBuilder htmlBuilder, @NotNull String message) {
+        String[] splits = message.split("\n\n", 2); // optional part 2, for instance, a stack trace
+        htmlBuilder.append("<div class='title'><strong>").append(splits[0]).append("</strong></div>");
+        if (splits.length > 1) {
+            htmlBuilder.append("<p><pre>").append(splits[1]).append("</pre></p>");
+        }
+    }
+
+    private static @NotNull String getFormattedExamples(@Nullable Rule rule, @NotNull String language) {
+        String examples = "// No " + language + " example available.";
         if (rule != null) {
             StringBuilder examplesBld = new StringBuilder();
             for (String example : rule.getExamples()) {
                 examplesBld.append(example.trim()).append("\n\n");
             }
-            if (!rule.getExamples().isEmpty()) {
-                examples += "// Example:\n" + examplesBld;
+            if (!rule.getExamples().isEmpty() && examplesBld.length() > 4) {
+                examples = "// " + language + " example(s):\n" + examplesBld;
             }
         }
         return examples;
     }
 
-    private void adjustSplitProportionBasedOnContent(OnePixelSplitter splitter, JEditorPane htmlPane) {
+    private void adjustSplitProportionBasedOnContent(OnePixelSplitter splitter, JEditorPane htmlPane, EditorTextField exampleField) {
         SwingUtilities.invokeLater(() -> {
             // Calculate the necessary height for the htmlPane
             View view = htmlPane.getUI().getRootView(htmlPane);
@@ -388,29 +461,30 @@ public class PMDResultPanel extends JPanel {
                 float proportion = Math.min(0.85f, Math.max(0.15f, preferredHeight / totalHeight));
                 splitter.setProportion(proportion);
             }
+            htmlPane.setCaretPosition(0);
+            exampleField.setCaretPosition(0);
+            exampleField.invalidate();
+            exampleField.repaint();
         });
     }
 
     /**
      * Displays the right click popup menu for a tree node.
      *
-     * @param treeNodes The DefaultMutableTreeNodes where to show the popup
-     * @param e the MouseEvent
+     * @param treeNode The DefaultMutableTreeNodes where to show the popup
+     * @param e         the MouseEvent
      */
-    private void showPopup(DefaultMutableTreeNode[] treeNodes, MouseEvent e) {
+    private void showPopup(DefaultMutableTreeNode treeNode, MouseEvent e) {
         //Check if it's a popup trigger
-        if (treeNodes != null && e.isPopupTrigger()) {
+        if (treeNode != null && e.isPopupTrigger()) {
             popupMenu.clearViolationsAndUrl();
             //Only for violation nodes, popups suppress+details are supported
-            for (DefaultMutableTreeNode treeNode : treeNodes) {
-                //Only for violation nodes, popups suppress+details are supported
-                if (treeNode instanceof PMDViolationNode) {
-                    popupMenu.addViolation(((PMDViolationNode)treeNode).getPmdViolation());
-                }
-                // if it has a rule, popup details is supported
-                else if (treeNode instanceof HasRule) {
-                    popupMenu.setDetailsUrl(((HasRule)treeNode).getRule().getExternalInfoUrl());
-                }
+            if (treeNode instanceof PMDViolationNode) {
+                popupMenu.addViolation(((PMDViolationNode) treeNode).getPmdViolation());
+            }
+            // if it has a rule, popup details is supported
+            else if (treeNode instanceof HasRule) {
+                popupMenu.setDetailsUrl(((HasRule) treeNode).getRule().getExternalInfoUrl());
             }
             //Display popup only if actions are possible
             if (popupMenu.hasVisibleMenuItems()) {
@@ -439,7 +513,7 @@ public class PMDResultPanel extends JPanel {
                 () -> {
                     //All writes must be through a write action.
                     ApplicationManager.getApplication().runWriteAction(() -> {
-                        int offset = editor.getDocument().getLineEndOffset(result.getBeginLine()-1);
+                        int offset = editor.getDocument().getLineEndOffset(result.getBeginLine() - 1);
                         //Append PMD special comment to end of line.
                         editor.getDocument().insertString(offset, " " + PMD_SUPPRESSION + " - suppressed " + result.getRuleName() + " - TODO explain reason for suppression");
                     });
@@ -529,14 +603,14 @@ public class PMDResultPanel extends JPanel {
         actionGroup.add(CommonActionsManager.getInstance().createPrevOccurenceAction(occurenceNavigator));
         actionGroup.add(CommonActionsManager.getInstance().installAutoscrollToSourceHandler(projectComponent.getCurrentProject(),
                 resultTree, new AutoScrollToSourceOptionProvider() {
-            public boolean isAutoScrollMode() {
-                return scrolling;
-            }
+                    public boolean isAutoScrollMode() {
+                        return scrolling;
+                    }
 
-            public void setAutoScrollMode(boolean state) {
-                scrolling = state;
-            }
-        }));
+                    public void setAutoScrollMode(boolean state) {
+                        scrolling = state;
+                    }
+                }));
         actionGroup.add(CommonActionsManager.getInstance().createExportToTextFileAction(new ExporterToTextFile() {
             public JComponent getSettingsEditor() {
                 return null;
@@ -561,7 +635,8 @@ public class PMDResultPanel extends JPanel {
                 return "";
             }
 
-            @NotNull public String getDefaultFilePath() {
+            @NotNull
+            public String getDefaultFilePath() {
                 return "report.html";
             }
 
@@ -582,6 +657,7 @@ public class PMDResultPanel extends JPanel {
         rootNode = PMDTreeNodeFactory.getInstance().createRootNode(this);
         TreeModel treeModel = new DefaultTreeModel(rootNode);
         resultTree.setModel(treeModel);
+        setRuleDetailsOnDocField(null); // set initial text
     }
 
     /**
@@ -591,7 +667,7 @@ public class PMDResultPanel extends JPanel {
      */
     public void highlightFindingInEditor(DefaultMutableTreeNode treeNode) {
         if (treeNode instanceof Navigatable) {
-            ((Navigatable)treeNode).navigate(true);
+            ((Navigatable) treeNode).navigate(true);
         }
     }
 
@@ -616,10 +692,10 @@ public class PMDResultPanel extends JPanel {
                 finding.getFilePath().replace(File.separatorChar, '/'));
         if (virtualFile != null) {
             return fileEditorManager.openTextEditor(new OpenFileDescriptor(
-                    projectComponent.getCurrentProject(),
-                    virtualFile,
-                    Math.max(finding.getBeginLine()-1, 0),
-                    Math.max(finding.getBeginColumn()-1, 0)),
+                            projectComponent.getCurrentProject(),
+                            virtualFile,
+                            Math.max(finding.getBeginLine() - 1, 0),
+                            Math.max(finding.getBeginColumn() - 1, 0)),
                     true);
         }
         return null;
@@ -632,14 +708,14 @@ public class PMDResultPanel extends JPanel {
      * @return the created rule set node
      */
     public PMDRuleSetNode addCreateRuleSetNodeAtRoot(String name) {
-        return (PMDRuleSetNode)addNode(rootNode, new PMDRuleSetNode(name));
+        return (PMDRuleSetNode) addNode(rootNode, new PMDRuleSetNode(name));
     }
 
     /**
      * Adds a node to the given node as parent.
      *
      * @param parent The parent node
-     * @param node The child not which is added as child to parent node
+     * @param node   The child not which is added as child to parent node
      * @return the child node
      */
     public BasePMDNode addNode(PMDBranchNode parent, BasePMDNode node) {

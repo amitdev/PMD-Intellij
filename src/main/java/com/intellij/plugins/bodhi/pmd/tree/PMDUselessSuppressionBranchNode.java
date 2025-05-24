@@ -26,7 +26,7 @@ public class PMDUselessSuppressionBranchNode extends PMDRuleSetEntryNode impleme
 
     @Override
     public synchronized void render(PMDCellRenderer cellRenderer, boolean expanded) {
-        cellRenderer.setIcon(Severity.MAJOR.getIcon());
+        cellRenderer.setIcon(Severity.MEDIUM.getIcon());
         super.render(cellRenderer, expanded);
     }
 
