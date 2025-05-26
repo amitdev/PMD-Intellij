@@ -10,7 +10,7 @@
   <actions>
     <!-- The Main menu item which includes predefined and custom rulesets -->
     <group id="PMDMenuGroup" text="Run PMD" popup="true"
-           class="com.intellij.plugins.bodhi.pmd.actions.PMDMenuGroup">
+           class="com.intellij.plugins.bodhi.pmd.actions.PMDMenuGroup" icon="/META-INF/pluginIcon.svg">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
       <add-to-group group-id="ChangesViewPopupMenu" anchor="last"/>
@@ -35,6 +35,7 @@
                            implementation="com.intellij.plugins.bodhi.pmd.handlers.PMDCheckinHandlerFactory"/>
     <toolWindow id="PMD"
                 factoryClass="com.intellij.plugins.bodhi.pmd.PMDToolWindowFactory"
+                icon="/META-INF/pluginIcon.svg"
                 anchor="bottom"
                 canCloseContents="true"/>
     <externalAnnotator
