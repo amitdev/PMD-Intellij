@@ -26,26 +26,21 @@ import com.intellij.plugins.bodhi.pmd.core.*;
 import com.intellij.plugins.bodhi.pmd.tree.*;
 import com.intellij.pom.Navigatable;
 import com.intellij.ui.EditorTextField;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.jcef.JCEFHtmlPanel;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.usageView.UsageViewBundle;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.tree.TreeUtil;
 import net.sourceforge.pmd.lang.rule.Rule;
-import net.sourceforge.pmd.lang.rule.RulePriority;
-import net.sourceforge.pmd.properties.PropertyDescriptor;
 import net.sourceforge.pmd.renderers.HTMLRenderer;
 import net.sourceforge.pmd.reporting.Report;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeListener;
-import javax.swing.event.HyperlinkEvent;
-import javax.swing.text.View;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
@@ -53,31 +48,28 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import static javax.swing.tree.TreeSelectionModel.SINGLE_TREE_SELECTION;
 
 /**
- * The result panel where the PMD results are shown. This includes a toolbar and
- * tree to show the violations found in a pmd run.
+ * The result panel where the PMD results are shown. This includes a toolbar, a
+ * tree to show the violations found in a pmd run and details about the violations:
+ * resizable documentation on HTML and example code.
  *
  * @author bodhi
- * @version 1.2
+ * @version 1.3
  */
-public class PMDResultPanel extends JPanel {
+public class PMDResultPanel extends JPanel implements HTMLReloadable {
 
-    private static final Pattern BRACED_RULES_NAME_PATTERN = Pattern.compile("\\([\\w-]+-rules\\)\\s*$", Pattern.MULTILINE);
+    public static final String PMD_SUPPRESSION = "//NOPMD";
     private final Tree resultTree;
     private final PMDProjectComponent projectComponent;
     // html documentation
-    private final JEditorPane ruleHtmlPane = new JEditorPane();
+    private final JCEFHtmlPanel ruleHtmlPanel = new JCEFHtmlPanel("");
     // code example with syntax highlighting
     private final EditorTextField ruleExampleFieldJava = new EditorTextField();
     private final EditorTextField ruleExampleFieldKotlin = new EditorTextField();
@@ -86,7 +78,15 @@ public class PMDResultPanel extends JPanel {
     private PMDErrorBranchNode processingErrorsNode;
     private boolean scrolling;
     private PMDPopupMenu popupMenu;
-    public static final String PMD_SUPPRESSION = "//NOPMD";
+
+    private @NotNull String lastHtmlContent = "";
+
+    static {
+        // switch-off jcef logging if property not set, otherwise it bloats the home directory
+        if (System.getProperty("ide.browser.jcef.log.level") == null) {
+            System.setProperty("ide.browser.jcef.log.level", "disable");
+        }
+    }
 
     /**
      * Create an instance of the result panel.
@@ -97,7 +97,7 @@ public class PMDResultPanel extends JPanel {
         super();
         this.setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         this.projectComponent = projectComponent;
-        setBorder(new EmptyBorder(2, 2, 2, 2));
+        setBorder(JBUI.Borders.empty(2));
 
         // Create the tree which can show tooltips as well.
         resultTree = createResultTree();
@@ -149,6 +149,7 @@ public class PMDResultPanel extends JPanel {
         };
         return resultTree;
     }
+
 
     /**
      * Creates an instance of {@link PMDPopupMenu} configured with actions for handling PMD violations.
@@ -222,12 +223,9 @@ public class PMDResultPanel extends JPanel {
     }
 
     /**
-     * Configures and returns the main split view of the panel, which consists of two sections:
-     * a primary tree view on the left and a detailed documentation view on the right.
-     * The detailed documentation view itself is composed of two vertically split sections:
-     * a rule description field and an example field.
+     * Builds and returns the main split panel for the PMD result view.
      *
-     * @return a configured OnePixelSplitter instance representing the main split view of the panel
+     * @return The configured main split panel
      */
     private @NotNull OnePixelSplitter buildMainSplit() {
         configureExampleField(ruleExampleFieldJava, FileTypeManager.getInstance().findFileTypeByName("JAVA"));
@@ -238,12 +236,36 @@ public class PMDResultPanel extends JPanel {
         scrollPane.setHorizontalScrollBarPolicy(JBScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setVerticalScrollBarPolicy(JBScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
+        /*JPanel treePanel = new JPanel(new BorderLayout());
+        treePanel.add(new JScrollPane(resultTree), BorderLayout.CENTER);
+
+        // Configure HTML panel with our new method
+        JComponent htmlPanel = configureHtmlPanel();
+
+        // Configure the vertical split between HTML and code examples
+        detailSplit.setFirstComponent(htmlPanel);
+        detailSplit.setSecondComponent(ruleExampleFieldJava); // Default component, will be replaced dynamically
+        detailSplit.setProportion(0.7f);
+
+        // Use configureSplitPane for better proportions between tree and content
+        JSplitPane horizontalSplit = configureSplitPane(treePanel, detailSplit);
+
+        OnePixelSplitter mainSplitter = new OnePixelSplitter(false);
+
+        // Cast to JComponent as OnePixelSplitter expects JComponent
+        mainSplitter.setFirstComponent((JComponent)horizontalSplit.getLeftComponent());
+        mainSplitter.setSecondComponent((JComponent)horizontalSplit.getRightComponent());
+        mainSplitter.setProportion(0.3f); // Same proportion as in configureSplitPane
+
+        return mainSplitter;*/
         // Main horizontal split between primary-tree and detail-doc
         OnePixelSplitter mainSplit = new OnePixelSplitter(false); // horizontal
         mainSplit.setFirstComponent(scrollPane);
 
-        // Vertical split for the two detail-doc
-        detailSplit.setFirstComponent(configureHtmlPanel());
+        lastHtmlContent = PMDHTMLUtil.HTML_INITIAL_BODY_CONTENT;
+        // Vertical split for the html + example
+        detailSplit.setBorder(JBUI.Borders.empty(2));
+        detailSplit.setFirstComponent(PMDHTMLUtil.configureHtmlPanel(ruleHtmlPanel, detailSplit, this));
         detailSplit.setSecondComponent(ruleExampleFieldJava);
 
         // Add detailSplit to the main split
@@ -260,7 +282,7 @@ public class PMDResultPanel extends JPanel {
         exampleField.setFocusable(false);
         exampleField.setOpaque(false);
         exampleField.setViewer(true);
-        exampleField.setBorder(JBUI.Borders.empty(1, 2));
+        exampleField.setBorder(JBUI.Borders.empty(1));
         exampleField.setFileType(fileType);
         exampleField.addSettingsProvider(p -> {
             setSyntaxHighlighting(p, fileType);
@@ -272,23 +294,31 @@ public class PMDResultPanel extends JPanel {
         exampleField.setDocument(exampleDocument);
     }
 
-    private @NotNull JComponent configureHtmlPanel() {
-        ruleHtmlPane.setEditable(false);
-        ruleHtmlPane.setContentType("text/html");
-        ruleHtmlPane.setOpaque(false);
-        ruleHtmlPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, true);
-        ruleHtmlPane.setBorder(JBUI.Borders.empty(0, 4, 10, 4));
-        ruleHtmlPane.setText("Click on a rule or violation for details.");
-        ruleHtmlPane.setCaretPosition(0);
-        ruleHtmlPane.addHyperlinkListener(e -> {
-            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                BrowserUtil.browse(e.getURL().toString());
-            }
-        });
-        JBScrollPane scrollPane = new JBScrollPane(ruleHtmlPane);
-        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        return scrollPane;
+    /**
+     * Update the HTML content of the panel, including appropriate CSS for current theme
+     *
+     * @param htmlContent The HTML BODY content to display
+     */
+    public void updateHtmlContent(String htmlContent) {
+        // Store the HTML content for potential reloading
+        lastHtmlContent = htmlContent;
+
+        String completeHtml = PMDHTMLUtil.buildCompleteHtml(htmlContent);
+
+        // Load the HTML content with our styling
+        ruleHtmlPanel.loadHTML(completeHtml);
+
+        // scroll to top
+        ruleHtmlPanel.getCefBrowser().executeJavaScript(
+                "window.scrollTo(0, 0);",
+                ruleHtmlPanel.getCefBrowser().getURL(),
+                0
+        );
+    }
+
+    @Override
+    public void reloadHTML() {
+        updateHtmlContent(lastHtmlContent);
     }
 
     private void setSyntaxHighlighting(EditorEx p, FileType fileType) {
@@ -296,10 +326,17 @@ public class PMDResultPanel extends JPanel {
                 p.setHighlighter(EditorHighlighterFactory.getInstance().createEditorHighlighter(projectComponent.getCurrentProject(), fileType))));
     }
 
+    /**
+     * Updates the rule details in the documentation panel based on the selected tree node.
+     * Displays the rule description, example code, and other relevant information.
+     *
+     * @param node The selected tree node containing rule information, or null if no selection
+     */
     private void setRuleDetailsOnDocField(@Nullable DefaultMutableTreeNode node) {
         String htmlText = "Click on a rule or violation for details.";
         String exampleText = "Code example(s) shows here.";
-        EditorTextField exampleFieldToShow = ruleExampleFieldJava; // default
+        // default
+        EditorTextField exampleField = ruleExampleFieldJava;
         if (node != null) {
             Rule rule = null;
             String message = "";
@@ -309,129 +346,24 @@ public class PMDResultPanel extends JPanel {
                 String langId = rule.getLanguage().getId(); // java or kotlin
                 if (langId.equals("kotlin")) {
                     exampleText = getFormattedExamples(rule, "Kotlin");
-                    exampleFieldToShow = ruleExampleFieldKotlin;
+                    exampleField = ruleExampleFieldKotlin;
                 } else { // java
                     exampleText = getFormattedExamples(rule, "Java");
-                    exampleFieldToShow = ruleExampleFieldJava;
+                    exampleField = ruleExampleFieldJava;
                 }
             }
             if (node instanceof HasMessage) {
                 message = ((HasMessage) node).getMessage();
             }
-            htmlText = getHtmlText(message, rule);
-        }
-        ruleHtmlPane.setText(htmlText);
-        exampleFieldToShow.setText(exampleText);
-        detailSplit.setSecondComponent(exampleFieldToShow);
-        adjustSplitProportionBasedOnContent(detailSplit, ruleHtmlPane, exampleFieldToShow);
-    }
-
-    private static @NotNull String getHtmlText(@NotNull String message, @Nullable Rule rule) {
-        StringBuilder htmlBuilder = new StringBuilder("<html>");
-        appendHeadStyleTo(htmlBuilder);
-
-        htmlBuilder.append("<body>");
-        if (rule == null) {
-            appendWithOptionalPreTo(htmlBuilder, message);
-        }
-        else {
-            // Start with the title and severity on the same line using table layout
-            htmlBuilder.append("<table width='100%' cellpadding='0' cellspacing='0' border='0'><tr>");
-            htmlBuilder.append("<td align='left'><strong>").append(message).append("</strong></td>");
-
-            // Add severity badge using table cell
-            RulePriority rulePriority = rule.getPriority();
-            Severity severity = Severity.of(rulePriority);
-            String severityName = severity.getName();
-            String severityColor = colorToHex(severity.getColor());
-
-            htmlBuilder.append("<td align='right'><span class='severity' style='background-color: ").append(severityColor)
-                    .append("; color:#FFEEEE;'>&thinsp;").append(severityName).append("&thinsp;</span></td>");
-
-            htmlBuilder.append("</tr></table>");
-
-            // Add rule name and tags in badge format
-            appendRuleNameAndTagsTo(htmlBuilder, rule);
-
-            String descMd = rule.getDescription();
-            descMd = BRACED_RULES_NAME_PATTERN.matcher(descMd).replaceAll("");
-            String descHtml = MdToHtmlConverter.convertToHtml(descMd);
-
-            htmlBuilder.append(descHtml);
-
-            String url = rule.getExternalInfoUrl();
-            String linkHtml = "";
-            if (url != null && !url.isEmpty()) {
-                linkHtml = "<p><a href=\"" + url + "\">Full documentation</a></p>";
-            }
-            htmlBuilder.append(linkHtml);
-        }
-        htmlBuilder.append("</body></html>");
-        return htmlBuilder.toString();
-    }
-
-    private static void appendHeadStyleTo(StringBuilder htmlBuilder) {
-        htmlBuilder.append("<head><style>");
-        htmlBuilder.append("a { color: #589df6; text-decoration: none; } a:hover { text-decoration: underline; }");
-        htmlBuilder.append(".severity { display: inline-block; padding: 4px 10px; border-radius: 4px; font-weight: bold; margin-left: 15px; }");
-        htmlBuilder.append(".rule-info { margin-top: 4px; margin-bottom: 4px; }");
-        htmlBuilder.append("</style></head>");
-    }
-
-    private static void appendRuleNameAndTagsTo(StringBuilder htmlBuilder, @Nullable Rule rule) {
-        htmlBuilder.append("<div class='rule-info'>");
-
-        String bgColor, textColor;
-        if (!JBColor.isBright()) {
-            // Dark mode
-            bgColor = "#BBBBBB";
-            textColor = "#333333";
-        } else {
-            // Light mode
-            bgColor = "#333333";
-            textColor = "#DDDDDD";
+            htmlText = PMDHTMLUtil.getHtmlText(message, rule);
         }
 
-        // Add rule name / ID
-        String ruleName = rule.getName();
-        if (ruleName != null && !ruleName.isEmpty()) {
-            htmlBuilder.append("<sup>Rule ID: ").append(ruleName).append(" </sup>");
-        }
-
-        // Add tags as badges, note style has limited support in this html component
-        PropertyDescriptor<?> tagsDescriptor = rule.getPropertyDescriptor("tags");
-        if (tagsDescriptor != null) {
-            Object value = rule.getProperty(tagsDescriptor);
-            if (value != null) {
-                String tagsString = value.toString();
-                String[] tags = tagsString.split(",");
-                for (String tag : tags) {
-                    tag = tag.trim();
-                    if (!tag.isEmpty() && !tag.endsWith("-rule")) {
-                        htmlBuilder.append(" <span style='background-color: ").append(bgColor).append("; color: ").append(textColor);
-                        htmlBuilder.append("; padding: 3px 7px; margin-right: 8px; border-radius: 3px; display: inline-block;'>");
-                        htmlBuilder.append("<sup>&thinsp;").append(tag).append("&thinsp;</sup></span> ");
-                    }
-                }
-            }
-        }
-        htmlBuilder.append("</div>");
-    }
-
-
-    /**
-     * Converts a Color object to its hexadecimal representation for HTML/CSS
-     */
-    private static String colorToHex(Color color) {
-        return String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
-    }
-
-    private static void appendWithOptionalPreTo(StringBuilder htmlBuilder, @NotNull String message) {
-        String[] splits = message.split("\n\n", 2); // optional part 2, for instance, a stack trace
-        htmlBuilder.append("<div class='title'><strong>").append(splits[0]).append("</strong></div>");
-        if (splits.length > 1) {
-            htmlBuilder.append("<p><pre>").append(splits[1]).append("</pre></p>");
-        }
+        updateHtmlContent(htmlText);
+        exampleField.setText(exampleText);
+        detailSplit.setSecondComponent(exampleField);
+        exampleField.setCaretPosition(0);
+        exampleField.repaint();
+        // browser will adjust split proportion
     }
 
     private static @NotNull String getFormattedExamples(@Nullable Rule rule, @NotNull String language) {
@@ -446,26 +378,6 @@ public class PMDResultPanel extends JPanel {
             }
         }
         return examples;
-    }
-
-    private void adjustSplitProportionBasedOnContent(OnePixelSplitter splitter, JEditorPane htmlPane, EditorTextField exampleField) {
-        SwingUtilities.invokeLater(() -> {
-            // Calculate the necessary height for the htmlPane
-            View view = htmlPane.getUI().getRootView(htmlPane);
-            float preferredHeight = view.getPreferredSpan(View.Y_AXIS);
-            // Calculate the necessary height for the splitter
-            float totalHeight = splitter.getHeight();
-            if (totalHeight > 0) {
-                preferredHeight += 10; // extra space for the border
-                // Calculate the proportion of the splitter to use based on the preferred height
-                float proportion = Math.min(0.85f, Math.max(0.15f, preferredHeight / totalHeight));
-                splitter.setProportion(proportion);
-            }
-            htmlPane.setCaretPosition(0);
-            exampleField.setCaretPosition(0);
-            exampleField.invalidate();
-            exampleField.repaint();
-        });
     }
 
     /**

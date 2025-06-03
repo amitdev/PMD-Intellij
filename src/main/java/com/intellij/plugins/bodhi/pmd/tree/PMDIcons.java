@@ -9,8 +9,8 @@ import javax.swing.*;
  */
 public class PMDIcons {
 
+    public static final Icon PMD_COLOR = IconLoader.getIcon("/icons/pmd_color.svg", PMDIcons.class);
     public static final Icon PMD = IconLoader.getIcon("/icons/pmd.svg", PMDIcons.class);
-    public static final Icon PMD_GRAY = IconLoader.getIcon("/icons/pmd_gray.svg", PMDIcons.class);
 
     public static final Icon ICON_HIGH = IconLoader.getIcon("/icons/errorIntroduction.svg", PMDIcons.class);
 }

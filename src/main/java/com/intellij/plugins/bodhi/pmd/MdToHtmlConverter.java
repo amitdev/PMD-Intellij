@@ -43,8 +43,8 @@ public class MdToHtmlConverter {
     private static final Pattern SECTION_PARAGRAPH_PATTERN = Pattern.compile("(?s)\\s*[A-Za-z]+:\\s*.*");
     private static final Pattern LIST_ITEM_PATTERN = Pattern.compile("(\\d+)\\.(\\s+)(.*)");
     private static final Pattern UNORDERED_LIST_ITEM_PATTERN = Pattern.compile("\\*(\\s+)(.*)");
-    private static final Pattern TITLE_PATTERN = Pattern.compile("([A-Za-z]+):(\\s*)(.*)");
-    private static final Pattern INLINE_TITLE_PATTERN = Pattern.compile("\\b([A-Za-z]+):(\\s*)");
+    private static final Pattern TITLE_PATTERN = Pattern.compile("([A-Z][A-Za-z]+):(\\s*)(.*)");
+    private static final Pattern INLINE_TITLE_PATTERN = Pattern.compile("\\b([A-Z][A-Za-z]+):(\\s*)");
     private static final Pattern CODE_BLOCK_PATTERN = Pattern.compile("`([^`]+)`");
     private static final Pattern RULE_REFERENCE_PATTERN = Pattern.compile("\\{%\\s*rule\\s*\"([^\"]+)\"\\s*%\\}");
     private static final Pattern SECTION_PATTERN = Pattern.compile("(?s)(Problem|Solution|Note|Notes|Exceptions):(.*?)(?=\\s+(Problem|Solution|Note|Notes|Exceptions):|$)", Pattern.DOTALL);
@@ -54,7 +54,6 @@ public class MdToHtmlConverter {
 
     public static String convertToHtml(String markdownText) {
         StringBuilder html = new StringBuilder();
-        boolean firstParagraph = true;
 
         // First, handle code blocks with quadruple backticks (to avoid nesting issues)
         markdownText = handleMultiLineCodeBlocks(markdownText, QUADRUPLE_BACKTICK_CODE_BLOCK_PATTERN);
@@ -102,19 +101,12 @@ public class MdToHtmlConverter {
             }
 
             // Check if section content starts with a list
-            if (sectionContent.startsWith("1.") || (sectionContent.length() > 2 && sectionContent.substring(0, 2).equals("1."))) {
+            if (sectionContent.startsWith("1.")) {
                 html.append("<p><strong>").append(sectionType).append(":</strong></p>\n");
                 html.append(convertOrderedList(sectionContent));
             } else {
-                if (firstParagraph) { // no empty line before the first paragraph needed
-                    html.append("<strong>").append(sectionType).append(":</strong> ")
-                            .append(formatInlineElements(sectionContent)).append("<br>\n");
-                    firstParagraph = false;
-                }
-                else {
-                    html.append("<p><strong>").append(sectionType).append(":</strong> ")
-                            .append(formatInlineElements(sectionContent)).append("</p>\n");
-                }
+                html.append("<p><strong>").append(sectionType).append(":</strong> ")
+                        .append(formatInlineElements(sectionContent)).append("</p>\n");
             }
         }
 
@@ -160,13 +152,7 @@ public class MdToHtmlConverter {
             }
             // Regular paragraph
             else {
-                if (firstParagraph) { // no empty line before the first paragraph needed
-                    html.append(formatInlineElements(paragraph)).append("<br>\n\n");
-                    firstParagraph = false;
-                }
-                else {
-                    html.append("<p>").append(formatInlineElements(paragraph)).append("</p>\n\n");
-                }
+                html.append("<p>").append(formatInlineElements(paragraph)).append("</p>\n\n");
             }
         }
 
@@ -292,7 +278,7 @@ public class MdToHtmlConverter {
 
             if (matcher.find()) {
                 // If we already have content from a previous item, add it first
-                if (currentItemNumber > 0 && currentItemContent.length() > 0) {
+                if (currentItemNumber > 0 && !currentItemContent.isEmpty()) {
                     html.append("    <li>").append(formatInlineElements(currentItemContent.toString())).append("</li>\n");
                     currentItemContent = new StringBuilder();
                 }
@@ -300,7 +286,7 @@ public class MdToHtmlConverter {
                 // Start a new item
                 currentItemNumber = Integer.parseInt(matcher.group(1));
                 currentItemContent.append(matcher.group(3));
-            } else if (!line.isEmpty() && currentItemContent.length() > 0) {
+            } else if (!line.isEmpty() && !currentItemContent.isEmpty()) {
                 // This is a continuation of the current list item
                 // Add a space if the current content doesn't end with a space
                 if (!currentItemContent.toString().endsWith(" ")) {
@@ -311,7 +297,7 @@ public class MdToHtmlConverter {
         }
 
         // Don't forget to add the last item
-        if (currentItemContent.length() > 0) {
+        if (!currentItemContent.isEmpty()) {
             html.append("    <li>").append(formatInlineElements(currentItemContent.toString())).append("</li>\n");
         }
 
@@ -328,15 +314,15 @@ public class MdToHtmlConverter {
         StringBuilder currentItemContent = new StringBuilder();
         boolean hasStarted = false;
 
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i].trim();
+        for (String s : lines) {
+            String line = s.trim();
             Matcher matcher = LIST_ITEM_PATTERN.matcher(line);
 
             if (matcher.find()) {
                 // If we haven't started the list yet
                 if (!hasStarted) {
                     hasStarted = true;
-                } else if (currentItemContent.length() > 0) {
+                } else if (!currentItemContent.isEmpty()) {
                     // Output the previous item before starting a new one
                     html.append("    <li>").append(formatInlineElements(currentItemContent.toString())).append("</li>\n");
                     currentItemContent = new StringBuilder();
@@ -345,7 +331,7 @@ public class MdToHtmlConverter {
                 // Start a new item
                 currentItemContent.append(matcher.group(3));
             } else if (!line.isEmpty()) {
-                if (hasStarted && currentItemContent.length() > 0) {
+                if (hasStarted && !currentItemContent.isEmpty()) {
                     // This is a continuation of the current list item
                     if (!currentItemContent.toString().endsWith(" ")) {
                         currentItemContent.append(" ");
@@ -359,7 +345,7 @@ public class MdToHtmlConverter {
         }
 
         // Don't forget to add the last item
-        if (currentItemContent.length() > 0) {
+        if (!currentItemContent.isEmpty()) {
             html.append("    <li>").append(formatInlineElements(currentItemContent.toString())).append("</li>\n");
         }
 
@@ -375,13 +361,13 @@ public class MdToHtmlConverter {
         StringBuilder currentItemContent = new StringBuilder();
         boolean hasStarted = false;
 
-        for (int i = 0; i < lines.length; i++) {
-            String line = lines[i].trim();
+        for (String s : lines) {
+            String line = s.trim();
             Matcher matcher = UNORDERED_LIST_ITEM_PATTERN.matcher(line);
 
             if (matcher.find()) {
                 // If we've already started a list item, output it before starting a new one
-                if (hasStarted && currentItemContent.length() > 0) {
+                if (hasStarted && !currentItemContent.isEmpty()) {
                     html.append("    <li>").append(formatInlineElements(currentItemContent.toString())).append("</li>\n");
                     currentItemContent = new StringBuilder();
                 }
@@ -399,7 +385,7 @@ public class MdToHtmlConverter {
         }
 
         // Don't forget to add the last item
-        if (currentItemContent.length() > 0) {
+        if (!currentItemContent.isEmpty()) {
             html.append("    <li>").append(formatInlineElements(currentItemContent.toString())).append("</li>\n");
         }
 
