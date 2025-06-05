@@ -17,15 +17,11 @@ import java.util.List;
 public class PMDPopupMenu {
     /** Menu label for suppress */
     public static final String SUPPRESS = "Suppress";
-    /** Menu label for details - showing rule details */
-    public static final String DETAILS = "Show online rule documentation";
 
     private final JPopupMenu menu;
     private final JMenuItem suppressMenuItem;
-    private final JMenuItem detailsMenuItem;
 
     private final List<PMDViolation> violations = new ArrayList<>();
-    private String detailsUrl = "";
 
 
     /**
@@ -39,11 +35,6 @@ public class PMDPopupMenu {
         suppressMenuItem.addActionListener(actionListener);
         suppressMenuItem.setVisible(false);
         this.menu.add(suppressMenuItem);
-
-        detailsMenuItem = new JMenuItem(DETAILS);
-        detailsMenuItem.addActionListener(actionListener);
-        detailsMenuItem.setVisible(false);
-        this.menu.add(detailsMenuItem);
     }
 
     /**
@@ -54,9 +45,6 @@ public class PMDPopupMenu {
     public void addViolation(PMDViolation violation) {
         suppressMenuItem.setVisible(true);
         this.violations.add(violation);
-        if (detailsUrl.isEmpty()) {
-            setDetailsUrl(violation.getExternalUrl());
-        }
     }
 
     /**
@@ -71,7 +59,6 @@ public class PMDPopupMenu {
     public void clearViolationsAndUrl() {
         suppressMenuItem.setVisible(false);
         violations.clear();
-        setDetailsUrl("");
     }
 
     /**
@@ -83,17 +70,7 @@ public class PMDPopupMenu {
         return menu;
     }
 
-    @NotNull
-    public String getDetailsUrl() {
-        return detailsUrl;
-    }
-
-    public void setDetailsUrl(String externalInfoUrl) {
-        detailsUrl = externalInfoUrl != null ? externalInfoUrl : "";
-        detailsMenuItem.setVisible(!detailsUrl.isBlank());
-    }
-
     public boolean hasVisibleMenuItems() {
-        return detailsMenuItem.isVisible() || suppressMenuItem.isVisible();
+        return suppressMenuItem.isVisible();
     }
 }

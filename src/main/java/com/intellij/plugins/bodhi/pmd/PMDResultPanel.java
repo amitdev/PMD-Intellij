@@ -6,11 +6,9 @@ import com.intellij.ide.*;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
-import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory;
-import com.intellij.openapi.editor.impl.DocumentImpl;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
@@ -171,12 +169,6 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
                         executeWrite(editor, violation);
                     }
                 }
-            } else if (e.getActionCommand().equals(PMDPopupMenu.DETAILS)) {
-                // show rule details documentation in browser
-                String url = popupMenu.getDetailsUrl();
-                if (!url.isEmpty()) {
-                    BrowserUtil.browse(url);
-                }
             }
         });
     }
@@ -290,8 +282,7 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
             p.setHorizontalScrollbarVisible(true);
             p.getSettings().setUseSoftWraps(false);
         });
-        Document exampleDocument = new DocumentImpl("// Example " + fileType.getName() + " code shows here");
-        exampleField.setDocument(exampleDocument);
+        exampleField.setText("// Example " + fileType.getName() + " code shows here");
     }
 
     /**
@@ -333,36 +324,44 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
      * @param node The selected tree node containing rule information, or null if no selection
      */
     private void setRuleDetailsOnDocField(@Nullable DefaultMutableTreeNode node) {
-        String htmlText = "Click on a rule or violation for details.";
-        String exampleText = "Code example(s) shows here.";
-        // default
-        EditorTextField exampleField = ruleExampleFieldJava;
-        if (node != null) {
-            Rule rule = null;
-            String message = "";
-            if (node instanceof HasRule) {
-                rule = ((HasRule) node).getRule();
-                message = rule.getMessage();
-                String langId = rule.getLanguage().getId(); // java or kotlin
-                if (langId.equals("kotlin")) {
-                    exampleText = getFormattedExamples(rule, "Kotlin");
-                    exampleField = ruleExampleFieldKotlin;
-                } else { // java
-                    exampleText = getFormattedExamples(rule, "Java");
-                    exampleField = ruleExampleFieldJava;
-                }
-            }
-            if (node instanceof HasMessage) {
-                message = ((HasMessage) node).getMessage();
-            }
-            htmlText = PMDHTMLUtil.getHtmlText(message, rule);
+        String htmlText = "Select a rule or violation for details.";
+        String exampleText = "// Example code shows here.";
+        if (node == null || (!(node instanceof HasMessage) && !(node instanceof HasRule))) {
+            updateHtmlContent(htmlText);
+            JLabel exampleLabel = new JLabel(exampleText);
+            exampleLabel.setVerticalAlignment(SwingConstants.TOP);
+            detailSplit.setSecondComponent(exampleLabel);
+            return;
         }
+        EditorTextField exampleField = ruleExampleFieldJava; // default
+        Rule rule = null;
+        String message = "";
+        if (node instanceof HasRule) {
+            rule = ((HasRule) node).getRule();
+            message = rule.getMessage();
+            String langId = rule.getLanguage().getId(); // java or kotlin
+            if (langId.equals("kotlin")) {
+                exampleText = getFormattedExamples(rule, "Kotlin");
+                exampleField = ruleExampleFieldKotlin;
+            } else { // java
+                exampleText = getFormattedExamples(rule, "Java");
+                exampleField = ruleExampleFieldJava;
+            }
+        }
+        if (node instanceof HasMessage) {
+            message = ((HasMessage) node).getMessage();
+        }
+        htmlText = PMDHTMLUtil.getHtmlText(message, rule);
 
         updateHtmlContent(htmlText);
         exampleField.setText(exampleText);
         detailSplit.setSecondComponent(exampleField);
-        exampleField.setCaretPosition(0);
-        exampleField.repaint();
+
+        final EditorTextField finalExampleField = exampleField;
+        ApplicationManager.getApplication().runReadAction(() -> {
+            finalExampleField.setCaretPosition(0); // requires wrapping in read action
+        });
+        repaint();
         // browser will adjust split proportion
     }
 
@@ -393,10 +392,6 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
             //Only for violation nodes, popups suppress+details are supported
             if (treeNode instanceof PMDViolationNode) {
                 popupMenu.addViolation(((PMDViolationNode) treeNode).getPmdViolation());
-            }
-            // if it has a rule, popup details is supported
-            else if (treeNode instanceof HasRule) {
-                popupMenu.setDetailsUrl(((HasRule) treeNode).getRule().getExternalInfoUrl());
             }
             //Display popup only if actions are possible
             if (popupMenu.hasVisibleMenuItems()) {

@@ -38,12 +38,10 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
      * The Tool ID of the results panel.
      */
     public static final String TOOL_ID = "PMD";
-
     private static final String COMPONENT_NAME = "PMDProjectComponent";
-
     private final Project currentProject;
     private static final AtomicInteger numProjectsOpen = new AtomicInteger();
-    private final PMDResultPanel resultPanel;
+    private volatile PMDResultPanel resultPanel;
     private String lastRunRuleSetPaths;
     private boolean lastRunRulesCustom;
     private AnActionEvent lastRunActionEvent;
@@ -65,7 +63,6 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
         toolWindowManager = ToolWindowManager.getInstance(currentProject);
         numProjectsOpen.incrementAndGet();
         initComponent();
-        resultPanel = new PMDResultPanel(this);
     }
 
     public void initComponent() {
@@ -166,11 +163,14 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
 
 
     /**
-     * Gets the result panel where the PMD results are shown.
-     *
+     * Lazily retrieves the result panel where the PMD results are shown.
+     * To solve threading issues: delay creation of UI components.
      * @return The panel where results are shown.
      */
     public PMDResultPanel getResultPanel() {
+        if (resultPanel == null) {
+            resultPanel = new PMDResultPanel(this);
+        }
         return resultPanel;
     }
 
@@ -178,7 +178,7 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
      * Set up the tool window and initializes the result tree.
      */
     public void setupToolWindow() {
-        resultPanel.initializeTree();
+        getResultPanel().initializeTree();
     }
 
     /**
@@ -188,7 +188,7 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
         ToolWindow window = toolWindowManager.getToolWindow(TOOL_ID);
         if (window != null) {
             window.hide(null);
-            resultPanel.initializeTree();
+            getResultPanel().initializeTree();
         }
     }
 

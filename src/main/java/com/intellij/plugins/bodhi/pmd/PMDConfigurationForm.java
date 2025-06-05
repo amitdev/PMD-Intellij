@@ -1,6 +1,8 @@
 package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
@@ -43,6 +45,7 @@ import static com.intellij.plugins.bodhi.pmd.actions.PreDefinedKotlinMenuGroup.R
  * @version 1.1
  */
 public class PMDConfigurationForm {
+    private static final Logger LOG = Logger.getInstance(PMDConfigurationForm.class); // IntelliJ supported logger
 
     private JPanel rootPanel;
     private JList<String> ruleSetPathJList;
@@ -55,13 +58,57 @@ public class PMDConfigurationForm {
     private final List<String> deletedRuleSetPaths = new ArrayList<>();
     private boolean isModified;
     private final Project project;
-    private final Map<String, String> validKnownCustomRules;
+    private volatile Map<String, String> validKnownCustomRules;
 
     private static final List<String> columnNames = List.of("Option", "Value");
     private static final String STAT_URL_MSG_SUCCESS = "Connection success; will use Statistics URL to export anonymous usage statistics";
 
     public PMDConfigurationForm(final Project project) {
         this.project = project;
+
+        optionsTable.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
+        optionsTable.setRowHeight(optionsTable.getRowHeight() + 5); // increase space around text
+        ruleSetPathJList.setModel(new RuleSetListModel(new ArrayList<>()));
+        inEditorAnnotationRuleSets.setModel(new RuleSetListModel(new ArrayList<>()));
+        inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
+        skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
+
+        // Timed retry-based initialization, to make sure intelliJ services are initialized before
+        scheduleActionManagerInit(0);
+
+        validKnownCustomRules = Collections.emptyMap(); // Lazy load later
+    }
+
+    private void scheduleActionManagerInit(int attemptCount) {
+        if (attemptCount == 0) {
+            // First attempt immediately (later)
+            tryInitActionManager(attemptCount);
+        } else {
+            // Subsequent attempts with delay: 100ms, 400ms, 900ms
+            int delay = 100 * attemptCount * attemptCount;
+            javax.swing.Timer timer = new javax.swing.Timer(delay, e -> tryInitActionManager(attemptCount));
+            timer.setRepeats(false);
+            timer.start();
+        }
+    }
+
+    private void tryInitActionManager(int attemptCount) {
+        ApplicationManager.getApplication().invokeLater(() -> {
+            try {
+                initializeActionManager();
+                validKnownCustomRules = PMDUtil.getValidKnownCustomRules();
+            } catch (Exception e) {
+                if (attemptCount < 3) {
+                    scheduleActionManagerInit(attemptCount + 1);
+                } else {
+                    LOG.warn("ActionManager initialization failed after retries", e);
+                }
+
+            }
+        });
+    }
+
+    private void initializeActionManager() {
         //Get the action group defined
         DefaultActionGroup actionGroup = (DefaultActionGroup) ActionManager.getInstance().getAction("PMDSettingsEdit");
         //Remove toolbar actions associated to previous form
@@ -75,15 +122,6 @@ public class PMDConfigurationForm {
         toolbar.getComponent().setVisible(true);
         buttonPanel.setLayout(new BorderLayout());
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
-
-        optionsTable.putClientProperty("terminateEditOnFocusLost", true); // fixes issue #45
-        optionsTable.setRowHeight(optionsTable.getRowHeight() + 5); // increase space around text
-        ruleSetPathJList.setModel(new RuleSetListModel(new ArrayList<>()));
-        inEditorAnnotationRuleSets.setModel(new RuleSetListModel(new ArrayList<>()));
-        inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
-        skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
-
-        validKnownCustomRules = PMDUtil.getValidKnownCustomRules();
     }
 
     /**
