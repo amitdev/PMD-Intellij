@@ -1,6 +1,5 @@
 package com.intellij.plugins.bodhi.pmd;
 
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.ProjectActivity;
 import com.intellij.openapi.wm.WindowManager;
@@ -19,40 +18,48 @@ public class PMDProjectSwitchListener implements ProjectActivity {
     @Nullable
     @Override
     public Object execute(@NotNull Project project, @NotNull Continuation<? super Unit> continuation) {
-        ApplicationManager.getApplication().invokeLater(() -> {
+        setupWindowFocusListener(project);
+        return Unit.INSTANCE;
+    }
+
+    private void setupWindowFocusListener(@NotNull Project project) {
+        if (project.isDisposed()) {
+            return;
+        }
+
+        try {
             JFrame frame = WindowManager.getInstance().getFrame(project);
             if (frame != null) {
                 WindowFocusListener listener = new WindowFocusListener() {
                     @Override
                     public void windowGainedFocus(WindowEvent e) {
                         if (!project.isDisposed()) {
-                            try {
-                                PMDProjectComponent pmdComponent = project.getService(PMDProjectComponent.class);
-                                if (pmdComponent != null) {
-                                    pmdComponent.updateCustomMenuFromProject();
-                                }
-                            } catch (Exception ignored) {
-                                // Project may be disposed during call
+                            PMDProjectComponent pmdComponent = project.getService(PMDProjectComponent.class);
+                            if (pmdComponent != null) {
+                                pmdComponent.updateCustomMenuFromProject();
                             }
                         }
                     }
 
                     @Override
                     public void windowLostFocus(WindowEvent e) {
+                        // Not used
                     }
                 };
 
                 frame.addWindowFocusListener(listener);
 
-                // Cleanup listener on project dispose
-                PMDProjectComponent pmdProjComponent = project.getService(PMDProjectComponent.class);
-                if (pmdProjComponent != null) {
-                    Disposer.register(pmdProjComponent, () -> frame.removeWindowFocusListener(listener));
+                PMDProjectComponent pmdComponent = project.getService(PMDProjectComponent.class);
+                if (pmdComponent != null) {
+                    Disposer.register(pmdComponent, () -> frame.removeWindowFocusListener(listener));
                 }
             }
-        });
-        return Unit.INSTANCE;
+        } catch (Exception e) {
+            // Ignore any startup-related exceptions
+            // Next time the project gets focus, it will work properly
+        }
     }
 }
+
 
 

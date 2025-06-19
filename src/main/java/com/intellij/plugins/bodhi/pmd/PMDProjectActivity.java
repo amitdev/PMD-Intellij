@@ -11,14 +11,16 @@ import org.jetbrains.annotations.Nullable;
  * ProjectActivity to initialize PMD plugin when a project is opened.
  * This replaces the deprecated StartupActivity approach.
  */
-public class PMDProjectActivity implements ProjectActivity
-{
+public class PMDProjectActivity implements ProjectActivity {
+
     @Nullable
     @Override
     public Object execute(@NotNull Project project, @NotNull Continuation<? super Unit> continuation) {
-        PMDProjectComponent pmdComponent = project.getService(PMDProjectComponent.class);
-        if (pmdComponent != null) {
-            pmdComponent.updateCustomMenuFromProject();
+        if (!project.isDisposed()) {
+            PMDProjectComponent pmdComponent = project.getService(PMDProjectComponent.class);
+            if (pmdComponent != null) {
+                pmdComponent.updateCustomMenuFromProject();
+            }
         }
         return Unit.INSTANCE;
     }
