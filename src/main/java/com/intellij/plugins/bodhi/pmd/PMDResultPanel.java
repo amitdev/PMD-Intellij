@@ -282,7 +282,7 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
             p.setHorizontalScrollbarVisible(true);
             p.getSettings().setUseSoftWraps(false);
         });
-        exampleField.setText("// Example " + fileType.getName() + " code shows here");
+        exampleField.setText("// Example code shows here");
     }
 
     /**
@@ -324,8 +324,8 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
      * @param node The selected tree node containing rule information, or null if no selection
      */
     private void setRuleDetailsOnDocField(@Nullable DefaultMutableTreeNode node) {
-        String htmlText = "Select a rule or violation for details.";
-        String exampleText = "// Example code shows here.";
+        String htmlText = "Select a violation for details.";
+        String exampleText = "// Example code shows here";
         if (node == null || (!(node instanceof HasMessage) && !(node instanceof HasRule))) {
             updateHtmlContent(htmlText);
             JLabel exampleLabel = new JLabel(exampleText);
