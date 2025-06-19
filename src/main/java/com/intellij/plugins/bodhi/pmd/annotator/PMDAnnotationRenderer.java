@@ -46,7 +46,10 @@ class PMDAnnotationRenderer extends AbstractRenderer {
 
     public PMDAnnotations getResult(Document document) {
         if (report == null) {
-            throw new IllegalStateException("Report is null. Did you call renderFileReports?");
+            // Return empty annotations
+            // This can happen when no PMD violations are found
+            return new PMDAnnotations(Report.buildReport(listener -> {}
+            ), document);
         }
         return new PMDAnnotations(report, document);
     }
