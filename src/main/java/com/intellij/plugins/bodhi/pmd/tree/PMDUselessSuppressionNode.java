@@ -45,7 +45,7 @@ public class PMDUselessSuppressionNode extends PMDLeafNode implements HasMessage
 
     @Override
     public void render(PMDCellRenderer cellRenderer, boolean expanded) {
-        cellRenderer.setIcon(Severity.MAJOR.getIcon());
+        cellRenderer.setIcon(Severity.MEDIUM.getIcon());
         cellRenderer.append("useless suppression of: ", GRAYED_ATTRIBUTES);
         cellRenderer.append(uselessSuppression.getSuppressedRuleName() + " ");
         cellRenderer.append(uselessSuppression.getPositionText(), GRAYED_ATTRIBUTES);

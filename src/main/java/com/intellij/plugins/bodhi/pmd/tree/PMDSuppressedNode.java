@@ -82,7 +82,7 @@ public class PMDSuppressedNode extends PMDLeafNode implements HasMessage, HasRul
         if (pmdSuppressedViolation.suppressedByNOPMD()) {
             // NOPMD should be followed by a reason explaining the suppression
             if (containsNoReasonDescription(userMessage)) {
-                cellRenderer.setIcon(Severity.MAJOR.getIcon());
+                cellRenderer.setIcon(Severity.MEDIUM.getIcon());
             }
             else {
                 cellRenderer.setIcon(Severity.INFO.getIcon());
