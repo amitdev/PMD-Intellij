@@ -4,12 +4,17 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Improved rule violation documentation and examples 
+- Custom rule configuration fixes 
+
 ## [2.0.7] - 2025-05-24
 
 ### Changed
 
 - Bug fixes
-- Support for Kotlin rul0es
+- Support for Kotlin rules
 - Update to PMD version 7.13.0
 
 ## [2.0.6] - 2025-05-04

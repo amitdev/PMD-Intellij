@@ -45,5 +45,9 @@
     <externalAnnotator
             language="kotlin"
             implementationClass="com.intellij.plugins.bodhi.pmd.annotator.PMDExternalAnnotator"/>
+
+    <postStartupActivity implementation="com.intellij.plugins.bodhi.pmd.PMDProjectActivity"/>
+    <postStartupActivity implementation="com.intellij.plugins.bodhi.pmd.PMDProjectSwitchListener"/>
   </extensions>
+
 </idea-plugin>

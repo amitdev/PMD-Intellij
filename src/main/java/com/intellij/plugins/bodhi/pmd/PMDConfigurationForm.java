@@ -55,7 +55,6 @@ public class PMDConfigurationForm {
     private JPanel mainPanel;
     private JCheckBox skipTestsCheckBox;
     private JList<String> inEditorAnnotationRuleSets;
-    private final List<String> deletedRuleSetPaths = new ArrayList<>();
     private boolean isModified;
     private final Project project;
     private volatile Map<String, String> validKnownCustomRules;
@@ -184,7 +183,6 @@ public class PMDConfigurationForm {
      */
     public void getDataFromUi(PMDProjectComponent dataProjComp) {
         dataProjComp.setCustomRuleSetPaths(((RuleSetListModel) ruleSetPathJList.getModel()).getList());
-        dataProjComp.setDeletedRuleSetPaths(deletedRuleSetPaths);
         dataProjComp.setOptionToValue(toOptionToValue(optionsTable.getModel()));
         dataProjComp.skipTestSources(skipTestsCheckBox.isSelected());
         dataProjComp.setInEditorAnnotationRuleSets(inEditorAnnotationRuleSets.getSelectedValuesList());
@@ -257,7 +255,6 @@ public class PMDConfigurationForm {
                 int index = listModel.getSize();
                 listModel.add(index, rulesPath);
                 ruleSetPathJList.setSelectedIndex(index);
-                deletedRuleSetPaths.remove(rulesPath);
 
                 RuleSetListModel inEditorAnnotationRuleSetsModel = (RuleSetListModel) inEditorAnnotationRuleSets.getModel();
                 inEditorAnnotationRuleSetsModel.add(inEditorAnnotationRuleSetsModel.getSize(), rulesPath);
@@ -317,7 +314,6 @@ public class PMDConfigurationForm {
                 String toRemove = ruleSetPathJList.getModel().getElementAt(index);
                 ((RuleSetListModel) ruleSetPathJList.getModel()).remove(index);
                 ruleSetPathJList.setSelectedIndex(index);
-                deletedRuleSetPaths.add(toRemove);
 
                 ((RuleSetListModel) inEditorAnnotationRuleSets.getModel()).remove(toRemove);
             }
