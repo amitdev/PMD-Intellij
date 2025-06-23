@@ -6,7 +6,7 @@ pmd = "7.13.0"
 # plugins
 changelog = "2.2.1"
 intelliJPlatform = "2.5.0"
-kotlin = "2.1.21"
+kotlin = "2.2.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
