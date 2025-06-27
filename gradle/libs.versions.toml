@@ -1,7 +1,7 @@
 [versions]
 # libraries
 junit = "4.13.2"
-pmd = "7.13.0"
+pmd = "7.15.0"
 
 # plugins
 changelog = "2.2.1"
