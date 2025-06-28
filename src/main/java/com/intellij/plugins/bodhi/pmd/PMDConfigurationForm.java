@@ -168,11 +168,12 @@ public class PMDConfigurationForm {
     }
 
     private Object[][] toDescValueArray2d(Map<ConfigOption, String> optionToValue) {
-        String[][] result = new String[optionToValue.size()][2];
-        for (int i = 0; i < optionToValue.size(); i++) {
+        String[][] result = new String[ConfigOption.size()][2];
+        for (int i = 0; i < ConfigOption.size(); i++) {
             ConfigOption option = ConfigOption.values()[i];
             result[i][0] = option.getDescription();
-            result[i][1] = optionToValue.get(option);
+            String value = optionToValue.get(option);
+            result[i][1] = (value != null) ? value : option.getDefaultValue();
         }
         return result;
     }
