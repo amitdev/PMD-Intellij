@@ -7,7 +7,8 @@
 ### Changed
 
 - Improved rule violation documentation and examples 
-- Custom rule configuration fixes 
+- Custom rule configuration fixes
+- Update to PMD version 7.15.0
 
 ## [2.0.7] - 2025-05-24
 
