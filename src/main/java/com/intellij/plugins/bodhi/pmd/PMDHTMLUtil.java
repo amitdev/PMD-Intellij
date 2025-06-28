@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 
 public class PMDHTMLUtil {
 
-    public static final String HTML_INITIAL_BODY_CONTENT = "<html><body>Click on a rule or violation for details.</body></html>";
+    public static final String HTML_INITIAL_BODY_CONTENT = "<html><body>Select a violation for details.</body></html>";
     private static final Logger log = Logger.getInstance(PMDHTMLUtil.class);
     private static final Pattern BRACED_RULES_NAME_PATTERN = Pattern.compile("\\([\\w-]+-rules\\)\\s*$", Pattern.MULTILINE);
 
@@ -400,7 +400,7 @@ public class PMDHTMLUtil {
     /**
      * Appends rule name and tags to HTML builder.
      */
-    private static void appendRuleNameAndTagsTo(StringBuilder htmlBuilder, @Nullable Rule rule) {
+    private static void appendRuleNameAndTagsTo(StringBuilder htmlBuilder, @NotNull Rule rule) {
         htmlBuilder.append("<div class='rule-id'>");
 
         // Add rule name / ID

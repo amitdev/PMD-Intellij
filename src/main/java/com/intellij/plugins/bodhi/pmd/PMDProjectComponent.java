@@ -17,7 +17,6 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  *
@@ -40,7 +39,6 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
     public static final String TOOL_ID = "PMD";
     private static final String COMPONENT_NAME = "PMDProjectComponent";
     private final Project currentProject;
-    private static final AtomicInteger numProjectsOpen = new AtomicInteger();
     private volatile PMDResultPanel resultPanel;
     private String lastRunRuleSetPaths;
     private boolean lastRunRulesCustom;
@@ -51,7 +49,7 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
     private boolean skipTestSources;
     private boolean scanFilesBeforeCheckin;
     private Set<String> inEditorAnnotationRuleSets = new LinkedHashSet<>(); // avoid duplicates, maintain order
-    private List<String> deletedRuleSetPaths = Collections.emptyList();
+    private volatile List<AnAction> currentCustomActions = new ArrayList<>();
 
     /**
      * Creates a PMD Project component based on the project given.
@@ -61,7 +59,6 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
     public PMDProjectComponent(Project project) {
         this.currentProject = project;
         toolWindowManager = ToolWindowManager.getInstance(currentProject);
-        numProjectsOpen.incrementAndGet();
         initComponent();
     }
 
@@ -106,53 +103,44 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
     }
 
     /**
-     * Reflect customRuleSetPaths into actionGroup (ActionManager singleton instance)
-     * Better solution is an ActionManager for each project and
-     * one shared configuration/settings for all projects, as assumed expected by user
-     * Now for > 1 projects open, merge the rule sets of shared actions (menu) and current project
+     * Reflect customRuleSetPaths into custom actions
      */
-    void updateCustomRulesMenu() {
+    void buildCustomActions() {
+        List<AnAction> actions = new ArrayList<>();
+        boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
+        for (final String ruleSetPath : customRuleSetPaths) {
+            String ruleSetName = PMDResultCollector.getRuleSetName(ruleSetPath);
+            String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
+            String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
+            String actionText = ruleSetName;
+            if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
+                actionText += " (" + extFileName + ")";
+            }
+            AnAction action = new AnAction(actionText) {
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    PMDInvoker.getInstance().runPMD(e, ruleSetPath);
+                    setLastRunActionAndRules(e, ruleSetPath, true);
+                }
+            };
+            action.addSynonym(() -> ruleSetPath);
+            actions.add(action);
+        }
+        currentCustomActions = actions;
+    }
+
+    /**
+     * Reflect custom actions from the project into actionGroup (ActionManager singleton instance)
+     * Better solution might be
+     * global settings for all projects, overridable with project-specific settings.
+     */
+    void updateCustomMenuFromProject() {
         ActionManager actionManager = ActionManager.getInstance();
         PMDCustom actionGroup = (PMDCustom) actionManager.getAction("PMDCustom");
-            if (numProjectsOpen.get() != 1) {
-                // merge actions from menu and from settings to not lose any when switching between projects
-                AnAction[] currentActions = actionGroup.getChildActionsOrStubs();
-                Set<String> ruleSetPathsFromMenu = new LinkedHashSet<>();
-                for (AnAction action : currentActions) {
-                    if (action.getSynonyms().size() == 1) {
-                        String ruleSetPath = action.getSynonyms().get(0).get();
-                        ruleSetPathsFromMenu.add(ruleSetPath.trim());
-                    }
-                }
-                customRuleSetPaths.addAll(ruleSetPathsFromMenu);
-                // remove the ones just explicitly deleted in config
-                deletedRuleSetPaths.forEach(customRuleSetPaths::remove);
-            }
-            List<AnAction> newActionList = new ArrayList<>();
-            boolean hasDuplicate = hasDuplicateBareFileName(customRuleSetPaths);
-            for (final String ruleSetPath : customRuleSetPaths) {
-                String ruleSetName = PMDResultCollector.getRuleSetName(ruleSetPath);
-                String extFileName = PMDUtil.getExtendedFileNameFromPath(ruleSetPath);
-                String bareFileName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
-                String actionText = ruleSetName;
-                if (!ruleSetName.equals(bareFileName) || hasDuplicate) {
-                    actionText += " (" + extFileName + ")";
-                }
-                AnAction action = new AnAction(actionText) {
-                    public void actionPerformed(@NotNull AnActionEvent e) {
-                        PMDInvoker.getInstance().runPMD(e, ruleSetPath);
-                        setLastRunActionAndRules(e, ruleSetPath, true);
-                    }
-                };
-                action.addSynonym(() -> ruleSetPath);
-                newActionList.add(action);
-            }
-            actionGroup.removeAll();
-            actionGroup.addAll(newActionList);
+        actionGroup.removeAll();
+        actionGroup.addAll(currentCustomActions);
     }
 
     public void dispose() {
-        numProjectsOpen.decrementAndGet();
     }
 
     @NonNls
@@ -248,10 +236,6 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
         this.customRuleSetPaths = new LinkedHashSet<>(customRuleSetPaths);
     }
 
-    public void setDeletedRuleSetPaths(List<String> deletedRuleSetPaths) {
-        this.deletedRuleSetPaths = deletedRuleSetPaths;
-    }
-
     public Set<String> getInEditorAnnotationRuleSets() {
         return inEditorAnnotationRuleSets;
     }
@@ -318,8 +302,8 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
         this.skipTestSources = state.isSkipTestSources();
         this.scanFilesBeforeCheckin = state.isScanFilesBeforeCheckin();
 
-        // Add custom rules as menu items if defined.
-        updateCustomRulesMenu();
+        // build custom rules as menu actions if defined.
+        buildCustomActions();
     }
 
     public void skipTestSources(boolean skipTestSources)

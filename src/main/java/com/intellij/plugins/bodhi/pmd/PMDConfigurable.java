@@ -42,7 +42,7 @@ public class PMDConfigurable implements Configurable {
         if (form != null) {
             form.getDataFromUi(component);
         }
-        component.updateCustomRulesMenu();
+        component.buildCustomActions();
     }
 
     public void reset() {
