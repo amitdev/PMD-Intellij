@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [2.0.8] - 2025-06-29
+
 ### Changed
 
 - Improved rule violation documentation and examples 
@@ -144,7 +146,8 @@
 
 - Update to PMD version 6.35.0 and optional anonymous status reporting
 
-[Unreleased]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.7...HEAD
+[Unreleased]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.8...HEAD
+[2.0.8]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.7...v2.0.8
 [2.0.7]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.6...v2.0.7
 [2.0.6]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.4...v2.0.6
 [2.0.4]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.3...v2.0.4
