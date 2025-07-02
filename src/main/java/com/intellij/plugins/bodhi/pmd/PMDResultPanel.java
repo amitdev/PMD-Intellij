@@ -220,36 +220,14 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
      * @return The configured main split panel
      */
     private @NotNull OnePixelSplitter buildMainSplit() {
-        configureExampleField(ruleExampleFieldJava, FileTypeManager.getInstance().findFileTypeByName("JAVA"));
-        configureExampleField(ruleExampleFieldKotlin, FileTypeManager.getInstance().findFileTypeByName("Kotlin"));
+        configureExampleField(ruleExampleFieldJava, FileTypeManager.getInstance().getFileTypeByExtension("java"));
+        configureExampleField(ruleExampleFieldKotlin, FileTypeManager.getInstance().getFileTypeByExtension("kt"));
 
         // Scrolling en viewport
         JBScrollPane scrollPane = new JBScrollPane(resultTree);
         scrollPane.setHorizontalScrollBarPolicy(JBScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setVerticalScrollBarPolicy(JBScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-        /*JPanel treePanel = new JPanel(new BorderLayout());
-        treePanel.add(new JScrollPane(resultTree), BorderLayout.CENTER);
-
-        // Configure HTML panel with our new method
-        JComponent htmlPanel = configureHtmlPanel();
-
-        // Configure the vertical split between HTML and code examples
-        detailSplit.setFirstComponent(htmlPanel);
-        detailSplit.setSecondComponent(ruleExampleFieldJava); // Default component, will be replaced dynamically
-        detailSplit.setProportion(0.7f);
-
-        // Use configureSplitPane for better proportions between tree and content
-        JSplitPane horizontalSplit = configureSplitPane(treePanel, detailSplit);
-
-        OnePixelSplitter mainSplitter = new OnePixelSplitter(false);
-
-        // Cast to JComponent as OnePixelSplitter expects JComponent
-        mainSplitter.setFirstComponent((JComponent)horizontalSplit.getLeftComponent());
-        mainSplitter.setSecondComponent((JComponent)horizontalSplit.getRightComponent());
-        mainSplitter.setProportion(0.3f); // Same proportion as in configureSplitPane
-
-        return mainSplitter;*/
         // Main horizontal split between primary-tree and detail-doc
         OnePixelSplitter mainSplit = new OnePixelSplitter(false); // horizontal
         mainSplit.setFirstComponent(scrollPane);
@@ -269,13 +247,15 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
         return mainSplit;
     }
 
-    private void configureExampleField(EditorTextField exampleField, FileType fileType) {
+    private void configureExampleField(EditorTextField exampleField, @Nullable FileType fileType) {
         exampleField.setOneLineMode(false);
         exampleField.setFocusable(false);
         exampleField.setOpaque(false);
         exampleField.setViewer(true);
         exampleField.setBorder(JBUI.Borders.empty(1));
-        exampleField.setFileType(fileType);
+        if (fileType != null) {
+            exampleField.setFileType(fileType);
+        }
         exampleField.addSettingsProvider(p -> {
             setSyntaxHighlighting(p, fileType);
             p.setVerticalScrollbarVisible(true);
