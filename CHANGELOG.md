@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Minor bug fix - #257
+
 ## [2.0.8] - 2025-06-29
 
 ### Changed
