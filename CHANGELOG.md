@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [2.0.9] - 2025-07-20
+
 ### Changed
 
 - Minor bug fix - #257
@@ -150,7 +152,8 @@
 
 - Update to PMD version 6.35.0 and optional anonymous status reporting
 
-[Unreleased]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.8...HEAD
+[Unreleased]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.9...HEAD
+[2.0.9]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.8...v2.0.9
 [2.0.8]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.7...v2.0.8
 [2.0.7]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.6...v2.0.7
 [2.0.6]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.4...v2.0.6
