@@ -11,6 +11,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
@@ -21,11 +22,12 @@ import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRootNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetNode;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -170,8 +172,11 @@ public class PMDInvoker {
                 rootNode.setFileCount(files.size());
                 rootNode.setRuleSetCount(ruleSetPathArray.length);
                 rootNode.setRunning(true);
+
                 PMDProgressRenderer progressRenderer = new PMDProgressRenderer(progress, files.size() * ruleSetPathArray.length);
                 try {
+                    final PsiManager psiManager = PsiManager.getInstance(project);
+
                     for (String ruleSetPath : ruleSetPathArray) {
                         progress.setText("Running : " + ruleSetPath + " on " + files.size() + " file(s)");
 
@@ -179,7 +184,18 @@ public class PMDInvoker {
                         PMDResultCollector collector = new PMDResultCollector();
 
                         //Get the tree nodes from result collector
-                        List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(files, ruleSetPath, projectComponent, progressRenderer);
+                        List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(
+                                ApplicationManager.getApplication().runReadAction(new Computable<>() {
+                                    @Override
+                                    public List<PsiFile> compute() {
+                                        return files.stream()
+                                                .map(psiManager::findFile)
+                                                .toList();
+                                    }
+                                }),
+                                ruleSetPath,
+                                projectComponent,
+                                progressRenderer);
                         // sort rules by priority, rule and suppressed nodes are comparable
                         resultRuleNodes.sort(null);
 
