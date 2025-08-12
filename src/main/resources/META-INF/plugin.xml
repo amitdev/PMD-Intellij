@@ -6,6 +6,8 @@
   <vendor>Amit Dev</vendor>
 
   <depends>com.intellij.modules.platform</depends>
+  <depends optional="true" config-file="plugin-java.xml">com.intellij.modules.java</depends>
+  <depends optional="true" config-file="plugin-kotlin.xml">org.jetbrains.kotlin</depends>
 
   <actions>
     <!-- The Main menu item which includes predefined and custom rulesets -->
@@ -40,14 +42,24 @@
                 canCloseContents="true"/>
     <externalAnnotator
             language="JAVA"
-            implementationClass="com.intellij.plugins.bodhi.pmd.annotator.PMDExternalAnnotator"/>
-    <!-- same implementation for both Java and Kotlin: split into specific classes when necessary -->
+            implementationClass="com.intellij.plugins.bodhi.pmd.annotator.PMDExternalJavaAnnotator"/>
     <externalAnnotator
             language="kotlin"
-            implementationClass="com.intellij.plugins.bodhi.pmd.annotator.PMDExternalAnnotator"/>
+            implementationClass="com.intellij.plugins.bodhi.pmd.annotator.PMDExternalKotlinAnnotator"/>
 
     <postStartupActivity implementation="com.intellij.plugins.bodhi.pmd.PMDProjectActivity"/>
     <postStartupActivity implementation="com.intellij.plugins.bodhi.pmd.PMDProjectSwitchListener"/>
+    <applicationService serviceImplementation="com.intellij.plugins.bodhi.pmd.annotator.langversion.LanguageVersionResolverService"/>
   </extensions>
+  <!-- Not detected when inside plugin-kotlin.xml -->
+  <extensions defaultExtensionNs="org.jetbrains.kotlin">
+    <supportsKotlinPluginMode supportsK2="true" />
+  </extensions>
+  <extensionPoints>
+      <extensionPoint
+              name="languageResolver"
+              interface="com.intellij.plugins.bodhi.pmd.annotator.langversion.LanguageVersionResolver"
+              dynamic="true"/>
+  </extensionPoints>
 
 </idea-plugin>

@@ -1,18 +1,19 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.plugins.bodhi.pmd.ConfigOption;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
-import com.intellij.plugins.bodhi.pmd.tree.PMDErrorBranchNode;
+import com.intellij.plugins.bodhi.pmd.annotator.langversion.ManagedLanguageVersionResolver;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
+import com.intellij.psi.PsiFile;
 import net.sourceforge.pmd.PMDConfiguration;
 import net.sourceforge.pmd.PmdAnalysis;
 import net.sourceforge.pmd.internal.util.IOUtil;
-import net.sourceforge.pmd.lang.LanguageRegistry;
+import net.sourceforge.pmd.lang.Language;
 import net.sourceforge.pmd.lang.LanguageVersion;
-import net.sourceforge.pmd.lang.document.TextFile;
 import net.sourceforge.pmd.lang.rule.RuleSet;
 import net.sourceforge.pmd.lang.rule.RuleSetLoadException;
 import net.sourceforge.pmd.lang.rule.RuleSetLoader;
@@ -23,6 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Responsible for running PMD and collecting the results which can be represented in
@@ -33,6 +36,7 @@ import java.util.*;
  */
 public class PMDResultCollector {
 
+    private static final Logger LOG = Logger.getInstance(PMDResultCollector.class);
     private static Report report;
 
     /**
@@ -41,58 +45,71 @@ public class PMDResultCollector {
     private static final Map<String, RuleSet> pathToRuleSet = new HashMap<>();
 
     /**
-     * Creates an instance of PMDResultCollector.
-     */
-    public PMDResultCollector() {}
-
-    /**
      * Returns the report with pmd results
      * @return the report with pmd results
      */
     public static Report getReport() {
         return report;
     }
-    /**
-     * Runs the given ruleSet(s) on given set of files and returns the result.
-     *
-     * @param files            The files to run PMD on
-     * @param ruleSetPath      The path of the ruleSet to run
-     * @return list of results
-     */
-    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<VirtualFile> files, String ruleSetPath, PMDProjectComponent comp) {
-        return this.runPMDAndGetResults(files, ruleSetPath, comp, null);
+
+    public List<PMDRuleSetEntryNode> runPMDAndGetResultsForSingleFileNew(
+            PsiFile file,
+            LanguageVersion languageVersion,
+            String ruleSetPath,
+            PMDProjectComponent comp,
+            Renderer extraRenderer) {
+
+        return runPMDAndGetResultsInternal(
+                List.of(file),
+                () -> List.of(languageVersion),
+                ruleSetPath,
+                comp,
+                extraRenderer);
     }
 
-    /**
-     * Runs the given ruleSet(s) on given set of files and returns the result.
-     *
-     * @param files       The files to run PMD on
-     * @param ruleSetPath The path of the ruleSet to run
-     * @return list of results
-     */
-    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<VirtualFile> files, String ruleSetPath, PMDProjectComponent comp, Renderer extraRenderer) {
-        return runPMDAndGetResults(files, List.of(), ruleSetPath, comp, extraRenderer);
+    public List<PMDRuleSetEntryNode> runPMDAndGetResults(
+            List<PsiFile> files,
+            String ruleSetPath,
+            PMDProjectComponent comp,
+            Renderer extraRenderer) {
+        if(files.isEmpty()) {
+            return List.of();
+        }
+
+        return runPMDAndGetResultsInternal(
+                files,
+                () -> getLowestVersionForEachLanguage(groupPsiFilesByLanguageAndVersion(files)),
+                ruleSetPath,
+                comp,
+                extraRenderer);
     }
 
-    /**
-     * Runs the given ruleSet(s) on given set of files and returns the result.
-     *
-     * @param files       The files to run PMD on
-     * @param ruleSetPath The path of the ruleSet to run
-     * @return list of results
-     */
-    public List<PMDRuleSetEntryNode> runPMDAndGetResults(List<VirtualFile> files, List<TextFile> textFiles, String ruleSetPath, PMDProjectComponent comp, Renderer extraRenderer) {
+    private List<PMDRuleSetEntryNode> runPMDAndGetResultsInternal(
+            List<PsiFile> files,
+            Supplier<List<LanguageVersion>> languageVersionsSupplier,
+            String ruleSetPath,
+            PMDProjectComponent comp,
+            Renderer extraRenderer) {
+
         Map<ConfigOption, String> options = comp.getOptionToValue();
         Project project = comp.getCurrentProject();
 
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
 
+        final long startMs = System.currentTimeMillis();
+
         final List<PMDRuleSetEntryNode> pmdRuleSetResults = new ArrayList<>();
         try {
-            PMDConfiguration pmdConfig = getPmdConfig(ruleSetPath, options, project);
+            PMDConfiguration pmdConfig = createPmdConfig(
+                    ruleSetPath,
+                    options.get(ConfigOption.THREADS),
+                    project,
+                    languageVersionsSupplier.get());
 
-            PMDErrorBranchNode errorsNode = comp.getResultPanel().getProcessingErrorsNode();
-            PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(pmdRuleSetResults, errorsNode, ruleSetPath);
+            PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(
+                    pmdRuleSetResults,
+                    comp.getResultPanel().getProcessingErrorsNode(),
+                    ruleSetPath);
             treeRenderer.setWriter(IOUtil.createWriter(pmdConfig.getReportFilePath().toString()));
             treeRenderer.start();
 
@@ -105,10 +122,10 @@ public class PMDResultCollector {
 
             try (PmdAnalysis pmd = PmdAnalysis.create(pmdConfig)) {
                 files.forEach(file -> {
-                    pmd.files().setCharset(file.getCharset());
-                    pmd.files().addFile(file.toNioPath());
+                    final VirtualFile virtualFile = file.getVirtualFile();
+                    pmd.files().setCharset(virtualFile.getCharset());
+                    pmd.files().addFile(virtualFile.toNioPath());
                 });
-                textFiles.forEach(pmd.files()::addFile);
                 pmd.addRenderers(renderers);
                 report = pmd.performAnalysisAndCollectReport();
             }
@@ -118,9 +135,35 @@ public class PMDResultCollector {
                 comp.getResultPanel().getRootNode().setExportErrorMsg(exportErrMsg);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Failed to process", e);
         }
+        LOG.debug("Finished pmd processing, took " + (System.currentTimeMillis() - startMs) + "ms");
+
         return pmdRuleSetResults;
+    }
+
+    private Map<Language, Map<LanguageVersion, List<PsiFile>>> groupPsiFilesByLanguageAndVersion(
+            final List<PsiFile> files) {
+        final ManagedLanguageVersionResolver resolver = new ManagedLanguageVersionResolver();
+
+        return files.stream()
+                .collect(Collectors.groupingBy(resolver::resolve))
+                .entrySet()
+                .stream()
+                .collect(Collectors.groupingBy(e -> e.getKey().getLanguage(),
+                        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+    }
+
+    private List<LanguageVersion> getLowestVersionForEachLanguage(
+            final Map<Language, Map<LanguageVersion, List<PsiFile>>> groupPsiFilesByLanguageAndVersion) {
+        return new ArrayList<>(groupPsiFilesByLanguageAndVersion.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e2 -> e2.getValue().keySet()
+                        .stream()
+                        .min(LanguageVersion::compareTo)
+                        .orElseThrow()
+                ))
+                .values());
     }
 
     private PMDJsonExportingRenderer addExportRenderer(Map<ConfigOption, String> options) {
@@ -140,38 +183,28 @@ public class PMDResultCollector {
     }
 
     @NotNull
-    private PMDConfiguration getPmdConfig(String ruleSets, Map<ConfigOption, String> options, Project project) throws IOException {
+    private PMDConfiguration createPmdConfig(
+            String ruleSets,
+            String optionThreads,
+            Project project,
+            List<LanguageVersion> languageVersions
+    ) throws IOException {
         PMDConfiguration pmdConfig = new PMDConfiguration();
 
-        String configVersion;
-        String language;
-        if (ruleSets != null && ruleSets.contains("kotlin")) {
-            language = "kotlin";
-            configVersion = options.get(ConfigOption.TARGET_KOTLIN_VERSION);
-        } else {
-            language = "java";
-            configVersion = options.get(ConfigOption.TARGET_JDK);
-        }
-
-        if (configVersion != null) {
-            LanguageVersion version = LanguageRegistry.PMD.getLanguageVersionById(language, configVersion);
-            if (version != null)
-                pmdConfig.setDefaultLanguageVersion(version);
-        }
+        pmdConfig.setDefaultLanguageVersions(languageVersions);
         pmdConfig.prependAuxClasspath(PMDUtil.getFullClassPathForAllModules(project));
 
         pmdConfig.addRuleSet(ruleSets);
         pmdConfig.setReportFile(File.createTempFile("pmd", "report").toPath());
         pmdConfig.setShowSuppressedViolations(true);
+        pmdConfig.setAnalysisCacheLocation(PMDProjectCacheFile.getOrCreate(project));
 
-        String threads = options.get(ConfigOption.THREADS);
-        if (threads == null || threads.isEmpty()) {
+        if (optionThreads == null || optionThreads.isEmpty()) {
             pmdConfig.setThreads(PMDUtil.AVAILABLE_PROCESSORS);
-        }
-        else if (threads.equals("1")) {
+        } else if (optionThreads.equals("1")) {
             pmdConfig.setThreads(0); // 0 is a special value invoking in single thread mood
         } else {
-            pmdConfig.setThreads(Integer.parseInt(threads));
+            pmdConfig.setThreads(Integer.parseInt(optionThreads));
         }
         return pmdConfig;
     }

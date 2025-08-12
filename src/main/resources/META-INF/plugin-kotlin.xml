@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<idea-plugin>
+	<extensions defaultExtensionNs="PMDPlugin">
+        <languageResolver
+                implementation="com.intellij.plugins.bodhi.pmd.annotator.langversion.KotlinLanguageVersionResolver" />
+	</extensions>
+</idea-plugin>
