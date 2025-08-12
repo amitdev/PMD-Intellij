@@ -2,8 +2,10 @@ package com.intellij.plugins.bodhi.pmd.handlers;
 
 import com.intellij.AbstractBundle;
 import com.intellij.CommonBundle;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vcs.CheckinProjectPanel;
 import com.intellij.openapi.vcs.changes.CommitExecutor;
 import com.intellij.openapi.vcs.checkin.CheckinHandler;
@@ -17,6 +19,8 @@ import com.intellij.plugins.bodhi.pmd.PMDResultPanel;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.plugins.bodhi.pmd.tree.*;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.util.PairConsumer;
 import com.intellij.util.ui.UIUtil;
 import org.apache.commons.logging.Log;
@@ -28,7 +32,6 @@ import org.jetbrains.annotations.PropertyKey;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -110,7 +113,20 @@ public class PMDCheckinHandler extends CheckinHandler {
         PMDResultCollector collector = new PMDResultCollector();
         List<VirtualFile> files = new ArrayList<>(checkinProjectPanel.getVirtualFiles());
 
-        List<PMDRuleSetEntryNode> ruleSetResultNodes = collector.runPMDAndGetResults(files, ruleSetPath, plugin);
+        PsiManager psiManager = PsiManager.getInstance(checkinProjectPanel.getProject());
+
+        List<PMDRuleSetEntryNode> ruleSetResultNodes = collector.runPMDAndGetResults(
+                ApplicationManager.getApplication().runReadAction(new Computable<>() {
+                    @Override
+                    public List<PsiFile> compute() {
+                        return files.stream()
+                                .map(psiManager::findFile)
+                                .toList();
+                    }
+                }),
+                ruleSetPath,
+                plugin,
+                null);
         if (!ruleSetResultNodes.isEmpty()) {
             ruleSetResultNode = createRuleSetNodeWithResults(ruleSetPath, ruleSetResultNodes);
         }
