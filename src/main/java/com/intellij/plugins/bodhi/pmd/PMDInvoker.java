@@ -159,6 +159,8 @@ public class PMDInvoker {
             public void run(@NotNull ProgressIndicator indicator) {
                 //Show a progress indicator.
                 ProgressIndicator progress = ProgressManager.getInstance().getProgressIndicator();
+                progress.setIndeterminate(false);
+
                 String[] ruleSetPathArray = ruleSetPaths.split(RULE_DELIMITER);
                 PMDResultPanel resultPanel = projectComponent.getResultPanel();
 
