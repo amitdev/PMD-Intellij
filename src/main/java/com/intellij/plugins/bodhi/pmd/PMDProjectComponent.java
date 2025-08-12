@@ -2,6 +2,7 @@ package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
@@ -157,7 +158,8 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
      */
     public PMDResultPanel getResultPanel() {
         if (resultPanel == null) {
-            resultPanel = new PMDResultPanel(this);
+            ApplicationManager.getApplication().invokeAndWait(() ->
+                    resultPanel = new PMDResultPanel(this));
         }
         return resultPanel;
     }
