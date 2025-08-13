@@ -1,7 +1,10 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.plugins.bodhi.pmd.ConfigOption;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
@@ -325,7 +328,12 @@ public class PMDResultCollector {
 
         @Override
         public TextFileContent readContents() {
-            return TextFileContent.fromCharSeq(file.getText());
+            final Application application = ApplicationManager.getApplication();
+            final Computable<TextFileContent> action = () -> TextFileContent.fromCharSeq(file.getText());
+            if(application.isReadAccessAllowed()) {
+                return action.compute();
+            }
+            return application.runReadAction(action);
         }
 
         @Override
