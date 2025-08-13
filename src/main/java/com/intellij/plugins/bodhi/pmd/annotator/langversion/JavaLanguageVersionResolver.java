@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.annotator.langversion;
 
+import com.intellij.plugins.bodhi.pmd.PMDLanguageIds;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import net.sourceforge.pmd.lang.Language;
@@ -12,7 +13,7 @@ public class JavaLanguageVersionResolver implements LanguageVersionResolver {
     @Override
     public @Nullable Language resolveLanguage(@NotNull PsiFile file) {
         return file instanceof PsiJavaFile
-            ? LanguageRegistry.PMD.getLanguageById("java")
+            ? LanguageRegistry.PMD.getLanguageById(PMDLanguageIds.JAVA)
             : null;
     }
 

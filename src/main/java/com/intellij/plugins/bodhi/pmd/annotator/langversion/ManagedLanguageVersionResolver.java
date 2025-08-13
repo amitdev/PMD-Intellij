@@ -2,15 +2,16 @@ package com.intellij.plugins.bodhi.pmd.annotator.langversion;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.plugins.bodhi.pmd.ConfigOption;
+import com.intellij.plugins.bodhi.pmd.PMDLanguageIds;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.psi.PsiFile;
 import net.sourceforge.pmd.lang.Language;
 import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.LanguageVersion;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 public class ManagedLanguageVersionResolver {
@@ -18,25 +19,32 @@ public class ManagedLanguageVersionResolver {
     private final LanguageVersionResolverService resolverService =
             ApplicationManager.getApplication().getService(LanguageVersionResolverService.class);
 
-    public LanguageVersion resolve(final PsiFile file) {
-        final Language language = Objects.requireNonNull(resolverService.resolveLanguage(file)
-                .orElseGet(() -> {
+    public Optional<LanguageVersion> resolveLanguage(final PsiFile file) {
+        return resolverService.resolveLanguage(file)
+                .or(() -> {
                     final String name = file.getName();
-                    final String fileExtension = name.substring(name.lastIndexOf('.') + 1);
-                    return LanguageRegistry.PMD.getLanguageById(
-                            "kt".equalsIgnoreCase(fileExtension) || "kts".equalsIgnoreCase(fileExtension)
-                                    ? "kotlin"
-                                    : "java");
-                }));
+                    final String fileExtension = name.substring(name.lastIndexOf('.') + 1).toLowerCase();
 
-        return resolveWithLang(language, file);
+                    final String langId = switch (fileExtension) {
+                        case "java" -> PMDLanguageIds.JAVA;
+                        case "kt", "kts" -> PMDLanguageIds.KOTLIN;
+                        default -> null;
+                    };
+                    if(langId == null) {
+                        return Optional.empty();
+                    }
+
+                    return Optional.ofNullable(LanguageRegistry.PMD.getLanguageById(langId));
+                })
+                .map(lang -> resolveWithLang(lang, file));
     }
 
-    public LanguageVersion resolveWithLang(final Language language, final PsiFile file) {
+    @NotNull
+    public LanguageVersion resolveWithLang(@NotNull final Language language, @NotNull final PsiFile file) {
         return languageConfigVersionsCache.computeIfAbsent(language, lang -> {
                     final ConfigOption configOption = switch (language.getId()) {
-                        case "java" -> ConfigOption.TARGET_JDK;
-                        case "kotlin" -> ConfigOption.TARGET_KOTLIN_VERSION;
+                        case PMDLanguageIds.JAVA -> ConfigOption.TARGET_JDK;
+                        case PMDLanguageIds.KOTLIN -> ConfigOption.TARGET_KOTLIN_VERSION;
                         default -> null;
                     };
 
