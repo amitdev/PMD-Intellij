@@ -2,7 +2,6 @@ package com.intellij.plugins.bodhi.pmd.core;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.plugins.bodhi.pmd.ConfigOption;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.PMDUtil;
@@ -14,17 +13,20 @@ import net.sourceforge.pmd.PmdAnalysis;
 import net.sourceforge.pmd.internal.util.IOUtil;
 import net.sourceforge.pmd.lang.Language;
 import net.sourceforge.pmd.lang.LanguageVersion;
+import net.sourceforge.pmd.lang.document.FileId;
+import net.sourceforge.pmd.lang.document.TextFile;
+import net.sourceforge.pmd.lang.document.TextFileContent;
 import net.sourceforge.pmd.lang.rule.RuleSet;
 import net.sourceforge.pmd.lang.rule.RuleSetLoadException;
 import net.sourceforge.pmd.lang.rule.RuleSetLoader;
 import net.sourceforge.pmd.renderers.Renderer;
 import net.sourceforge.pmd.reporting.Report;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -60,8 +62,7 @@ public class PMDResultCollector {
             Renderer extraRenderer) {
 
         return runPMDAndGetResultsInternal(
-                List.of(file),
-                () -> List.of(languageVersion),
+                Map.of(languageVersion, Set.of(file)),
                 ruleSetPath,
                 comp,
                 extraRenderer);
@@ -77,16 +78,14 @@ public class PMDResultCollector {
         }
 
         return runPMDAndGetResultsInternal(
-                files,
-                () -> getLowestVersionForEachLanguage(groupPsiFilesByLanguageAndVersion(files)),
+                getLowestLanguageVersionAndFiles(groupPsiFilesByLanguageAndVersion(files)),
                 ruleSetPath,
                 comp,
                 extraRenderer);
     }
 
     private List<PMDRuleSetEntryNode> runPMDAndGetResultsInternal(
-            List<PsiFile> files,
-            Supplier<List<LanguageVersion>> languageVersionsSupplier,
+            Map<LanguageVersion, Set<PsiFile>> languageVersionFiles,
             String ruleSetPath,
             PMDProjectComponent comp,
             Renderer extraRenderer) {
@@ -104,7 +103,7 @@ public class PMDResultCollector {
                     ruleSetPath,
                     options.get(ConfigOption.THREADS),
                     project,
-                    languageVersionsSupplier.get());
+                    new ArrayList<>(languageVersionFiles.keySet()));
 
             PMDResultAsTreeRenderer treeRenderer = new PMDResultAsTreeRenderer(
                     pmdRuleSetResults,
@@ -121,11 +120,11 @@ public class PMDResultCollector {
             if (extraRenderer != null) renderers.add(extraRenderer);
 
             try (PmdAnalysis pmd = PmdAnalysis.create(pmdConfig)) {
-                files.forEach(file -> {
-                    final VirtualFile virtualFile = file.getVirtualFile();
-                    pmd.files().setCharset(virtualFile.getCharset());
-                    pmd.files().addFile(virtualFile.toNioPath());
-                });
+                languageVersionFiles.forEach((languageVersion, files) ->
+                        files.forEach(file ->
+                                // The IDE might not have saved the contents of the file to the disk yet
+                                pmd.files().addFile(new IDETextFile(languageVersion, file))));
+
                 pmd.addRenderers(renderers);
                 report = pmd.performAnalysisAndCollectReport();
             }
@@ -154,16 +153,21 @@ public class PMDResultCollector {
                         Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
     }
 
-    private List<LanguageVersion> getLowestVersionForEachLanguage(
+    private Map<LanguageVersion, Set<PsiFile>> getLowestLanguageVersionAndFiles(
             final Map<Language, Map<LanguageVersion, List<PsiFile>>> groupPsiFilesByLanguageAndVersion) {
-        return new ArrayList<>(groupPsiFilesByLanguageAndVersion.entrySet()
+        return groupPsiFilesByLanguageAndVersion.entrySet()
                 .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e2 -> e2.getValue().keySet()
-                        .stream()
-                        .min(LanguageVersion::compareTo)
-                        .orElseThrow()
-                ))
-                .values());
+                .collect(Collectors.toMap(
+                        e -> e.getValue()
+                                .keySet()
+                                .stream()
+                                .min(LanguageVersion::compareTo)
+                                .orElseThrow(),
+                        e -> e.getValue()
+                                .values()
+                                .stream()
+                                .flatMap(Collection::stream)
+                                .collect(Collectors.toSet())));
     }
 
     private PMDJsonExportingRenderer addExportRenderer(Map<ConfigOption, String> options) {
@@ -300,4 +304,33 @@ public class PMDResultCollector {
 
     }
 
+    static class IDETextFile implements TextFile {
+        private final LanguageVersion languageVersion;
+        private final PsiFile file;
+
+        public IDETextFile(LanguageVersion languageVersion, PsiFile file) {
+            this.languageVersion = languageVersion;
+            this.file = file;
+        }
+
+        @Override
+        public @NonNull LanguageVersion getLanguageVersion() {
+            return languageVersion;
+        }
+
+        @Override
+        public FileId getFileId() {
+            return FileId.fromPath(file.getVirtualFile().toNioPath());
+        }
+
+        @Override
+        public TextFileContent readContents() {
+            return TextFileContent.fromCharSeq(file.getText());
+        }
+
+        @Override
+        public void close() {
+            // Nothing
+        }
+    }
 }
