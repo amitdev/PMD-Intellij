@@ -11,15 +11,11 @@ kotlin = "2.2.20"
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 pmd-core = { group = "net.sourceforge.pmd", name = "pmd-core", version.ref = "pmd" }
-pmd-apex = { group = "net.sourceforge.pmd", name = "pmd-apex", version.ref = "pmd" }
-pmd-visualforce = { group = "net.sourceforge.pmd", name = "pmd-visualforce", version.ref = "pmd" }
 pmd-java = { group = "net.sourceforge.pmd", name = "pmd-java", version.ref = "pmd" }
-pmd-javascript = { group = "net.sourceforge.pmd", name = "pmd-javascript", version.ref = "pmd" }
 pmd-kotlin = { group = "net.sourceforge.pmd", name = "pmd-kotlin", version.ref = "pmd" }
-pmd-xml = { group = "net.sourceforge.pmd", name = "pmd-xml", version.ref = "pmd" }
 
 [bundles]
-pmd = ["pmd-core", "pmd-apex", "pmd-visualforce", "pmd-java", "pmd-javascript", "pmd-kotlin", "pmd-xml"]
+pmd = ["pmd-core", "pmd-java", "pmd-kotlin"]
 
 [plugins]
 changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }
