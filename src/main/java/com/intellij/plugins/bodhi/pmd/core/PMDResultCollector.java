@@ -81,7 +81,7 @@ public class PMDResultCollector {
         }
 
         return runPMDAndGetResultsInternal(
-                getLowestLanguageVersionAndFiles(groupPsiFilesByLanguageAndVersion(files)),
+                getLowestLanguageVersionAndFiles(groupPsiFilesBySupportedLanguageAndVersion(files)),
                 ruleSetPath,
                 comp,
                 extraRenderer);
@@ -144,16 +144,17 @@ public class PMDResultCollector {
         return pmdRuleSetResults;
     }
 
-    private Map<Language, Map<LanguageVersion, List<PsiFile>>> groupPsiFilesByLanguageAndVersion(
+    private Map<Language, Map<LanguageVersion, List<PsiFile>>> groupPsiFilesBySupportedLanguageAndVersion(
             final List<PsiFile> files) {
         final ManagedLanguageVersionResolver resolver = new ManagedLanguageVersionResolver();
 
         return files.stream()
-                .collect(Collectors.groupingBy(resolver::resolve))
+                .collect(Collectors.groupingBy(resolver::resolveLanguage))
                 .entrySet()
                 .stream()
-                .collect(Collectors.groupingBy(e -> e.getKey().getLanguage(),
-                        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+                .filter(e -> e.getKey().isPresent())
+                .collect(Collectors.groupingBy(e -> e.getKey().orElseThrow().getLanguage(),
+                        Collectors.toMap(e -> e.getKey().orElseThrow(), Map.Entry::getValue)));
     }
 
     private Map<LanguageVersion, Set<PsiFile>> getLowestLanguageVersionAndFiles(
