@@ -53,11 +53,7 @@ public class PMDInvoker {
     private static final PMDInvoker instance = new PMDInvoker();
     private static final VirtualFileFilter SUPPORTED_EXTENSIONS = or(
             fileHasExtension("java"),
-            fileHasExtension("kt"),
-            fileHasExtension("xml"),
-            fileHasExtension("cls"),
-            fileHasExtension("trigger"),
-            fileHasExtension("page"));
+            fileHasExtension("kt"));
 
     /**
      * Prevents instantiation by other classes.
