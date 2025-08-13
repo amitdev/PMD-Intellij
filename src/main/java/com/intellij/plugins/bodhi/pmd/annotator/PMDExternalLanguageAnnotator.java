@@ -1,5 +1,9 @@
 package com.intellij.plugins.bodhi.pmd.annotator;
 
+import com.intellij.codeInsight.daemon.impl.actions.SuppressFix;
+import com.intellij.codeInspection.InspectionManager;
+import com.intellij.codeInspection.ProblemHighlightType;
+import com.intellij.lang.annotation.AnnotationBuilder;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.lang.annotation.HighlightSeverity;
@@ -10,13 +14,16 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.annotator.langversion.ManagedLanguageVersionResolver;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import net.sourceforge.pmd.lang.Language;
 import net.sourceforge.pmd.lang.LanguageRegistry;
+import net.sourceforge.pmd.lang.rule.Rule;
 import net.sourceforge.pmd.reporting.RuleViolation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -83,21 +90,53 @@ public abstract class PMDExternalLanguageAnnotator extends ExternalAnnotator<Fil
             return;
         }
 
+        final List<RuleViolation> violations = annotationResult.report().getViolations();
+        if(violations.isEmpty()) {
+            return;
+        }
+
+        final InspectionManager inspectionManager = InspectionManager.getInstance(file.getProject());
+
         Document document = annotationResult.document();
-        for (RuleViolation violation : annotationResult.report().getViolations()) {
+        for (RuleViolation violation : violations) {
             int startLineOffset = document.getLineStartOffset(violation.getBeginLine()-1);
             int endOffset = violation.getEndLine() - violation.getBeginLine() > 5 // Only mark first line for long violations
                     ? document.getLineEndOffset(violation.getBeginLine()-1)
                     : document.getLineStartOffset(violation.getEndLine()-1) + violation.getEndColumn();
 
+            final int startOffset = startLineOffset + violation.getBeginColumn() - 1;
+            final PsiElement psiElement = file.findElementAt(startOffset);
+
             try {
-                var textRange = TextRange.create(startLineOffset + violation.getBeginColumn() - 1, endOffset);
-                holder.newAnnotation(getSeverity(violation), "PMD: " + violation.getDescription())
-                        .tooltip("PMD: " + violation.getRule().getName() +
+                final Rule rule = violation.getRule();
+                final TextRange range = TextRange.create(startOffset, endOffset);
+
+                final String pmdSuffix = "PMD: ";
+
+                AnnotationBuilder annotationBuilder = holder.newAnnotation(
+                        getSeverity(violation),
+                        pmdSuffix + violation.getDescription())
+                        .tooltip(pmdSuffix + rule.getName() +
                                 "<p>" + violation.getDescription() +
-                                "</p><p>" + violation.getRule().getDescription() + "</p>")
-                        .range(textRange)
-                        .needsUpdateOnTyping(true)
+                                "</p><p>" + rule.getDescription() + "</p>")
+                        .range(range)
+                        .needsUpdateOnTyping(true);
+
+                if(psiElement != null) {
+                    final SuppressFix suppressFix = new SuppressFix("PMD." + rule.getName());
+                    annotationBuilder = annotationBuilder.newLocalQuickFix(
+                                    suppressFix,
+                                    inspectionManager.createProblemDescriptor(
+                                            psiElement,
+                                            pmdSuffix + rule.getName(),
+                                            suppressFix,
+                                            getProblemHighlightType(violation),
+                                            false))
+                            .range(range)
+                            .registerFix();
+                }
+
+                annotationBuilder
                         .withFix(new SupressIntentionAction(violation))
                         .create();
             } catch(IllegalArgumentException e) {
@@ -113,6 +152,15 @@ public abstract class PMDExternalLanguageAnnotator extends ExternalAnnotator<Fil
             case MEDIUM_HIGH, MEDIUM -> HighlightSeverity.WARNING;
             case MEDIUM_LOW -> HighlightSeverity.WEAK_WARNING;
             case LOW -> HighlightSeverity.INFORMATION;
+        };
+    }
+
+    private static ProblemHighlightType getProblemHighlightType(RuleViolation violation) {
+        return switch (violation.getRule().getPriority()) {
+            case HIGH -> ProblemHighlightType.ERROR;
+            case MEDIUM_HIGH, MEDIUM -> ProblemHighlightType.WARNING;
+            case MEDIUM_LOW -> ProblemHighlightType.WEAK_WARNING;
+            case LOW -> ProblemHighlightType.INFORMATION;
         };
     }
 }
