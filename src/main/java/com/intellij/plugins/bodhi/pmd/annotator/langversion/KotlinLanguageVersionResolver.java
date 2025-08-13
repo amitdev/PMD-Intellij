@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.annotator.langversion;
 
+import com.intellij.plugins.bodhi.pmd.PMDLanguageIds;
 import com.intellij.psi.PsiFile;
 import net.sourceforge.pmd.lang.Language;
 import net.sourceforge.pmd.lang.LanguageRegistry;
@@ -13,7 +14,7 @@ public class KotlinLanguageVersionResolver implements LanguageVersionResolver {
     @Override
     public @Nullable Language resolveLanguage(@NotNull PsiFile file) {
         return file instanceof KtFile
-                ? LanguageRegistry.PMD.getLanguageById("kotlin")
+                ? LanguageRegistry.PMD.getLanguageById(PMDLanguageIds.KOTLIN)
                 : null;
     }
 
