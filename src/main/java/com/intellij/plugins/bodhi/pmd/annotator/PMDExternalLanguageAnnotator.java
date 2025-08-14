@@ -7,6 +7,7 @@ import com.intellij.lang.annotation.AnnotationBuilder;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.ExternalAnnotator;
 import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.markdown.utils.doc.DocMarkdownToHtmlConverter;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -16,6 +17,7 @@ import com.intellij.plugins.bodhi.pmd.annotator.langversion.ManagedLanguageVersi
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.webSymbols.utils.HtmlMarkdownUtils;
 import net.sourceforge.pmd.lang.Language;
 import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.rule.Rule;
@@ -117,8 +119,13 @@ public abstract class PMDExternalLanguageAnnotator extends ExternalAnnotator<Fil
                         getSeverity(violation),
                         pmdSuffix + violation.getDescription())
                         .tooltip(pmdSuffix + rule.getName() +
-                                "<p>" + violation.getDescription() +
-                                "</p><p>" + rule.getDescription() + "</p>")
+                                "<p>" +
+                                violation.getDescription() +
+                                "</p>" +
+                                "<p>" + DocMarkdownToHtmlConverter.convert(
+                                        file.getProject(),
+                                        rule.getDescription())
+                                + "</p>")
                         .range(range)
                         .needsUpdateOnTyping(true);
 
