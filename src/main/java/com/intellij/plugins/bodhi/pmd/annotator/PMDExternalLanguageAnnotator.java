@@ -11,6 +11,7 @@ import com.intellij.markdown.utils.doc.DocMarkdownToHtmlConverter;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.project.DefaultProjectFactory;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.plugins.bodhi.pmd.PMDProjectComponent;
 import com.intellij.plugins.bodhi.pmd.annotator.langversion.ManagedLanguageVersionResolver;
@@ -123,7 +124,7 @@ public abstract class PMDExternalLanguageAnnotator extends ExternalAnnotator<Fil
                                 violation.getDescription() +
                                 "</p>" +
                                 "<p>" + DocMarkdownToHtmlConverter.convert(
-                                        file.getProject(),
+                                        DefaultProjectFactory.getInstance().getDefaultProject(),
                                         rule.getDescription())
                                 + "</p>")
                         .range(range)
