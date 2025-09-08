@@ -5,7 +5,7 @@ pmd = "7.16.0"
 
 # plugins
 changelog = "2.2.1"
-intelliJPlatform = "2.5.0"
+intelliJPlatform = "2.9.0"
 kotlin = "2.2.0"
 
 [libraries]
