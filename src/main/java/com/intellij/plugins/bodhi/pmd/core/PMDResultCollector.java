@@ -228,14 +228,15 @@ public class PMDResultCollector {
 
         try {
             RuleSet rs = new RuleSetLoader().loadFromResource(path);
-            if (!rs.getRules().isEmpty()) {
-                pathToRuleSet.put(path, rs);
-                return "";
+            if (rs.getRules().isEmpty()) {
+                return "No rules found";
             }
+
+            pathToRuleSet.put(path, rs);
+            return "";
         } catch (RuleSetLoadException e) {
             return e.getMessage();
         }
-        return "No rules found";
     }
 
     /**
@@ -244,14 +245,12 @@ public class PMDResultCollector {
      * @return the name of the RuleSet or an error message when the RuleSet is not valid
      */
     public static String getRuleSetName(String ruleSetPath) {
-        String ruleSetName;
         try {
-            ruleSetName = PMDResultCollector.getRuleSet(ruleSetPath).getName(); // from the xml
+            return PMDResultCollector.getRuleSet(ruleSetPath).getName(); // from the xml
         } catch (InvalidRuleSetException e) {
             String msg = (e.getCause() == null) ? e.getMessage(): e.getCause().getMessage();
-            ruleSetName = msg.substring(0, Math.min(25, msg.length()));
+            return msg.substring(0, Math.min(25, msg.length()));
         }
-        return ruleSetName;
     }
 
     /**
@@ -260,13 +259,11 @@ public class PMDResultCollector {
      * @return the description of the RuleSet or "<invalid>" message when the RuleSet is not valid
      */
     public static String getRuleSetDescription(String ruleSetPath) {
-        String ruleSetDesc;
         try {
-            ruleSetDesc = PMDResultCollector.getRuleSet(ruleSetPath).getDescription(); // from the xml
+            return PMDResultCollector.getRuleSet(ruleSetPath).getDescription(); // from the xml
         } catch (InvalidRuleSetException e) {
-            ruleSetDesc = "<invalid>";
+            return  "<invalid>";
         }
-        return ruleSetDesc;
     }
 
     /**
