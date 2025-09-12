@@ -306,6 +306,7 @@ public class PMDResultCollector {
     }
 
     static class IDETextFile implements TextFile {
+        private static final Logger LOG = Logger.getInstance(IDETextFile.class);
         private final LanguageVersion languageVersion;
         private final PsiFile file;
 
@@ -321,7 +322,18 @@ public class PMDResultCollector {
 
         @Override
         public FileId getFileId() {
-            return FileId.fromPath(file.getVirtualFile().toNioPath());
+            try {
+                return FileId.fromPath(file.getVirtualFile().toNioPath());
+            } catch (Exception ex) {
+                // Sometimes files are not physically present on the disk and are just available in memory
+                LOG.debug("Failed to get NioPath for file " + file + ". Falling back to URI", ex);
+                try {
+                    return FileId.fromURI(file.getVirtualFile().getUrl());
+                } catch (Exception ex2) {
+                    LOG.info("Failed to get URI for file " + file + ". Falling back to unknown", ex2);
+                    return FileId.UNKNOWN;
+                }
+            }
         }
 
         @Override
