@@ -134,14 +134,16 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
      * Better solution might be
      * global settings for all projects, overridable with project-specific settings.
      */
-    void updateCustomMenuFromProject() {
+    synchronized void updateCustomMenuFromProject() { // Synchronized so that this isn't executed concurrently
         ActionManager actionManager = ActionManager.getInstance();
         PMDCustom actionGroup = (PMDCustom) actionManager.getAction("PMDCustom");
         actionGroup.removeAll();
         actionGroup.addAll(currentCustomActions);
     }
 
+    @Override
     public void dispose() {
+        // Nothing to do
     }
 
     @NonNls

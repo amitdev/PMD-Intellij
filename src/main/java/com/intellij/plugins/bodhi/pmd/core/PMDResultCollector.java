@@ -29,6 +29,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -330,8 +332,14 @@ public class PMDResultCollector {
                 try {
                     return FileId.fromURI(file.getVirtualFile().getUrl());
                 } catch (Exception ex2) {
-                    LOG.info("Failed to get URI for file " + file + ". Falling back to unknown", ex2);
-                    return FileId.UNKNOWN;
+                    LOG.info("Failed to get URI for file " + file + ". Falling back to temp file", ex2);
+                    // FiledId.INVALID is not working as it results in crashes when trying to parse the file-path
+                    // -> Create a temporary file and use that instead
+                    try {
+                        return FileId.fromPath(Files.createTempFile("intellij-pmd", "tmp"));
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
                 }
             }
         }
