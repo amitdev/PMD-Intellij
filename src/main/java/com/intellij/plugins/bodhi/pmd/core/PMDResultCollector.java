@@ -83,7 +83,7 @@ public class PMDResultCollector {
         }
 
         return runPMDAndGetResultsInternal(
-                getLowestLanguageVersionAndFiles(groupPsiFilesBySupportedLanguageAndVersion(files)),
+                getHighestLanguageVersionAndFiles(groupPsiFilesBySupportedLanguageAndVersion(files)),
                 ruleSetPath,
                 comp,
                 extraRenderer);
@@ -159,7 +159,7 @@ public class PMDResultCollector {
                         Collectors.toMap(e -> e.getKey().orElseThrow(), Map.Entry::getValue)));
     }
 
-    private Map<LanguageVersion, Set<PsiFile>> getLowestLanguageVersionAndFiles(
+    private Map<LanguageVersion, Set<PsiFile>> getHighestLanguageVersionAndFiles(
             final Map<Language, Map<LanguageVersion, List<PsiFile>>> groupPsiFilesByLanguageAndVersion) {
         return groupPsiFilesByLanguageAndVersion.entrySet()
                 .stream()
@@ -167,7 +167,7 @@ public class PMDResultCollector {
                         e -> e.getValue()
                                 .keySet()
                                 .stream()
-                                .min(LanguageVersion::compareTo)
+                                .max(LanguageVersion::compareTo)
                                 .orElseThrow(),
                         e -> e.getValue()
                                 .values()
