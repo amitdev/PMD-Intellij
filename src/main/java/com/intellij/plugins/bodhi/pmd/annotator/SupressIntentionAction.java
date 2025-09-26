@@ -1,6 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.annotator;
 
 import com.intellij.codeInsight.intention.IntentionAction;
+import com.intellij.codeInsight.intention.PriorityAction;
 import com.intellij.codeInspection.util.IntentionFamilyName;
 import com.intellij.codeInspection.util.IntentionName;
 import com.intellij.openapi.editor.Editor;
@@ -12,12 +13,11 @@ import org.jetbrains.annotations.NotNull;
 
 import static com.intellij.plugins.bodhi.pmd.PMDResultPanel.PMD_SUPPRESSION;
 
-public class SupressIntentionAction implements IntentionAction {
+public class SupressIntentionAction implements IntentionAction, PriorityAction {
     @SafeFieldForPreview
     private final RuleViolation violation;
 
     public SupressIntentionAction(RuleViolation violation) {
-
         this.violation = violation;
     }
 
@@ -46,5 +46,13 @@ public class SupressIntentionAction implements IntentionAction {
     @Override
     public boolean startInWriteAction() {
         return true;
+    }
+
+    @NotNull
+    @Override
+    public Priority getPriority() {
+        // Slightly lower priority so that the other "Suppress for member" or similar is prioritized and not this one
+        // See DefaultIntentionsOrderProvider for more details
+        return Priority.LOW;
     }
 }
