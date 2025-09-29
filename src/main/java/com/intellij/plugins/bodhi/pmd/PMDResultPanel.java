@@ -39,10 +39,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeModel;
-import javax.swing.tree.TreePath;
+import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -372,6 +369,14 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
             //Only for violation nodes, popups suppress+details are supported
             if (treeNode instanceof PMDViolationNode) {
                 popupMenu.addViolation(((PMDViolationNode) treeNode).getPmdViolation());
+            }
+            if (treeNode instanceof PMDRuleNode pmdRuleNode) {
+                for (int i = 0; i < pmdRuleNode.getChildCount(); i++) {
+                    TreeNode childAt = pmdRuleNode.getChildAt(i);
+                    if (childAt instanceof  PMDViolationNode) {
+                        popupMenu.addViolation(((PMDViolationNode) childAt).getPmdViolation());
+                    }
+                }
             }
             //Display popup only if actions are possible
             if (popupMenu.hasVisibleMenuItems()) {
