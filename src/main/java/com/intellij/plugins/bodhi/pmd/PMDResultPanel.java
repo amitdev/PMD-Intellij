@@ -376,9 +376,8 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
             }
             if (treeNode instanceof PMDRuleNode pmdRuleNode) {
                 for (int i = 0; i < pmdRuleNode.getChildCount(); i++) {
-                    TreeNode childAt = pmdRuleNode.getChildAt(i);
-                    if (childAt instanceof  PMDViolationNode) {
-                        popupMenu.addViolation(((PMDViolationNode) childAt).getPmdViolation());
+                    if (pmdRuleNode.getChildAt(i) instanceof PMDViolationNode pmdViolationNode) {
+                        popupMenu.addViolation(pmdViolationNode.getPmdViolation());
                     }
                 }
             }
