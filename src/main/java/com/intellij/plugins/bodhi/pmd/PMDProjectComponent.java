@@ -2,6 +2,7 @@ package com.intellij.plugins.bodhi.pmd;
 
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
@@ -133,14 +134,16 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
      * Better solution might be
      * global settings for all projects, overridable with project-specific settings.
      */
-    void updateCustomMenuFromProject() {
+    synchronized void updateCustomMenuFromProject() { // Synchronized so that this isn't executed concurrently
         ActionManager actionManager = ActionManager.getInstance();
         PMDCustom actionGroup = (PMDCustom) actionManager.getAction("PMDCustom");
         actionGroup.removeAll();
         actionGroup.addAll(currentCustomActions);
     }
 
+    @Override
     public void dispose() {
+        // Nothing to do
     }
 
     @NonNls
@@ -157,7 +160,8 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
      */
     public PMDResultPanel getResultPanel() {
         if (resultPanel == null) {
-            resultPanel = new PMDResultPanel(this);
+            ApplicationManager.getApplication().invokeAndWait(() ->
+                    resultPanel = new PMDResultPanel(this));
         }
         return resultPanel;
     }

@@ -28,7 +28,10 @@ repositories {
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
-    implementation(libs.bundles.pmd)
+    implementation(libs.bundles.pmd) {
+        // Prevent conflict with IntelliJ's slf4j which results in a LinkageError
+        exclude("org.slf4j", module = "slf4j-api")
+    }
 
     testImplementation(libs.junit)
 
