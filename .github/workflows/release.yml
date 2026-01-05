@@ -19,12 +19,12 @@ jobs:
       pull-requests: write
     steps:
 
-      # Setup Java 17 environment for the next steps
-      - name: Setup Java
-        uses: actions/setup-java@v5
+      # Free GitHub Actions Environment Disk Space
+      - name: Maximize Build Space
+        uses: jlumbroso/free-disk-space@v1.3.1
         with:
-          distribution: zulu
-          java-version: 17
+          tool-cache: false
+          large-packages: false
 
       # Check out current repository
       - name: Fetch Sources
@@ -32,31 +32,30 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name }}
 
+      # Set up the Java environment for the next steps
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: 17
+
       # Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      # Set environment variables
-      - name: Export Properties
-        id: properties
-        shell: bash
-        run: |
-          CHANGELOG="$(cat << 'EOM' | sed -e 's/^[[:space:]]*$//g' -e '/./,$!d'
-          ${{ github.event.release.body }}
-          EOM
-          )"
-          
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+        with:
+          cache-read-only: true
 
       # Update the Unreleased section with the current release note
       - name: Patch Changelog
-        if: ${{ steps.properties.outputs.changelog != '' }}
+        if: ${{ github.event.release.body != '' }}
         env:
-          CHANGELOG: ${{ steps.properties.outputs.changelog }}
+          CHANGELOG: ${{ github.event.release.body }}
         run: |
-          ./gradlew patchChangelog --release-note="$CHANGELOG"
+          RELEASE_NOTE="./build/tmp/release_note.txt"
+          mkdir -p "$(dirname "$RELEASE_NOTE")"
+          echo "$CHANGELOG" > $RELEASE_NOTE
+
+          ./gradlew patchChangelog --release-note-file=$RELEASE_NOTE
 
       # Publish the plugin to JetBrains Marketplace
       - name: Publish Plugin
@@ -75,7 +74,7 @@ jobs:
 
       # Create a pull request
       - name: Create Pull Request
-        if: ${{ steps.properties.outputs.changelog != '' }}
+        if: ${{ github.event.release.body != '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
