@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 💥️ Breaking: Minimum required IntelliJ version is 2024.3+
+
 ## [2.0.9] - 2025-07-20
 
 ### Changed
