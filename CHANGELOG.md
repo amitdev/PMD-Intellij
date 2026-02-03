@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Update to PMD version 7.21.0
+
 ## [2.0.9] - 2025-07-20
 
 ### Changed
