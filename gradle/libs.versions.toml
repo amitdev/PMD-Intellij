@@ -4,9 +4,9 @@ junit = "4.13.2"
 pmd = "7.21.0"
 
 # plugins
-changelog = "2.4.0"
-intelliJPlatform = "2.10.4"
-kotlin = "2.2.20"
+changelog = "2.5.0"
+intelliJPlatform = "2.10.5"
+kotlin = "2.3.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
