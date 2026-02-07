@@ -14,6 +14,7 @@
   - Prevent analysis of outdated file content from disk and use IntelliJ's internal PSIFile instead
   - Do not classify unknown files as Java and ignore them
   - Render rule descriptions as markdown
+  - Update to PMD version 7.21.0
 
 ## [2.0.9] - 2025-07-20
 
