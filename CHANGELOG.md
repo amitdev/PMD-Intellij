@@ -6,7 +6,15 @@
 
 ### Changed
 
-- Update to PMD version 7.21.0
+- Various improvements #266
+  - Fixed: Intermediate progress bars can't display fractional updates (when running PMD on multiple files)
+  - Fixed: IntelliJ crash on startup due to conflicting slf4j version
+  - Improve overall language detection
+  - Use/Display normal "Suppression Fix" if possible
+  - Prevent analysis of outdated file content from disk and use IntelliJ's internal PSIFile instead
+  - Do not classify unknown files as Java and ignore them
+  - Render rule descriptions as markdown
+  - Update to PMD version 7.21.0
 
 ## [2.0.9] - 2025-07-20
 
