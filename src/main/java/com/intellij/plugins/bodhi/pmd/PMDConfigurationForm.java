@@ -55,6 +55,8 @@ public class PMDConfigurationForm {
     private JPanel mainPanel;
     private JCheckBox skipTestsCheckBox;
     private JList<String> inEditorAnnotationRuleSets;
+    private JList<String> excludeRootsJList;
+    private JPanel excludeRootsButtonPanel;
     private boolean isModified;
     private final Project project;
     private volatile Map<String, String> validKnownCustomRules;
@@ -71,6 +73,7 @@ public class PMDConfigurationForm {
         inEditorAnnotationRuleSets.setModel(new RuleSetListModel(new ArrayList<>()));
         inEditorAnnotationRuleSets.getSelectionModel().addListSelectionListener(new SelectionChangeListener());
         skipTestsCheckBox.addChangeListener(new CheckBoxChangeListener());
+        excludeRootsJList.setModel(new RuleSetListModel(new ArrayList<>()));
 
         // Timed retry-based initialization, to make sure intelliJ services are initialized before
         scheduleActionManagerInit(0);
@@ -121,6 +124,17 @@ public class PMDConfigurationForm {
         toolbar.getComponent().setVisible(true);
         buttonPanel.setLayout(new BorderLayout());
         buttonPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
+
+        // Setup toolbar for exclude roots
+        DefaultActionGroup excludeRootsActionGroup = new DefaultActionGroup();
+        excludeRootsActionGroup.add(new AddExcludeRootAction("Add", "Add an exclude root path", PlatformIcons.ADD_ICON));
+        excludeRootsActionGroup.add(new EditExcludeRootAction("Edit", "Edit selected exclude root", PlatformIcons.EDIT));
+        excludeRootsActionGroup.add(new DeleteExcludeRootAction("Delete", "Remove selected exclude root", PlatformIcons.DELETE_ICON));
+        ActionToolbar excludeRootsToolbar = ActionManager.getInstance().createActionToolbar("exclude roots actions", excludeRootsActionGroup, true);
+        excludeRootsToolbar.setTargetComponent(excludeRootsToolbar.getComponent());
+        excludeRootsToolbar.getComponent().setVisible(true);
+        excludeRootsButtonPanel.setLayout(new BorderLayout());
+        excludeRootsButtonPanel.add(excludeRootsToolbar.getComponent(), BorderLayout.CENTER);
     }
 
     /**
@@ -164,6 +178,9 @@ public class PMDConfigurationForm {
         inEditorAnnotationRuleSets.setModel(inEditorAnnotationModel);
         inEditorAnnotationRuleSets.setSelectedIndices(inEditorAnnotationModel.getIndexes(dataProjComp.getInEditorAnnotationRuleSets()));
 
+        List<String> excludeRootsList = new ArrayList<>(dataProjComp.getExcludeRoots());
+        excludeRootsJList.setModel(new RuleSetListModel(excludeRootsList));
+
         isModified = false;
     }
 
@@ -187,6 +204,7 @@ public class PMDConfigurationForm {
         dataProjComp.setOptionToValue(toOptionToValue(optionsTable.getModel()));
         dataProjComp.skipTestSources(skipTestsCheckBox.isSelected());
         dataProjComp.setInEditorAnnotationRuleSets(inEditorAnnotationRuleSets.getSelectedValuesList());
+        dataProjComp.setExcludeRoots(((RuleSetListModel) excludeRootsJList.getModel()).getList());
 
         isModified = false;
     }
@@ -575,5 +593,138 @@ public class PMDConfigurationForm {
         public void valueChanged(ListSelectionEvent e) {
             isModified = true;
         }
+    }
+
+    private class AddExcludeRootAction extends AnEDTAction {
+        public AddExcludeRootAction(String text, String description, Icon icon) {
+            super(text, description, icon);
+        }
+
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            String defaultValue = "";
+            modifyExcludeRoot(defaultValue);
+        }
+    }
+
+    private class EditExcludeRootAction extends AnEDTAction {
+        public EditExcludeRootAction(String text, String description, Icon icon) {
+            super(text, description, icon);
+        }
+
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            String defaultValue = excludeRootsJList.getSelectedValue();
+            modifyExcludeRoot(defaultValue);
+        }
+
+        public void update(@NotNull AnActionEvent e) {
+            super.update(e);
+            e.getPresentation().setEnabled(!excludeRootsJList.getSelectionModel().isSelectionEmpty());
+        }
+    }
+
+    private class DeleteExcludeRootAction extends AnEDTAction {
+        public DeleteExcludeRootAction(String text, String description, Icon icon) {
+            super(text, description, icon);
+        }
+
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            int index = excludeRootsJList.getSelectedIndex();
+            if (index != -1) {
+                ((RuleSetListModel) excludeRootsJList.getModel()).remove(index);
+                excludeRootsJList.setSelectedIndex(Math.min(index, excludeRootsJList.getModel().getSize() - 1));
+            }
+            excludeRootsJList.repaint();
+        }
+
+        public void update(@NotNull AnActionEvent e) {
+            super.update(e);
+            e.getPresentation().setEnabled(excludeRootsJList.getSelectedIndex() != -1);
+        }
+    }
+
+    private void modifyExcludeRoot(final String defaultValue) {
+
+        DialogBuilder db = new DialogBuilder(project);
+        db.addOkAction();
+        db.addCancelAction();
+        db.setTitle("Add/Edit Exclude Root Path");
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        JLabel infoLabel = new JLabel("""
+                <html>Enter a relative path pattern (e.g., target/generated-sources) to exclude from all modules,<br>\
+                or an absolute path to exclude a specific directory.</html>""");
+        infoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(infoLabel);
+        panel.add(Box.createVerticalStrut(10));
+
+        JTextField pathTextField = new JTextField(defaultValue, 30);
+        pathTextField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        pathTextField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+        panel.add(pathTextField);
+
+        panel.add(Box.createVerticalStrut(10));
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JButton browseButton = buildBrowseButton(panel, pathTextField);
+        buttonPanel.add(Box.createHorizontalGlue());
+        buttonPanel.add(browseButton);
+        buttonPanel.add(Box.createHorizontalGlue());
+        panel.add(buttonPanel);
+
+        db.setCenterPanel(panel);
+        db.show();
+
+        if (db.getDialogWrapper().getExitCode() == DialogWrapper.OK_EXIT_CODE) {
+            String excludePath = pathTextField.getText().trim();
+            if (!excludePath.isEmpty()) {
+                RuleSetListModel listModel = (RuleSetListModel) excludeRootsJList.getModel();
+                int selectedIndex = excludeRootsJList.getSelectedIndex();
+
+                if (defaultValue != null && !defaultValue.trim().isEmpty() && selectedIndex >= 0) {
+                    listModel.set(selectedIndex, excludePath);
+                } else {
+                    int index = listModel.getSize();
+                    listModel.add(index, excludePath);
+                    excludeRootsJList.setSelectedIndex(index);
+                }
+                excludeRootsJList.repaint();
+            }
+        }
+    }
+
+    @NotNull
+    private JButton buildBrowseButton(JPanel panel, JTextField pathTextField) {
+        JButton browseButton = new JButton("Browse...");
+        browseButton.addActionListener(e -> {
+            final VirtualFile toSelect = ProjectUtil.guessProjectDir(project);
+            final FileChooserDescriptor descriptor = new FileChooserDescriptor(false,
+                    true,
+                    false,
+                    false,
+                    false,
+                    false);
+            descriptor.setTitle("Select Directory to Exclude");
+
+            final VirtualFile chosen = FileChooser.chooseFile(descriptor, panel, project, toSelect);
+            if (chosen != null) {
+                String basePath = project.getBasePath();
+                String chosenPath = chosen.getPath();
+
+                // Try to make it relative to project base path
+                if (basePath != null && chosenPath.startsWith(basePath)) {
+                    String relativePath = chosenPath.substring(basePath.length());
+                    if (relativePath.startsWith("/")) {
+                        relativePath = relativePath.substring(1);
+                    }
+                    pathTextField.setText(relativePath);
+                } else {
+                    pathTextField.setText(chosenPath);
+                }
+            }
+        });
+        return browseButton;
     }
 }

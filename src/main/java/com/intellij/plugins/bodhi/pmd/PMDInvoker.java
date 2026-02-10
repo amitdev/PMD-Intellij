@@ -115,6 +115,9 @@ public class PMDInvoker {
             if (projectComponent.isSkipTestSources()) {
                 filter = and(filter, not(fileInTestSources(project)));
             }
+            if (!projectComponent.getExcludeRoots().isEmpty()) {
+                filter = and(filter, fileNotInExcludeRoots(projectComponent.getExcludeRoots()));
+            }
             filter = or(filter, isDirectory());
             for (VirtualFile selectedFile : selectedFiles) {
                 //Add all java files recursively

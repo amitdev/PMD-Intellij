@@ -12,18 +12,21 @@ public class PersistentData {
     private boolean skipTestSources = DEFAULT_SKIP_TEST_SRC;
     private boolean scanFilesBeforeCheckin;
     private List<String> inEditorAnnotationRules;
+    private List<String> excludeRoots;
 
 
     public PersistentData() {
         this.customRuleSets = new ArrayList<>();
         this.inEditorAnnotationRules = new ArrayList<>();
         this.optionKeyToValue = new HashMap<>();
+        this.excludeRoots = new ArrayList<>();
     }
 
     public List<String> getCustomRuleSets() {
         return customRuleSets;
     }
 
+    @SuppressWarnings("unused")
     public void setCustomRuleSets(List<String> rules) {
         this.customRuleSets = rules;
     }
@@ -32,6 +35,7 @@ public class PersistentData {
         return optionKeyToValue;
     }
 
+    @SuppressWarnings("unused")
     public void setOptionKeyToValue(Map<String, String> opts) {
         optionKeyToValue = opts;
     }
@@ -44,6 +48,7 @@ public class PersistentData {
         return skipTestSources;
     }
 
+    @SuppressWarnings("unused")
     public void setInEditorAnnotationRules(List<String> inEditorAnnotationRules) {
         this.inEditorAnnotationRules = inEditorAnnotationRules;
     }
@@ -59,4 +64,12 @@ public class PersistentData {
         scanFilesBeforeCheckin = scan;
     }
 
+    public List<String> getExcludeRoots() {
+        return excludeRoots;
+    }
+
+    @SuppressWarnings("unused")
+    public void setExcludeRoots(List<String> excludeRoots) {
+        this.excludeRoots = excludeRoots;
+    }
 }

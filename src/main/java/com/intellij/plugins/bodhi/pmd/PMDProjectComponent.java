@@ -50,6 +50,7 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
     private boolean skipTestSources;
     private boolean scanFilesBeforeCheckin;
     private Set<String> inEditorAnnotationRuleSets = new LinkedHashSet<>(); // avoid duplicates, maintain order
+    private Set<String> excludeRoots = new LinkedHashSet<>();
     private volatile List<AnAction> currentCustomActions = new ArrayList<>();
 
     /**
@@ -274,6 +275,9 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
         for (String item : inEditorAnnotationRuleSets) {
             persistentData.getInEditorAnnotationRules().add(item);
         }
+        for (String item : excludeRoots) {
+            persistentData.getExcludeRoots().add(item);
+        }
         return persistentData;
     }
 
@@ -303,6 +307,9 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
         inEditorAnnotationRuleSets.clear();
         inEditorAnnotationRuleSets.addAll(state.getInEditorAnnotationRules());
 
+        excludeRoots.clear();
+        excludeRoots.addAll(state.getExcludeRoots());
+
         this.skipTestSources = state.isSkipTestSources();
         this.scanFilesBeforeCheckin = state.isScanFilesBeforeCheckin();
 
@@ -326,5 +333,13 @@ public final class PMDProjectComponent implements PersistentStateComponent<Persi
 
     public boolean isScanFilesBeforeCheckin() {
         return scanFilesBeforeCheckin;
+    }
+
+    public Set<String> getExcludeRoots() {
+        return excludeRoots;
+    }
+
+    public void setExcludeRoots(List<String> excludeRoots) {
+        this.excludeRoots = new LinkedHashSet<>(excludeRoots);
     }
 }

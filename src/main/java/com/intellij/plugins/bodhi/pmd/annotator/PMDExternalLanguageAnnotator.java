@@ -18,7 +18,6 @@ import com.intellij.plugins.bodhi.pmd.annotator.langversion.ManagedLanguageVersi
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.webSymbols.utils.HtmlMarkdownUtils;
 import net.sourceforge.pmd.lang.Language;
 import net.sourceforge.pmd.lang.LanguageRegistry;
 import net.sourceforge.pmd.lang.rule.Rule;

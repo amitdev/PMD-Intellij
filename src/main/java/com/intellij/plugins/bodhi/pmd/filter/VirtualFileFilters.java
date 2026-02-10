@@ -6,6 +6,8 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Set;
+
 public class VirtualFileFilters
 {
     public static VirtualFileFilter and(VirtualFileFilter... filters)
@@ -41,6 +43,11 @@ public class VirtualFileFilters
     public static VirtualFileFilter fileInSources(Project project)
     {
         return new FileInSourcesFilter(project);
+    }
+
+    public static VirtualFileFilter fileNotInExcludeRoots(Set<String> excludeRoots)
+    {
+        return new FileNotInExcludeRootsFilter(excludeRoots);
     }
 
     static class AndFilter implements VirtualFileFilter
@@ -154,6 +161,72 @@ public class VirtualFileFilters
         public boolean accept(@NotNull VirtualFile file)
         {
             return !filter.accept(file);
+        }
+    }
+
+    static class FileNotInExcludeRootsFilter implements VirtualFileFilter
+    {
+        private final Set<String> excludeRoots;
+
+        FileNotInExcludeRootsFilter(Set<String> excludeRoots)
+        {
+            this.excludeRoots = excludeRoots;
+        }
+
+        public boolean accept(@NotNull VirtualFile file)
+        {
+            if (excludeRoots.isEmpty()) {
+                return true;
+            }
+
+
+            String filePath = file.getPath();
+            for (String excludeRoot : excludeRoots) {
+                String normalizedExcludeRoot = excludeRoot.trim();
+                if (normalizedExcludeRoot.isEmpty()) {
+                    continue;
+                }
+
+                if (isAbsolutePath(normalizedExcludeRoot)) {
+                    if (filePath.startsWith(normalizedExcludeRoot)) {
+                        return false;
+                    }
+                } else {
+                    if (matchesRelativePattern(filePath, normalizedExcludeRoot)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        /**
+         * Checks if the file path matches a relative exclude pattern.
+         * The pattern is normalized to /pattern/ and we check if the file path contains it.
+         *  <br/>
+         * For example, pattern "target/generated-sources" becomes "/target/generated-sources/"
+         * and will match any path containing that segment:
+         * - /project/target/generated-sources/Foo.java
+         * - /project/module1/target/generated-sources/Bar.java
+         */
+        private boolean matchesRelativePattern(String filePath, String pattern) {
+            return  normalizePath(filePath).contains(normalizePath(pattern));
+        }
+
+        private static String normalizePath(String path) {
+            String normalizedPath = path;
+            if (!normalizedPath.startsWith("/")) {
+                normalizedPath = "/" + normalizedPath;
+            }
+            if (!normalizedPath.endsWith("/")) {
+                normalizedPath = normalizedPath + "/";
+            }
+            return normalizedPath;
+        }
+
+        private static boolean isAbsolutePath(String path) {
+            // Unix absolute path or Windows absolute path (e.g., C:\)
+            return path.startsWith("/") || (path.length() > 2 && path.charAt(1) == ':');
         }
     }
 }
