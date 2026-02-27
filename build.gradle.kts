@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.changelog) // Gradle Changelog Plugin
 }
 
+group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
 // Set the JVM language level used to build the project.
@@ -21,27 +22,25 @@ kotlin {
 // Configure project's dependencies
 repositories {
     mavenCentral()
+
+    // IntelliJ Platform Gradle Plugin Repositories Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-repositories-extension.html
     intellijPlatform() {
         defaultRepositories()
     }
 }
 
-// Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
+// Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/version_catalogs.html
 dependencies {
+    testImplementation(libs.junit)
+
     implementation(libs.bundles.pmd) {
         // Prevent conflict with IntelliJ's slf4j which results in a LinkageError
         exclude("org.slf4j", module = "slf4j-api")
     }
 
-    testImplementation(libs.junit)
-
+    // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html#setting-up-intellij-platform
-        // local("/Users/user/Applications/IntelliJ IDEA Ultimate.app")
-        // for EAP
-        val platformVersion = providers.gradleProperty("platformVersion").get()
-        val useInstaller = !platformVersion.endsWith("-EAP-SNAPSHOT")
-        create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"), useInstaller = useInstaller)
+        intellijIdea(providers.gradleProperty("platformVersion"))
 
         // Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
         bundledPlugins(providers.gradleProperty("platformBundledPlugins").map { it.split(',') })
@@ -49,8 +48,9 @@ dependencies {
         // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file for plugin from JetBrains Marketplace.
         plugins(providers.gradleProperty("platformPlugins").map { it.split(',') })
 
-        pluginVerifier()
-        zipSigner()
+        // Module Dependencies. Uses `platformBundledModules` property from the gradle.properties file for bundled IntelliJ Platform modules.
+        bundledModules(providers.gradleProperty("platformBundledModules").map { it.split(',') })
+
         testFramework(TestFrameworkType.Platform)
     }
 }
@@ -89,7 +89,6 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            untilBuild = providers.gradleProperty("pluginUtilBuild")
         }
     }
 
@@ -109,8 +108,6 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html#intellijPlatform-pluginVerification-ides
-            // recommended() automatically tests based on the current platformVersion
             recommended()
         }
     }
