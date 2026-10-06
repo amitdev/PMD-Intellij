@@ -5,11 +5,15 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.projectRoots.Sdk;
+import com.intellij.openapi.roots.ModuleRootManager;
 import com.intellij.openapi.roots.OrderEnumerator;
+import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.vfs.VirtualFileVisitor;
+import com.intellij.plugins.bodhi.pmd.core.AuxClasspath;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
 import com.intellij.util.containers.OrderedSet;
 import org.jetbrains.annotations.NotNull;
@@ -111,18 +115,30 @@ public class PMDUtil {
         return asList(ModuleManager.getInstance(project).getModules());
     }
 
-    public static String getFullClassPathForAllModules(Project project) {
+    /**
+     * Builds the auxiliary classpath for PMD from the libraries and output directories of all modules,
+     * plus the JDK of the project SDK.
+     */
+    public static AuxClasspath getAuxClasspathForAllModules(Project project) {
         List<Module> modules = getProjectModules(project);
         OrderedSet<String> uniqPaths = new OrderedSet<>();
         for (Module module : modules) {
-            uniqPaths.addAll(OrderEnumerator.orderEntries(module).recursively().getPathsList().getPathList());
+            uniqPaths.addAll(OrderEnumerator.orderEntries(module).withoutSdk().recursively().getPathsList().getPathList());
         }
+        Sdk sdk = getSdk(project, modules);
+        return AuxClasspath.build(uniqPaths, sdk == null ? null : sdk.getHomePath());
+    }
 
-        StringJoiner joiner = new StringJoiner(File.pathSeparator);
-        for (String path : uniqPaths) {
-            joiner.add(path);
+    private static Sdk getSdk(Project project, List<Module> modules) {
+        Sdk sdk = ProjectRootManager.getInstance(project).getProjectSdk();
+        if (sdk != null) {
+            return sdk;
         }
-        return joiner.toString();
+        return modules.stream()
+                .map(module -> ModuleRootManager.getInstance(module).getSdk())
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
     /**

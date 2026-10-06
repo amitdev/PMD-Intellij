@@ -202,12 +202,13 @@ public class PMDResultCollector {
         PMDConfiguration pmdConfig = new PMDConfiguration();
 
         pmdConfig.setDefaultLanguageVersions(languageVersions);
-        pmdConfig.prependAuxClasspath(PMDUtil.getFullClassPathForAllModules(project));
+        AuxClasspath auxClasspath = PMDUtil.getAuxClasspathForAllModules(project);
+        pmdConfig.prependAuxClasspath(auxClasspath.getClasspath());
 
         pmdConfig.addRuleSet(ruleSets);
         pmdConfig.setReportFile(File.createTempFile("pmd", "report").toPath());
         pmdConfig.setShowSuppressedViolations(true);
-        pmdConfig.setAnalysisCacheLocation(PMDProjectCacheFile.getOrCreate(project));
+        pmdConfig.setAnalysisCacheLocation(PMDProjectCacheFile.getOrCreate(project, auxClasspath.getOutputStamp()));
 
         if (optionThreads == null || optionThreads.isEmpty()) {
             pmdConfig.setThreads(PMDUtil.AVAILABLE_PROCESSORS);

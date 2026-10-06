@@ -15,6 +15,8 @@
   - Do not classify unknown files as Java and ignore them
   - Render rule descriptions as markdown
   - Update to PMD version 7.28.0
+  - Improve auxclasspath for PMD 7.27+ type resolution: use the JDK of the project SDK (`jrt-fs.jar`/`rt.jar`) instead of the IDE runtime, skip not existing and empty entries
+  - Invalidate the PMD analysis cache when compiled classes change (e.g. after a build)
 
 ## [2.0.9] - 2025-07-20
 
