@@ -17,6 +17,7 @@
   - Update to PMD version 7.28.0
   - Improve auxclasspath for PMD 7.27+ type resolution: use the JDK of the project SDK (`jrt-fs.jar`/`rt.jar`) instead of the IDE runtime, skip not existing and empty entries
   - Invalidate the PMD analysis cache when compiled classes change (e.g. after a build)
+  - Skip invalid jar files on the auxclasspath, which made the PMD analysis cache fail #322
 
 ## [2.0.9] - 2025-07-20
 

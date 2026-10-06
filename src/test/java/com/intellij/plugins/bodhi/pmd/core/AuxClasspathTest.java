@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -172,6 +174,29 @@ public class AuxClasspathTest {
         assertEquals(without, with);
     }
 
+    @Test
+    public void skipsJarThatIsNotAValidArchive() throws IOException {
+        // issue #322: PMD's analysis cache fails on invalid archives with a ZipException
+        Path jar = createFile("libs/a.jar");
+        Path invalidJar = createFile("libs/invalid.jar", "not a zip");
+
+        AuxClasspath cp = AuxClasspath.build(List.of(invalidJar.toString(), jar.toString()), null);
+
+        assertEquals(List.of(jar.toString()), cp.getEntries());
+    }
+
+    @Test
+    public void usesJarAgainWhenItBecomesValid() throws IOException {
+        Path jar = createFile("libs/a.jar", "not a zip");
+        assertEquals(List.of(), AuxClasspath.build(List.of(jar.toString()), null).getEntries());
+
+        Files.delete(jar);
+        createFile("libs/a.jar");
+        Files.setLastModifiedTime(jar, FileTime.fromMillis(Files.getLastModifiedTime(jar).toMillis() + 5000));
+
+        assertEquals(List.of(jar.toString()), AuxClasspath.build(List.of(jar.toString()), null).getEntries());
+    }
+
     private Path createJdk11Plus(String name) throws IOException {
         createFile(name + "/lib/jrt-fs.jar");
         return root.resolve(name);
@@ -180,6 +205,20 @@ public class AuxClasspathTest {
     private Path createFile(String relative) throws IOException {
         Path file = root.resolve(relative);
         Files.createDirectories(file.getParent());
+        if (relative.endsWith(".jar")) {
+            try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(file))) {
+                zip.putNextEntry(new ZipEntry("p/A.class"));
+                zip.write(new byte[] {1});
+                zip.closeEntry();
+            }
+            return file;
+        }
         return Files.write(file, new byte[] {1});
+    }
+
+    private Path createFile(String relative, String content) throws IOException {
+        Path file = root.resolve(relative);
+        Files.createDirectories(file.getParent());
+        return Files.writeString(file, content);
     }
 }
