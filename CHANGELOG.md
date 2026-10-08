@@ -6,6 +6,15 @@
 
 ### Changed
 
+- Update to PMD version 7.28.0
+- Improve auxclasspath for PMD 7.27+ type resolution: use the JDK of the project SDK (`jrt-fs.jar`/`rt.jar`) instead of the IDE runtime, skip not existing and empty entries
+- Invalidate the PMD analysis cache when compiled classes change (e.g. after a build)
+- Skip invalid jar files on the auxclasspath, which made the PMD analysis cache fail #322
+
+## [2.1.0] - 2026-02-07
+
+### Changed
+
 - Various improvements #266
   - Fixed: Intermediate progress bars can't display fractional updates (when running PMD on multiple files)
   - Fixed: IntelliJ crash on startup due to conflicting slf4j version
@@ -164,7 +173,8 @@
 
 - Update to PMD version 6.35.0 and optional anonymous status reporting
 
-[Unreleased]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.9...HEAD
+[Unreleased]: https://github.com/amitdev/PMD-Intellij/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.9...v2.1.0
 [2.0.9]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.8...v2.0.9
 [2.0.8]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.7...v2.0.8
 [2.0.7]: https://github.com/amitdev/PMD-Intellij/compare/v2.0.6...v2.0.7

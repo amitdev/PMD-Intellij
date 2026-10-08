@@ -1,5 +1,6 @@
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 fun properties(key: String) = project.findProperty(key).toString()
@@ -141,6 +142,12 @@ tasks {
 
 intellijPlatformTesting {
     runIde {
+        // run the plugin in the latest IDE release, while still building against platformVersion
+        register("runIdeLatest") {
+            type = IntelliJPlatformType.IntellijIdeaUltimate
+            version = "2026.2.3"
+        }
+
         register("runIdeForUiTests") {
             task {
                 jvmArgumentProviders += CommandLineArgumentProvider {
