@@ -29,7 +29,8 @@ import java.util.zip.ZipFile;
  * and warns about entries that do not exist. Therefore:</p>
  * <ul>
  *     <li>Entries that do not exist and empty directories are skipped (a missing jar would even make PMD fail).</li>
- *     <li>Archives that cannot be opened are skipped, as PMD's analysis cache fails on them (issue #322).</li>
+ *     <li>Archives that cannot be opened are skipped, as PMD's analysis cache fails on them (issue #322).
+ *     Fixed in PMD 7.29.0 (pmd/pmd#7156).</li>
  *     <li>JDK module roots in IntelliJ notation (e.g. {@code /jdk!/java.base}) are skipped, instead the
  *     {@code lib/jrt-fs.jar} (or {@code rt.jar} for Java 8) of the given SDK home is added, so PMD resolves
  *     the JDK classes of the project and not of the IDE runtime.</li>
@@ -108,6 +109,7 @@ public final class AuxClasspath {
         return name.endsWith(".jar") || name.endsWith(".zip");
     }
 
+    // Workaround for PMD < 7.29.0, see pmd/pmd#7156 - remove after upgrading
     private static boolean isValidArchive(Path path) {
         if (!Files.isRegularFile(path)) {
             return false;
