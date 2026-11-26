@@ -11,6 +11,10 @@
 - Invalidate the PMD analysis cache when compiled classes change (e.g. after a build)
 - Skip invalid jar files on the auxclasspath, which made the PMD analysis cache fail #322
 
+### Fixed
+
+- `UnsupportedOperationException` when running PMD on a selection without supported source files (e.g. an `.iml` file)
+
 ## [2.1.0] - 2026-02-07
 
 ### Changed

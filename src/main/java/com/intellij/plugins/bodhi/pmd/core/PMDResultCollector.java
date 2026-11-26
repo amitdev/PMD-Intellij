@@ -79,7 +79,7 @@ public class PMDResultCollector {
             PMDProjectComponent comp,
             Renderer extraRenderer) {
         if(files.isEmpty()) {
-            return List.of();
+            return new ArrayList<>(); // mutable: callers sort the result
         }
 
         return runPMDAndGetResultsInternal(
