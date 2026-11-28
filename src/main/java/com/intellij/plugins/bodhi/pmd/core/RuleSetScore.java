@@ -3,13 +3,14 @@ package com.intellij.plugins.bodhi.pmd.core;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.function.IntFunction;
 import java.util.function.UnaryOperator;
 
 /**
  * The score of a rule set run: weighted violations per 1000 non-comment code lines, graded by the {@link RuleSetScoreSpec}.
  *
  * @param spec                  the score definition of the rule set
- * @param violationsPerPriority violation count per priority, index = priority - 1, length 5
+ * @param violationsPerPriority violation count per category, same length and order as the spec weights
  * @param codeLines             number of non-comment, non-blank code lines scanned
  */
 public record RuleSetScore(RuleSetScoreSpec spec, int[] violationsPerPriority, int codeLines) {
@@ -70,23 +71,28 @@ public record RuleSetScore(RuleSetScoreSpec spec, int[] violationsPerPriority, i
      * @return e.g. "A = 0 &lt; B &lt; 5 ≤ C &lt; 10 ≤ D &lt; 15 ≤ E &lt; 25 ≤ F"
      */
     public String gradeScale(UnaryOperator<String> markCurrent) {
+        return gradeScale(index -> String.valueOf((char) ('A' + index)), markCurrent);
+    }
+
+    /**
+     * @param symbol      the symbol of a grade index, e.g. a letter or leaves
+     * @param markCurrent applied to the symbol of the current grade
+     * @return e.g. "A = 0 &lt; B &lt; 5 ≤ C &lt; 10 ≤ D &lt; 15 ≤ E &lt; 25 ≤ F"
+     */
+    public String gradeScale(IntFunction<String> symbol, UnaryOperator<String> markCurrent) {
         double[] thresholds = spec.thresholds();
         int current = gradeIndex();
-        StringBuilder scale = new StringBuilder(letter(0, current, markCurrent))
+        IntFunction<String> marked = index -> index == current ? markCurrent.apply(symbol.apply(index)) : symbol.apply(index);
+        StringBuilder scale = new StringBuilder(marked.apply(0))
                 .append(thresholds[0] == 0 ? " = " : " ≤ ").append(format(thresholds[0]));
         for (int i = 1; i <= thresholds.length; i++) {
-            // the lower bound is exclusive for B (score > t[0]) and inclusive for the next grades (score >= t[i-1])
-            scale.append(i == 1 ? " < " : " ≤ ").append(letter(i, current, markCurrent));
+            // the lower bound is exclusive for the second grade (score > t[0]) and inclusive for the next ones
+            scale.append(i == 1 ? " < " : " ≤ ").append(marked.apply(i));
             if (i < thresholds.length) {
                 scale.append(" < ").append(format(thresholds[i]));
             }
         }
         return scale.toString();
-    }
-
-    private static String letter(int index, int current, UnaryOperator<String> markCurrent) {
-        String letter = String.valueOf((char) ('A' + index));
-        return index == current ? markCurrent.apply(letter) : letter;
     }
 
     private static String format(double threshold) {

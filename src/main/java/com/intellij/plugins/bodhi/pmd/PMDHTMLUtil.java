@@ -8,6 +8,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.plugins.bodhi.pmd.core.RuleSetScore;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetNode;
 import com.intellij.plugins.bodhi.pmd.tree.Severity;
+import com.intellij.plugins.bodhi.pmd.tree.SustainabilityLeaves;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.SimpleTextAttributes;
@@ -26,8 +27,14 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 public class PMDHTMLUtil {
@@ -226,6 +233,8 @@ public class PMDHTMLUtil {
                         border-radius: 4px;
                     }""";
 
+    private static final Map<String, String> SVG_BASE64 = new ConcurrentHashMap<>();
+
     private PMDHTMLUtil() {
         // utility class not to be instantiated
     }
@@ -387,6 +396,55 @@ public class PMDHTMLUtil {
             htmlBuilder.append(linkHtml);
         }
         return htmlBuilder.toString();
+    }
+
+    /**
+     * Generates HTML content for the scores of a rule set: the score block first, then the sustainability block.
+     */
+    public static @NotNull String getScoreDetailsHtml(@NotNull Optional<RuleSetScore> score, @NotNull Optional<RuleSetScore> sustainability) {
+        StringBuilder html = new StringBuilder();
+        score.ifPresent(s -> html.append(getScoreHtml(s)));
+        sustainability.ifPresent(s -> html.append(html.isEmpty() ? "" : "\n<div style='margin-top: 12px;'></div>\n")
+                .append(getSustainabilityHtml(s, isDarkTheme())));
+        return html.toString();
+    }
+
+    /**
+     * Generates HTML content for the sustainability score of a rule set: the label with the leaves in the leaf color,
+     * the formula and the scale of leaves (current level framed) in gray.
+     *
+     * @param dark whether to use the leaf images for a dark theme
+     */
+    static @NotNull String getSustainabilityHtml(@NotNull RuleSetScore score, boolean dark) {
+        String labelColor = colorToHex(SustainabilityLeaves.labelColor(score.gradeIndex()));
+        String gray = colorToHex(SimpleTextAttributes.GRAYED_ATTRIBUTES.getFgColor());
+        // '<' only occurs as separator " < ", so escaping it there leaves the tags intact
+        String scale = score.gradeScale(level -> leavesHtml(level, dark),
+                        leaves -> "<span style='border: 1px solid " + gray + "; border-radius: 3px; padding: 1px 2px;'>" + leaves + "</span>")
+                .replace(" < ", " &lt; ");
+        return "<div class=\"title\" style='color: " + labelColor + ";'>" + score.spec().name() + ": "
+                + leavesHtml(score.gradeIndex(), dark) + "</div>\n" +
+                "<div style='color: " + gray + ";'>\n" +
+                "  <p>" + score.formula() + "</p>\n" +
+                "  <p>" + scale + "</p>\n" +
+                "</div>";
+    }
+
+    private static String leavesHtml(int level, boolean dark) {
+        String img = "<img src='data:image/svg+xml;base64," + svgBase64(SustainabilityLeaves.svgResource(level, dark))
+                + "' width='16' height='16' style='vertical-align: middle;'>";
+        return img.repeat(SustainabilityLeaves.count(level));
+    }
+
+    private static String svgBase64(String resource) {
+        return SVG_BASE64.computeIfAbsent(resource, r -> {
+            try (InputStream in = SustainabilityLeaves.class.getResourceAsStream(r)) {
+                return in == null ? "" : Base64.getEncoder().encodeToString(in.readAllBytes());
+            } catch (IOException e) {
+                log.warn("Cannot read " + r, e);
+                return "";
+            }
+        });
     }
 
     /**

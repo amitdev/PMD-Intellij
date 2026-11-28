@@ -309,8 +309,9 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
         String exampleText = "// Example code shows here";
         if (node instanceof PMDRuleSetNode ruleSetNode) {
             Optional<RuleSetScore> score = ruleSetNode.getScore();
-            if (score.isPresent()) {
-                updateHtmlContent(PMDHTMLUtil.getScoreHtml(score.get()));
+            Optional<RuleSetScore> sustainability = ruleSetNode.getSustainabilityScore();
+            if (score.isPresent() || sustainability.isPresent()) {
+                updateHtmlContent(PMDHTMLUtil.getScoreDetailsHtml(score, sustainability));
                 detailSplit.setSecondComponent(new JLabel(""));
                 return;
             }

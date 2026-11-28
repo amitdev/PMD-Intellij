@@ -68,4 +68,30 @@ public class RuleSetScoreSpecTest {
         assertEquals("", RuleSetScoreSpec.stripMarker("pmd-score: weights=1"));
         assertNull(RuleSetScoreSpec.stripMarker(null));
     }
+
+    @Test
+    public void parsesSustainabilityMarkerWithDefaults() {
+        RuleSetScoreSpec spec = RuleSetScoreSpec.parseSustainability("rules\npmd-sustainability: weights=9,3,1").orElseThrow();
+        assertEquals("Sustainability-score", spec.name());
+        assertArrayEquals(new int[]{9, 3, 1}, spec.weights());
+        assertArrayEquals(DEFAULT_THRESHOLDS, spec.thresholds(), 0.0);
+    }
+
+    @Test
+    public void sustainabilityMalformedGivesEmpty() {
+        assertTrue(RuleSetScoreSpec.parseSustainability("pmd-sustainability: weights=1,2,3,4").isEmpty());
+        assertTrue(RuleSetScoreSpec.parseSustainability("pmd-sustainability: weights=1; thresholds=0,5,10,15").isEmpty());
+        assertTrue(RuleSetScoreSpec.parseSustainability("pmd-sustainability: weights=1; thresholds=0,5,10,15,25,30").isEmpty());
+    }
+
+    @Test
+    public void markersDoNotMix() {
+        assertTrue(RuleSetScoreSpec.parse("pmd-sustainability: weights=9").isEmpty());
+        assertTrue(RuleSetScoreSpec.parseSustainability("pmd-score: weights=9").isEmpty());
+    }
+
+    @Test
+    public void stripsBothMarkers() {
+        assertEquals("a\nb", RuleSetScoreSpec.stripMarker("a\npmd-score: weights=1\npmd-sustainability: weights=1\nb"));
+    }
 }

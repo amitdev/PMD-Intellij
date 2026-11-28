@@ -43,4 +43,13 @@ public class RuleSetScoreTest {
         RuleSetScore score = RuleSetScore.of(spec, new int[]{0, 0, 0, 0, 0}, 1000).orElseThrow();
         assertEquals("[A] ≤ 1 < B < 2.5 ≤ C", score.gradeScale(g -> "[" + g + "]"));
     }
+
+    @Test
+    public void sustainabilityScoreWithThreeCategoriesAndSymbols() {
+        RuleSetScoreSpec spec = RuleSetScoreSpec.parseSustainability("pmd-sustainability: weights=9,3,1").orElseThrow();
+        RuleSetScore score = RuleSetScore.of(spec, new int[]{3, 10, 10}, 12300).orElseThrow();
+        assertEquals("(9x3 + 3x10 + 1x10 = 67) / 12.3 kloc = 5.4", score.formula());
+        assertEquals(2, score.gradeIndex());
+        assertEquals("L0 = 0 < L1 < 5 ≤ [L2] < 10 ≤ L3 < 15 ≤ L4 < 25 ≤ L5", score.gradeScale(i -> "L" + i, g -> "[" + g + "]"));
+    }
 }

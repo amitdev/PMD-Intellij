@@ -208,15 +208,16 @@ public class PMDInvoker {
 
                         String desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
                         Optional<RuleSetScoreSpec> scoreSpec = RuleSetScoreSpec.parse(desc);
-                        if (!resultRuleNodes.isEmpty() || scoreSpec.isPresent()) {
+                        Optional<RuleSetScoreSpec> sustainabilitySpec = RuleSetScoreSpec.parseSustainability(desc);
+                        if (!resultRuleNodes.isEmpty() || scoreSpec.isPresent() || sustainabilitySpec.isPresent()) {
                             String ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
                             PMDRuleSetNode ruleSetNode = resultPanel.addCreateRuleSetNodeAtRoot(ruleSetName);
                             ruleSetNode.setToolTip(RuleSetScoreSpec.stripMarker(desc));
-                            if (scoreSpec.isPresent()) {
+                            if (scoreSpec.isPresent() || sustainabilitySpec.isPresent()) {
                                 Set<Language> languages = ruleSetLanguages(ruleSetPath);
                                 int codeLines = codeLinesPerLanguages.computeIfAbsent(languages,
                                         langs -> CodeLineCounter.countCodeLines(psiFiles, langs, progress));
-                                ruleSetNode.setScoreInput(scoreSpec.get(), codeLines);
+                                ruleSetNode.setScoreInput(scoreSpec.orElse(null), sustainabilitySpec.orElse(null), codeLines);
                             }
                             //Add all rule nodes to the tree
                             for (PMDRuleSetEntryNode resultRuleNode : resultRuleNodes) {
