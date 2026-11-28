@@ -235,6 +235,9 @@ public class PMDHTMLUtil {
                     }""";
 
     private static final Map<String, String> SVG_BASE64 = new ConcurrentHashMap<>();
+    private static final String DIV_END = "</div>";
+    private static final String DIV_END_LINE = DIV_END + "\n";
+    private static final String P_END_LINE = "</p>\n";
 
     private PMDHTMLUtil() {
         // utility class not to be instantiated
@@ -371,15 +374,15 @@ public class PMDHTMLUtil {
         else {
             // Start with the title and severity on the same line
             htmlBuilder.append("<div class=\"title-severity\">\n");
-            htmlBuilder.append("  <div class=\"title\">").append(message).append("</div>\n");
+            htmlBuilder.append("  <div class=\"title\">").append(message).append(DIV_END_LINE);
             RulePriority rulePriority = rule.getPriority();
             Severity severity = Severity.of(rulePriority);
             String severityName = severity.getName();
             String severityColor = colorToHex(severity.getColor());
 
             htmlBuilder.append("  <div class='severity' style='background-color: ").append(severityColor)
-                .append(";'>").append(rulePriority.getPriority()).append(":").append(severityName).append("</div>\n");
-            htmlBuilder.append("</div>");
+                .append(";'>").append(rulePriority.getPriority()).append(":").append(severityName).append(DIV_END_LINE);
+            htmlBuilder.append(DIV_END);
 
             // Add rule name and tags in badge format
             appendRuleNameAndTagsTo(htmlBuilder, rule);
@@ -408,7 +411,7 @@ public class PMDHTMLUtil {
      */
     public static @NotNull String getScoreDetailsHtml(@Nullable String description, @NotNull Optional<RuleSetScore> score,
                                                       @NotNull Optional<RuleSetScore> sustainability) {
-        String descriptionHtml = description == null || description.isBlank() ? "" : "<p>" + escapeHtml(description) + "</p>\n";
+        String descriptionHtml = description == null || description.isBlank() ? "" : "<p>" + escapeHtml(description) + P_END_LINE;
         return descriptionHtml + scoresHtml(score, sustainability, true);
     }
 
@@ -429,7 +432,7 @@ public class PMDHTMLUtil {
             Optional<RuleSetScore> sustainability = node.getSustainabilityScore();
             if (score.isPresent() || sustainability.isPresent()) {
                 html.append(html.isEmpty() ? "" : "\n<div style='margin-top: 16px;'></div>\n")
-                        .append("<p>").append(node.getNodeName()).append("</p>\n")
+                        .append("<p>").append(node.getNodeName()).append(P_END_LINE)
                         .append(scoresHtml(score, sustainability, false));
             }
         }
@@ -464,7 +467,7 @@ public class PMDHTMLUtil {
                     .replace(" < ", " &lt; ");
         }
         return "<div class=\"title\" style='color: " + labelColor + ";'>" + score.spec().name() + ": "
-                + leavesHtml(score.gradeIndex(), dark, false) + "</div>\n" +
+                + leavesHtml(score.gradeIndex(), dark, false) + DIV_END_LINE +
                 (withDetails ? detailsHtml(score, gray, legend) : "");
     }
 
@@ -477,9 +480,9 @@ public class PMDHTMLUtil {
 
     private static String detailsHtml(RuleSetScore score, String gray, String legend) {
         return "<div style='color: " + gray + ";'>\n" +
-                "  <p>" + score.formula() + "</p>\n" +
-                (legend.isEmpty() ? "" : "  <p>" + legend + "</p>\n") +
-                "</div>";
+                "  <p>" + score.formula() + P_END_LINE +
+                (legend.isEmpty() ? "" : "  <p>" + legend + P_END_LINE) +
+                DIV_END;
     }
 
     private static String leavesHtml(int level, boolean dark, boolean gray) {
@@ -513,7 +516,7 @@ public class PMDHTMLUtil {
         String gray = colorToHex(SimpleTextAttributes.GRAYED_ATTRIBUTES.getFgColor());
         // '<' only occurs as separator " < ", so escaping it there leaves the tags intact
         String legend = withDetails ? score.gradeScale(grade -> framed(grade, gray)).replace(" < ", " &lt; ") : "";
-        return "<div class=\"title\" style='color: " + gradeColor + ";'>" + score.gradeLabel() + "</div>\n" +
+        return "<div class=\"title\" style='color: " + gradeColor + ";'>" + score.gradeLabel() + DIV_END_LINE +
                 (withDetails ? detailsHtml(score, gray, legend) : "");
     }
 
@@ -559,7 +562,7 @@ public class PMDHTMLUtil {
                 }
             }
         }
-        htmlBuilder.append("</div>");
+        htmlBuilder.append(DIV_END);
     }
 
     /**

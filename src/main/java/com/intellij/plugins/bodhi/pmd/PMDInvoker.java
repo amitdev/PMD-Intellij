@@ -206,23 +206,7 @@ public class PMDInvoker {
                         // sort rules by priority, rule and suppressed nodes are comparable
                         resultRuleNodes.sort(null);
 
-                        String desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
-                        Optional<RuleSetScoreSpec> scoreSpec = RuleSetScoreSpec.parse(desc);
-                        Optional<RuleSetScoreSpec> sustainabilitySpec = RuleSetScoreSpec.parseSustainability(desc);
-                        if (!resultRuleNodes.isEmpty() || scoreSpec.isPresent() || sustainabilitySpec.isPresent()) {
-                            String ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
-                            PMDRuleSetNode ruleSetNode = resultPanel.addCreateRuleSetNodeAtRoot(ruleSetName);
-                            ruleSetNode.setToolTip(RuleSetScoreSpec.stripMarker(desc));
-                            if (scoreSpec.isPresent() || sustainabilitySpec.isPresent()) {
-                                Set<Language> languages = ruleSetLanguages(ruleSetPath);
-                                int codeLines = codeLinesPerLanguages.computeIfAbsent(languages,
-                                        langs -> CodeLineCounter.countCodeLines(psiFiles, langs, progress));
-                                ruleSetNode.setScoreInput(scoreSpec.orElse(null), sustainabilitySpec.orElse(null), codeLines);
-                            }
-                            //Add all rule nodes to the tree
-                            for (PMDRuleSetEntryNode resultRuleNode : resultRuleNodes) {
-                                resultPanel.addNode(ruleSetNode, resultRuleNode);
-                            }
+                        if (addRuleSetNode(resultPanel, ruleSetPath, resultRuleNodes, psiFiles, codeLinesPerLanguages, progress)) {
                             rootNode.calculateCounts();
                             resultPanel.reloadResultTree();
                         }
@@ -242,6 +226,35 @@ public class PMDInvoker {
                 }
             }
         });
+    }
+
+    /**
+     * Adds a node for the rule set with its results to the tree, when it has results or defines a score.
+     *
+     * @param codeLinesPerLanguages cache of the code line counts within a run, per set of languages
+     * @return whether a node was added
+     */
+    private static boolean addRuleSetNode(PMDResultPanel resultPanel, String ruleSetPath, List<PMDRuleSetEntryNode> resultRuleNodes,
+                                          List<PsiFile> psiFiles, Map<Set<Language>, Integer> codeLinesPerLanguages,
+                                          ProgressIndicator progress) {
+        String desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
+        Optional<RuleSetScoreSpec> scoreSpec = RuleSetScoreSpec.parse(desc);
+        Optional<RuleSetScoreSpec> sustainabilitySpec = RuleSetScoreSpec.parseSustainability(desc);
+        boolean hasScore = scoreSpec.isPresent() || sustainabilitySpec.isPresent();
+        if (resultRuleNodes.isEmpty() && !hasScore) {
+            return false;
+        }
+        PMDRuleSetNode ruleSetNode = resultPanel.addCreateRuleSetNodeAtRoot(PMDUtil.getBareFileNameFromPath(ruleSetPath));
+        ruleSetNode.setToolTip(RuleSetScoreSpec.stripMarker(desc));
+        if (hasScore) {
+            int codeLines = codeLinesPerLanguages.computeIfAbsent(ruleSetLanguages(ruleSetPath),
+                    langs -> CodeLineCounter.countCodeLines(psiFiles, langs, progress));
+            ruleSetNode.setScoreInput(scoreSpec.orElse(null), sustainabilitySpec.orElse(null), codeLines);
+        }
+        for (PMDRuleSetEntryNode resultRuleNode : resultRuleNodes) {
+            resultPanel.addNode(ruleSetNode, resultRuleNode);
+        }
+        return true;
     }
 
     /**

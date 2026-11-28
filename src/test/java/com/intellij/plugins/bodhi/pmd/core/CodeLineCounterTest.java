@@ -28,7 +28,7 @@ public class CodeLineCounterTest extends BasePlatformTestCase {
                         \""";
                 }
                 """);
-        // package p; | public class A { | int x = 1; | String s = """ | text | """; | }
+        // code lines: the package line, the class line, the field x, the 3 lines of the text block and the closing brace
         assertEquals(7, CodeLineCounter.countCodeLines(file));
     }
 

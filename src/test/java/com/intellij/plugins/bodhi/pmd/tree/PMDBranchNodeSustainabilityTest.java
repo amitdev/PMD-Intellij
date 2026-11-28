@@ -22,10 +22,12 @@ public class PMDBranchNodeSustainabilityTest {
 
             @Override
             public void render(PMDCellRenderer cellRenderer, boolean expanded) {
+                // not rendered in this test
             }
 
             @Override
             public void navigate(boolean requestFocus) {
+                // not navigated in this test
             }
         };
     }

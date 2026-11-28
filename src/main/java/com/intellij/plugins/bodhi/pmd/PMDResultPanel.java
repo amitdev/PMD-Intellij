@@ -321,12 +321,6 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
     }
 
     /**
-     * Updates the rule details in the documentation panel based on the selected tree node.
-     * Displays the rule description, example code, and other relevant information.
-     *
-     * @param node The selected tree node containing rule information, or null if no selection
-     */
-    /**
      * Shows score HTML: it has no example code, so the HTML gets the full height, without fitting the splitter.
      */
     private void showScoreHtml(String html) {
@@ -346,9 +340,12 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
         return fitSplitToContent;
     }
 
-    private void setRuleDetailsOnDocField(@Nullable DefaultMutableTreeNode node) {
-        String htmlText = "Select a violation for details.";
-        String exampleText = "// Example code shows here";
+    /**
+     * Shows the scores of the selected root or rule set node, if any.
+     *
+     * @return whether scores were shown
+     */
+    private boolean showScoresIfPresent(@Nullable DefaultMutableTreeNode node) {
         if (node instanceof PMDRootNode root) {
             List<PMDRuleSetNode> ruleSetNodes = new ArrayList<>();
             for (int i = 0; i < root.getChildCount(); i++) {
@@ -359,16 +356,32 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
             String scoresHtml = PMDHTMLUtil.getRuleSetScoresHtml(ruleSetNodes);
             if (!scoresHtml.isEmpty()) {
                 showScoreHtml(scoresHtml);
-                return;
+                return true;
             }
         }
         if (node instanceof PMDRuleSetNode ruleSetNode) {
             Optional<RuleSetScore> score = ruleSetNode.getScore();
             Optional<RuleSetScore> sustainability = ruleSetNode.getSustainabilityScore();
             if (score.isPresent() || sustainability.isPresent()) {
-                showScoreHtml(PMDHTMLUtil.getScoreDetailsHtml(ruleSetNode.getToolTip(), score, sustainability)); // tooltip: description without score lines
-                return;
+                // tooltip: the rule set description without the score lines
+                showScoreHtml(PMDHTMLUtil.getScoreDetailsHtml(ruleSetNode.getToolTip(), score, sustainability));
+                return true;
             }
+        }
+        return false;
+    }
+
+    /**
+     * Updates the rule details in the documentation panel based on the selected tree node.
+     * Displays the rule description, example code, and other relevant information.
+     *
+     * @param node The selected tree node containing rule information, or null if no selection
+     */
+    private void setRuleDetailsOnDocField(@Nullable DefaultMutableTreeNode node) {
+        String htmlText = "Select a violation for details.";
+        String exampleText = "// Example code shows here";
+        if (showScoresIfPresent(node)) {
+            return;
         }
         fitSplitToContent = true;
         if (node == null || (!(node instanceof HasMessage) && !(node instanceof HasRule))) {
