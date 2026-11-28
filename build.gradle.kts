@@ -27,6 +27,19 @@ repositories {
     }
 }
 
+// PMD 7.28.0 brings nl.stokpop.typemapper:kotlin-type-mapper-analyzer (via pmd-kotlin), which pulls in the Kotlin compiler
+// (kotlin-compiler-embeddable, kotlin-scripting-*-embeddable) and kotlinx-coroutines-core-jvm 1.8.0. On the flat test
+// classpath these clash with the IntelliJ platform and the bundled Kotlin plugin, so every platform test
+// (BasePlatformTestCase) fails, e.g. with:
+// - NoSuchMethodError: CoroutineDispatcher.limitedParallelism$default (coroutines 1.8.0 shadows the platform's own fork)
+// - ClassCastException: KotlinFileType cannot be cast to FileType (the compiler jar has its own copy of KotlinFileType)
+// - NoSuchMethodError: DefinitionsKt.isNonScript(VirtualFile) (scripting jar shadows the Kotlin plugin's version)
+// Excluded for tests only, so Kotlin type resolution of PMD is not available in tests. The jars are still bundled in the
+// plugin distribution; whether they cause problems there is to be investigated separately.
+configurations.testRuntimeClasspath {
+    exclude(group = "nl.stokpop.typemapper", module = "kotlin-type-mapper-analyzer")
+}
+
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
     implementation(libs.bundles.pmd) {
