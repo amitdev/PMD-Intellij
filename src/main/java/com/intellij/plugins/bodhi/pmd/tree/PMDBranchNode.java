@@ -1,5 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
+import com.intellij.plugins.bodhi.pmd.core.SustainabilityLevel;
+
 import javax.swing.tree.TreeNode;
 import java.util.EnumMap;
 import java.util.Enumeration;
@@ -25,6 +27,7 @@ public abstract class PMDBranchNode extends BasePMDNode {
     private int errorCount = 0;
     private int uselessSuppressionCount = 0;
     private final Map<Severity, Integer> sevToViolationCount = new EnumMap<>(Severity.class);
+    private final Map<SustainabilityLevel, Integer> sustainabilityToViolationCount = new EnumMap<>(SustainabilityLevel.class);
 
     /**
      * Create a node with the given value as node name.
@@ -55,6 +58,7 @@ public abstract class PMDBranchNode extends BasePMDNode {
         errorCount = 0;
         uselessSuppressionCount = 0;
         initSevToViolationCount();
+        sustainabilityToViolationCount.clear();
         Enumeration<TreeNode> children = children();
         while (children.hasMoreElements()) {
             Object child = children.nextElement();
@@ -68,6 +72,9 @@ public abstract class PMDBranchNode extends BasePMDNode {
                 uselessSuppressionCount += node.getUselessSuppressionCount();
                 for (Severity sev : Severity.values()) {
                     sevToViolationCount.put(sev, sevToViolationCount.get(sev) + node.getSevViolationCount(sev));
+                }
+                for (SustainabilityLevel level : SustainabilityLevel.values()) {
+                    sustainabilityToViolationCount.merge(level, node.getSustainabilityViolationCount(level), Integer::sum);
                 }
             }
         }
@@ -124,6 +131,11 @@ public abstract class PMDBranchNode extends BasePMDNode {
     @Override
     public synchronized int getSevViolationCount(Severity sev) {
         return sevToViolationCount.get(sev);
+    }
+
+    @Override
+    public synchronized int getSustainabilityViolationCount(SustainabilityLevel level) {
+        return sustainabilityToViolationCount.getOrDefault(level, 0);
     }
 
     /**

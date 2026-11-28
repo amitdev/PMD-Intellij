@@ -1,5 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
+import com.intellij.plugins.bodhi.pmd.core.SustainabilityLevel;
+
 import com.intellij.plugins.bodhi.pmd.PMDResultPanel;
 import com.intellij.pom.Navigatable;
 
@@ -51,4 +53,11 @@ public abstract class BasePMDNode extends DefaultMutableTreeNode implements PMDT
     public abstract int getUselessSuppressionCount();
 
     public abstract int getSevViolationCount(Severity sev);
+
+    /**
+     * @return the number of (non-suppressed) violations of rules with the given sustainability level
+     */
+    public int getSustainabilityViolationCount(SustainabilityLevel level) {
+        return 0;
+    }
 }

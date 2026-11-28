@@ -47,9 +47,11 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static javax.swing.tree.TreeSelectionModel.SINGLE_TREE_SELECTION;
 
@@ -78,6 +80,10 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
     private PMDPopupMenu popupMenu;
 
     private @NotNull String lastHtmlContent = "";
+    // whether a complete page is loaded, so its content can be replaced without a page load
+    private volatile boolean htmlPageLoaded = false;
+    // false while a score page is shown: keep the splitter where it is instead of fitting it to the content height
+    private volatile boolean fitSplitToContent = true;
 
     static {
         // switch-off jcef logging if property not set, otherwise it bloats the home directory
@@ -271,14 +277,26 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
      * @param htmlContent The HTML BODY content to display
      */
     public void updateHtmlContent(String htmlContent) {
-        // Store the HTML content for potential reloading
+        if (htmlPageLoaded && htmlContent.equals(lastHtmlContent)) {
+            return; // nothing changed, e.g. the same node clicked again
+        }
+        if (htmlPageLoaded) {
+            // replace only the content of the loaded page: no blank flash of a page load
+            lastHtmlContent = htmlContent;
+            ruleHtmlPanel.getCefBrowser().executeJavaScript(PMDHTMLUtil.replaceContentJs(htmlContent),
+                    ruleHtmlPanel.getCefBrowser().getURL(), 0);
+        } else {
+            loadCompleteHtml(htmlContent);
+        }
+    }
+
+    /**
+     * Loads a complete HTML page with the content, including appropriate CSS for the current theme.
+     */
+    private void loadCompleteHtml(String htmlContent) {
         lastHtmlContent = htmlContent;
-
-        String completeHtml = PMDHTMLUtil.buildCompleteHtml(htmlContent);
-
-        // Load the HTML content with our styling
-        ruleHtmlPanel.loadHTML(completeHtml);
-
+        htmlPageLoaded = false;
+        ruleHtmlPanel.loadHTML(PMDHTMLUtil.buildCompleteHtml(htmlContent));
         // scroll to top
         ruleHtmlPanel.getCefBrowser().executeJavaScript(
                 "window.scrollTo(0, 0);",
@@ -288,13 +306,69 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
     }
 
     @Override
+    public void onHtmlLoaded() {
+        htmlPageLoaded = true;
+    }
+
+    @Override
     public void reloadHTML() {
-        updateHtmlContent(lastHtmlContent);
+        loadCompleteHtml(lastHtmlContent); // e.g. new theme CSS, or back from a link click
     }
 
     private void setSyntaxHighlighting(EditorEx p, FileType fileType) {
         ApplicationManager.getApplication().invokeLater(() -> ApplicationManager.getApplication().runWriteAction(() ->
                 p.setHighlighter(EditorHighlighterFactory.getInstance().createEditorHighlighter(projectComponent.getCurrentProject(), fileType))));
+    }
+
+    /**
+     * Shows score HTML: it has no example code, so the HTML gets the full height, without fitting the splitter.
+     */
+    private void showScoreHtml(String html) {
+        fitSplitToContent = false;
+        updateHtmlContent(html);
+        setExampleComponent(null); // no example code: the HTML gets the full height
+    }
+
+    private void setExampleComponent(@Nullable JComponent component) {
+        if (detailSplit.getSecondComponent() != component) {
+            detailSplit.setSecondComponent(component);
+        }
+    }
+
+    @Override
+    public boolean isFitSplitToContent() {
+        return fitSplitToContent;
+    }
+
+    /**
+     * Shows the scores of the selected root or rule set node, if any.
+     *
+     * @return whether scores were shown
+     */
+    private boolean showScoresIfPresent(@Nullable DefaultMutableTreeNode node) {
+        if (node instanceof PMDRootNode root) {
+            List<PMDRuleSetNode> ruleSetNodes = new ArrayList<>();
+            for (int i = 0; i < root.getChildCount(); i++) {
+                if (root.getChildAt(i) instanceof PMDRuleSetNode ruleSetNode) {
+                    ruleSetNodes.add(ruleSetNode);
+                }
+            }
+            String scoresHtml = PMDHTMLUtil.getRuleSetScoresHtml(ruleSetNodes);
+            if (!scoresHtml.isEmpty()) {
+                showScoreHtml(scoresHtml);
+                return true;
+            }
+        }
+        if (node instanceof PMDRuleSetNode ruleSetNode) {
+            Optional<RuleSetScore> score = ruleSetNode.getScore();
+            Optional<RuleSetScore> sustainability = ruleSetNode.getSustainabilityScore();
+            if (score.isPresent() || sustainability.isPresent()) {
+                // tooltip: the rule set description without the score lines
+                showScoreHtml(PMDHTMLUtil.getScoreDetailsHtml(ruleSetNode.getToolTip(), score, sustainability));
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -306,6 +380,10 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
     private void setRuleDetailsOnDocField(@Nullable DefaultMutableTreeNode node) {
         String htmlText = "Select a violation for details.";
         String exampleText = "// Example code shows here";
+        if (showScoresIfPresent(node)) {
+            return;
+        }
+        fitSplitToContent = true;
         if (node == null || (!(node instanceof HasMessage) && !(node instanceof HasRule))) {
             updateHtmlContent(htmlText);
             JLabel exampleLabel = new JLabel(exampleText);
@@ -335,7 +413,7 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
 
         updateHtmlContent(htmlText);
         exampleField.setText(exampleText);
-        detailSplit.setSecondComponent(exampleField);
+        setExampleComponent(exampleField);
 
         final EditorTextField finalExampleField = exampleField;
         ApplicationManager.getApplication().runReadAction(() -> {
@@ -613,6 +691,17 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
 
     public void reloadResultTree() {
         ApplicationManager.getApplication().invokeLater(() -> ((DefaultTreeModel) resultTree.getModel()).reload());
+    }
+
+    /**
+     * Selects the root node and shows its details (the scores of the rule sets), e.g. after a scan.
+     * The details are otherwise only updated on a mouse click in the tree.
+     */
+    public void showRootDetails() {
+        ApplicationManager.getApplication().invokeLater(() -> {
+            resultTree.setSelectionPath(new TreePath(rootNode));
+            setRuleDetailsOnDocField(rootNode);
+        });
     }
 
     /**

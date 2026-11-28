@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+### Added
+
+- Rule set score: a rule set can define a score in its description with a line like
+  `pmd-score: name=jPinpoint-score; weights=27,9,3,1,0; thresholds=0,5,10,15,25`.
+  The result tree then shows a grade per rule set (e.g. `Score: D`), based on the weighted violations (weight per
+  priority 1-5) per 1000 non-comment lines of code. Selecting the rule set shows the calculation in the detail panel, e.g.
+  `(27x2 + 9x5 + 3x20 + 1x15 = 174) / 12.3 kloc = 14.1` and the grade scale `A = 0 < B < 5 ≤ C < 10 ≤ D < 15 ≤ E < 25 ≤ F`
+- Sustainability score: a rule set can also define a sustainability score with a line like
+  `pmd-sustainability: weights=9,3,1; thresholds=0,5,10,15,25` (weights for the rule tags `sustainability-high`,
+  `-medium` and `-low`). The result tree shows it as leaves after the score: 3, 2 or 1 fresh green leaves (best)
+  to 1, 2 or 3 withered brown leaves (worst). Selecting the rule set shows the calculation and the scale.
+  The root node "PMD Results" shows the scores of all rule sets in the detail panel; it is selected after each scan.
+  The score lines and the hint `Upgrade your plugin to see scores.` (for older plugin versions, which show the full
+  rule set description as tooltip) are not shown in the tooltip and detail panel.
+
 ### Changed
 
 - Update to PMD version 7.28.0
