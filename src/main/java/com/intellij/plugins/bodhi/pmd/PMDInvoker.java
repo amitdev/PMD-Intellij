@@ -17,20 +17,29 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileFilter;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
+import com.intellij.plugins.bodhi.pmd.core.CodeLineCounter;
 import com.intellij.plugins.bodhi.pmd.core.PMDProgressRenderer;
 import com.intellij.plugins.bodhi.pmd.core.PMDResultCollector;
+import com.intellij.plugins.bodhi.pmd.core.RuleSetScoreSpec;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRootNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetEntryNode;
 import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetNode;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import net.sourceforge.pmd.lang.Language;
+import net.sourceforge.pmd.lang.rule.Rule;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.intellij.plugins.bodhi.pmd.filter.VirtualFileFilters.*;
 
@@ -172,6 +181,7 @@ public class PMDInvoker {
                 PMDProgressRenderer progressRenderer = new PMDProgressRenderer(progress, files.size() * ruleSetPathArray.length);
                 try {
                     final PsiManager psiManager = PsiManager.getInstance(project);
+                    final Map<Set<Language>, Integer> codeLinesPerLanguages = new HashMap<>();
 
                     for (String ruleSetPath : ruleSetPathArray) {
                         progress.setText("Running : " + ruleSetPath + " on " + files.size() + " file(s)");
@@ -179,27 +189,35 @@ public class PMDInvoker {
                         //Create a result collector to get results
                         PMDResultCollector collector = new PMDResultCollector();
 
+                        List<PsiFile> psiFiles = ApplicationManager.getApplication().runReadAction(new Computable<>() {
+                            @Override
+                            public List<PsiFile> compute() {
+                                return files.stream()
+                                        .map(psiManager::findFile)
+                                        .toList();
+                            }
+                        });
                         //Get the tree nodes from result collector
                         List<PMDRuleSetEntryNode> resultRuleNodes = collector.runPMDAndGetResults(
-                                ApplicationManager.getApplication().runReadAction(new Computable<>() {
-                                    @Override
-                                    public List<PsiFile> compute() {
-                                        return files.stream()
-                                                .map(psiManager::findFile)
-                                                .toList();
-                                    }
-                                }),
+                                psiFiles,
                                 ruleSetPath,
                                 projectComponent,
                                 progressRenderer);
                         // sort rules by priority, rule and suppressed nodes are comparable
                         resultRuleNodes.sort(null);
 
-                        if (!resultRuleNodes.isEmpty()) {
+                        String desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
+                        Optional<RuleSetScoreSpec> scoreSpec = RuleSetScoreSpec.parse(desc);
+                        if (!resultRuleNodes.isEmpty() || scoreSpec.isPresent()) {
                             String ruleSetName = PMDUtil.getBareFileNameFromPath(ruleSetPath);
-                            String desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
                             PMDRuleSetNode ruleSetNode = resultPanel.addCreateRuleSetNodeAtRoot(ruleSetName);
-                            ruleSetNode.setToolTip(desc);
+                            ruleSetNode.setToolTip(RuleSetScoreSpec.stripMarker(desc));
+                            if (scoreSpec.isPresent()) {
+                                Set<Language> languages = ruleSetLanguages(ruleSetPath);
+                                int codeLines = codeLinesPerLanguages.computeIfAbsent(languages,
+                                        langs -> CodeLineCounter.countCodeLines(psiFiles, langs, progress));
+                                ruleSetNode.setScoreInput(scoreSpec.get(), codeLines);
+                            }
                             //Add all rule nodes to the tree
                             for (PMDRuleSetEntryNode resultRuleNode : resultRuleNodes) {
                                 resultPanel.addNode(ruleSetNode, resultRuleNode);
@@ -223,4 +241,18 @@ public class PMDInvoker {
             }
         });
     }
+
+    /**
+     * @return the PMD languages of the rules in the rule set, empty when the rule set cannot be loaded
+     */
+    private static Set<Language> ruleSetLanguages(String ruleSetPath) {
+        try {
+            return PMDResultCollector.getRuleSet(ruleSetPath).getRules().stream()
+                    .map(Rule::getLanguage)
+                    .collect(Collectors.toSet());
+        } catch (PMDResultCollector.InvalidRuleSetException e) {
+            return Set.of();
+        }
+    }
+
 }

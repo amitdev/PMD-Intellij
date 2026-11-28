@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- Rule set score: a rule set can define a score in its description with a line like
+  `pmd-score: name=jPinpoint-score; weights=27,9,3,1,0; thresholds=0,5,10,15,25`.
+  The result tree then shows a grade per rule set (e.g. `Score: D`), based on the weighted violations (weight per
+  priority 1-5) per 1000 non-comment lines of code. Selecting the rule set shows the calculation in the detail panel, e.g.
+  `(27x2 + 9x5 + 3x20 + 1x15 = 174) / 12.3 kloc = 14.1` and the grade scale `A = 0 < B < 5 ≤ C < 10 ≤ D < 15 ≤ E < 25 ≤ F`
+
 ### Changed
 
 - Update to PMD version 7.28.0

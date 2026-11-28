@@ -50,6 +50,7 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static javax.swing.tree.TreeSelectionModel.SINGLE_TREE_SELECTION;
 
@@ -306,6 +307,14 @@ public class PMDResultPanel extends JPanel implements HTMLReloadable {
     private void setRuleDetailsOnDocField(@Nullable DefaultMutableTreeNode node) {
         String htmlText = "Select a violation for details.";
         String exampleText = "// Example code shows here";
+        if (node instanceof PMDRuleSetNode ruleSetNode) {
+            Optional<RuleSetScore> score = ruleSetNode.getScore();
+            if (score.isPresent()) {
+                updateHtmlContent(PMDHTMLUtil.getScoreHtml(score.get()));
+                detailSplit.setSecondComponent(new JLabel(""));
+                return;
+            }
+        }
         if (node == null || (!(node instanceof HasMessage) && !(node instanceof HasRule))) {
             updateHtmlContent(htmlText);
             JLabel exampleLabel = new JLabel(exampleText);

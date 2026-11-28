@@ -5,9 +5,12 @@ import com.intellij.ide.BrowserUtil;
 import com.intellij.ide.ui.LafManagerListener;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.plugins.bodhi.pmd.core.RuleSetScore;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetNode;
 import com.intellij.plugins.bodhi.pmd.tree.Severity;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.OnePixelSplitter;
+import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.ui.jcef.JBCefClient;
 import com.intellij.ui.jcef.JCEFHtmlPanel;
 import net.sourceforge.pmd.lang.rule.Rule;
@@ -384,6 +387,22 @@ public class PMDHTMLUtil {
             htmlBuilder.append(linkHtml);
         }
         return htmlBuilder.toString();
+    }
+
+    /**
+     * Generates HTML content for the score of a rule set: the score label in the grade color,
+     * the formula and the grade scale (current grade in bold) in gray, like the counts in the result tree.
+     */
+    public static @NotNull String getScoreHtml(@NotNull RuleSetScore score) {
+        String gradeColor = colorToHex(PMDRuleSetNode.gradeColor(score.gradeIndex()));
+        String gray = colorToHex(SimpleTextAttributes.GRAYED_ATTRIBUTES.getFgColor());
+        // '<' only occurs as separator " < ", so escaping it there leaves the <b> tags intact
+        String scale = score.gradeScale(grade -> "<b>" + grade + "</b>").replace(" < ", " &lt; ");
+        return "<div class=\"title\" style='color: " + gradeColor + ";'>" + score.gradeLabel() + "</div>\n" +
+                "<div style='color: " + gray + ";'>\n" +
+                "  <p>" + score.formula() + "</p>\n" +
+                "  <p>" + scale + "</p>\n" +
+                "</div>";
     }
 
     /**
