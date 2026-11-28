@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.tree;
 
+import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.intellij.plugins.bodhi.pmd.core.RuleSetScore;
 import com.intellij.plugins.bodhi.pmd.core.RuleSetScoreSpec;
 import com.intellij.plugins.bodhi.pmd.core.SustainabilityLevel;
@@ -18,8 +19,11 @@ public class PMDRuleSetNode extends PMDBranchNode {
 
     private static final Color GOOD_GRADE_COLOR = new JBColor(new Color(0, 128, 0), new Color(98, 200, 98));
 
+    @GuardedBy("this")
     private @Nullable RuleSetScoreSpec scoreSpec;
+    @GuardedBy("this")
     private @Nullable RuleSetScoreSpec sustainabilitySpec;
+    @GuardedBy("this")
     private int codeLines;
 
     /**

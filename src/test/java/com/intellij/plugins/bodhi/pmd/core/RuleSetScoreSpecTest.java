@@ -118,4 +118,15 @@ public class RuleSetScoreSpecTest {
         assertEquals(parse(marker).hashCode(), parse(marker).hashCode());
         assertNotEquals(parse(marker), parse("pmd-score: name=x; weights=27,9,3,1,1"));
     }
+
+    @Test
+    public void defaultThresholdsAreNotShared() {
+        parse("pmd-score: weights=1").thresholds()[1] = 99;
+        assertArrayEquals(DEFAULT_THRESHOLDS, parse("pmd-score: weights=1").thresholds(), 0.0);
+    }
+
+    @Test
+    public void specIsSerializable() {
+        assertTrue(java.io.Serializable.class.isInstance(parse("pmd-score: weights=1")));
+    }
 }

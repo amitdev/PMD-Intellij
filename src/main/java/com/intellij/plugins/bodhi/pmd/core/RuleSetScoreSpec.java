@@ -3,6 +3,7 @@ package com.intellij.plugins.bodhi.pmd.core;
 import com.intellij.openapi.diagnostic.Logger;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Optional;
@@ -20,10 +21,15 @@ import java.util.stream.Stream;
  * @param weights    weight per category: per priority (index = priority - 1) or per {@link SustainabilityLevel} (ordinal)
  * @param thresholds ascending grade bounds; n thresholds give n + 1 grades
  */
-public record RuleSetScoreSpec(String name, int[] weights, double[] thresholds) {
+public record RuleSetScoreSpec(String name, int[] weights, double[] thresholds) implements Serializable {
 
     private static final Logger LOG = Logger.getInstance(RuleSetScoreSpec.class);
-    private static final double[] DEFAULT_THRESHOLDS = {0, 5, 10, 15, 25};
+    /**
+     * @return the default thresholds, a new array for every spec: a spec hands out its array
+     */
+    private static double[] defaultThresholds() {
+        return new double[]{0, 5, 10, 15, 25};
+    }
 
     /**
      * Kind of score definition.
@@ -105,7 +111,7 @@ public record RuleSetScoreSpec(String name, int[] weights, double[] thresholds) 
     private static RuleSetScoreSpec parseMarker(String settings, Kind kind) {
         String name = kind.defaultName();
         int[] weights = null;
-        double[] thresholds = DEFAULT_THRESHOLDS;
+        double[] thresholds = defaultThresholds();
         for (String part : settings.split(";")) {
             if (part.isBlank()) {
                 continue;

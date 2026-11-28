@@ -492,14 +492,18 @@ public class PMDHTMLUtil {
     }
 
     private static String svgBase64(String resource) {
-        return SVG_BASE64.computeIfAbsent(resource, r -> {
-            try (InputStream in = SustainabilityLeaves.class.getResourceAsStream(r)) {
-                return in == null ? "" : Base64.getEncoder().encodeToString(in.readAllBytes());
-            } catch (IOException e) {
-                log.warn("Cannot read " + r, e);
-                return "";
-            }
-        });
+        return SVG_BASE64.computeIfAbsent(resource, PMDHTMLUtil::readResourceBase64);
+    }
+
+    // a bundled leaf icon of about 0.5 KB, read once and cached
+    @SuppressWarnings("PMD.AvoidLoadingAllFromFile")
+    private static String readResourceBase64(String resource) {
+        try (InputStream in = SustainabilityLeaves.class.getResourceAsStream(resource)) {
+            return in == null ? "" : Base64.getEncoder().encodeToString(in.readAllBytes());
+        } catch (IOException e) {
+            log.warn("Cannot read " + resource, e);
+            return "";
+        }
     }
 
     public static @NotNull String getScoreHtml(@NotNull RuleSetScore score) {
@@ -577,16 +581,22 @@ public class PMDHTMLUtil {
                                                            boolean fitSplitToContent,
                                                            @NotNull CefBrowser browser) {
         ApplicationManager.getApplication().invokeLater(() -> {
-            int visibleHeight = detailsSplit.getHeight();
-            if (fitSplitToContent && visibleHeight > 20) {
-                float proportion = calculateSplitProportion(htmlHeight, visibleHeight);
-                if (shouldMoveSplitter(detailsSplit.getProportion(), proportion, visibleHeight)) {
-                    detailsSplit.setProportion(proportion);
-                    detailsSplit.repaint();
-                }
+            if (fitSplitToContent) {
+                fitSplitter(htmlHeight, detailsSplit);
             }
             browser.executeJavaScript(RESTORE_SCROLLBAR_JS, browser.getURL(), 0);
         });
+    }
+
+    private static void fitSplitter(float htmlHeight, @NotNull OnePixelSplitter detailsSplit) {
+        int visibleHeight = detailsSplit.getHeight();
+        if (visibleHeight > 20) {
+            float proportion = calculateSplitProportion(htmlHeight, visibleHeight);
+            if (shouldMoveSplitter(detailsSplit.getProportion(), proportion, visibleHeight)) {
+                detailsSplit.setProportion(proportion);
+                detailsSplit.repaint();
+            }
+        }
     }
 
     /**

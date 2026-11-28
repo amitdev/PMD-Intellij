@@ -181,7 +181,7 @@ public class PMDInvoker {
                 PMDProgressRenderer progressRenderer = new PMDProgressRenderer(progress, files.size() * ruleSetPathArray.length);
                 try {
                     final PsiManager psiManager = PsiManager.getInstance(project);
-                    final Map<Set<Language>, Integer> codeLinesPerLanguages = new HashMap<>();
+                    final Map<String, Integer> codeLinesPerLanguages = new HashMap<>();
 
                     for (String ruleSetPath : ruleSetPathArray) {
                         progress.setText("Running : " + ruleSetPath + " on " + files.size() + " file(s)");
@@ -231,11 +231,11 @@ public class PMDInvoker {
     /**
      * Adds a node for the rule set with its results to the tree, when it has results or defines a score.
      *
-     * @param codeLinesPerLanguages cache of the code line counts within a run, per set of languages
+     * @param codeLinesPerLanguages cache of the code line counts within a run, per set of languages (sorted ids)
      * @return whether a node was added
      */
     private static boolean addRuleSetNode(PMDResultPanel resultPanel, String ruleSetPath, List<PMDRuleSetEntryNode> resultRuleNodes,
-                                          List<PsiFile> psiFiles, Map<Set<Language>, Integer> codeLinesPerLanguages,
+                                          List<PsiFile> psiFiles, Map<String, Integer> codeLinesPerLanguages,
                                           ProgressIndicator progress) {
         String desc = PMDResultCollector.getRuleSetDescription(ruleSetPath);
         Optional<RuleSetScoreSpec> scoreSpec = RuleSetScoreSpec.parse(desc);
@@ -247,8 +247,10 @@ public class PMDInvoker {
         PMDRuleSetNode ruleSetNode = resultPanel.addCreateRuleSetNodeAtRoot(PMDUtil.getBareFileNameFromPath(ruleSetPath));
         ruleSetNode.setToolTip(RuleSetScoreSpec.stripMarker(desc));
         if (hasScore) {
-            int codeLines = codeLinesPerLanguages.computeIfAbsent(ruleSetLanguages(ruleSetPath),
-                    langs -> CodeLineCounter.countCodeLines(psiFiles, langs, progress));
+            Set<Language> languages = ruleSetLanguages(ruleSetPath);
+            String languagesKey = languages.stream().map(Language::getId).sorted().collect(Collectors.joining(","));
+            int codeLines = codeLinesPerLanguages.computeIfAbsent(languagesKey,
+                    key -> CodeLineCounter.countCodeLines(psiFiles, languages, progress));
             ruleSetNode.setScoreInput(scoreSpec.orElse(null), sustainabilitySpec.orElse(null), codeLines);
         }
         for (PMDRuleSetEntryNode resultRuleNode : resultRuleNodes) {

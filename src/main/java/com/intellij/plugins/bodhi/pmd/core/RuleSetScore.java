@@ -1,5 +1,6 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Arrays;
@@ -16,7 +17,7 @@ import java.util.function.UnaryOperator;
  * @param violationsPerPriority violation count per category, same length and order as the spec weights
  * @param codeLines             number of non-comment, non-blank code lines scanned
  */
-public record RuleSetScore(RuleSetScoreSpec spec, int[] violationsPerPriority, int codeLines) {
+public record RuleSetScore(RuleSetScoreSpec spec, int[] violationsPerPriority, int codeLines) implements Serializable {
 
     /**
      * @return the score, or empty when there are no code lines to relate the violations to
