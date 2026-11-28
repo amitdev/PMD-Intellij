@@ -2,6 +2,7 @@ package com.intellij.plugins.bodhi.pmd.core;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -76,7 +77,7 @@ public record RuleSetScore(RuleSetScoreSpec spec, int[] violationsPerPriority, i
         if (value == 0 || value >= 1) {
             return String.format(Locale.ROOT, "%.1f", value);
         }
-        return new BigDecimal(value).round(new MathContext(2)).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value).round(new MathContext(2)).stripTrailingZeros().toPlainString();
     }
 
     /**
@@ -110,5 +111,24 @@ public record RuleSetScore(RuleSetScoreSpec spec, int[] violationsPerPriority, i
 
     private static String format(double threshold) {
         return threshold == Math.rint(threshold) ? String.valueOf((long) threshold) : String.valueOf(threshold);
+    }
+
+    // records compare arrays by reference; compare by content instead
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof RuleSetScore other && codeLines == other.codeLines && spec.equals(other.spec)
+                && Arrays.equals(violationsPerPriority, other.violationsPerPriority);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * (31 * spec.hashCode() + Arrays.hashCode(violationsPerPriority)) + codeLines;
+    }
+
+    @Override
+    public String toString() {
+        return "RuleSetScore[spec=" + spec + ", violationsPerPriority=" + Arrays.toString(violationsPerPriority)
+                + ", codeLines=" + codeLines + "]";
     }
 }

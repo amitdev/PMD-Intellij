@@ -6,8 +6,6 @@ import com.intellij.plugins.bodhi.pmd.core.PMDViolation;
 import com.intellij.plugins.bodhi.pmd.core.SustainabilityLevel;
 import net.sourceforge.pmd.lang.rule.Rule;
 
-import java.util.Optional;
-
 import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
 
 /**
@@ -19,8 +17,9 @@ import static com.intellij.ui.SimpleTextAttributes.GRAYED_ATTRIBUTES;
  */
 public class PMDViolationNode extends PMDLeafNode implements HasRule, HasMessage {
 
-    /** Lazily computed sustainability level of the violated rule; null when not computed yet. */
-    private Optional<SustainabilityLevel> sustainabilityLevel;
+    /** Lazily computed sustainability level of the violated rule; null when the rule has none. */
+    private SustainabilityLevel sustainabilityLevel;
+    private boolean sustainabilityLevelComputed;
 
 
     private final PMDViolation pmdViolation;
@@ -72,11 +71,12 @@ public class PMDViolationNode extends PMDLeafNode implements HasRule, HasMessage
 
     @Override
     public int getSustainabilityViolationCount(SustainabilityLevel level) {
-        if (sustainabilityLevel == null) {
+        if (!sustainabilityLevelComputed) {
             // the rule doesn't change; computed once, as the counts are recalculated for every level and rule set
-            sustainabilityLevel = SustainabilityLevel.of(getRule());
+            sustainabilityLevel = SustainabilityLevel.of(getRule()).orElse(null);
+            sustainabilityLevelComputed = true;
         }
-        return sustainabilityLevel.filter(level::equals).isPresent() ? 1 : 0;
+        return level == sustainabilityLevel ? 1 : 0;
     }
 
     @Override

@@ -175,4 +175,23 @@ public record RuleSetScoreSpec(String name, int[] weights, double[] thresholds) 
     public String grade(double score) {
         return String.valueOf((char) ('A' + gradeIndex(score)));
     }
+
+    // records compare arrays by reference; compare by content instead
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof RuleSetScoreSpec other && name.equals(other.name)
+                && Arrays.equals(weights, other.weights) && Arrays.equals(thresholds, other.thresholds);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * (31 * name.hashCode() + Arrays.hashCode(weights)) + Arrays.hashCode(thresholds);
+    }
+
+    @Override
+    public String toString() {
+        return "RuleSetScoreSpec[name=" + name + ", weights=" + Arrays.toString(weights)
+                + ", thresholds=" + Arrays.toString(thresholds) + "]";
+    }
 }

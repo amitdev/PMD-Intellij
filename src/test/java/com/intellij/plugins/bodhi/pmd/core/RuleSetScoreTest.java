@@ -65,4 +65,13 @@ public class RuleSetScoreTest {
         assertEquals("(27x0 + 9x0 + 3x0 + 1x1 = 1) / 30.0 kloc = 0.033", score.formula());
         assertEquals("B", score.grade());
     }
+
+    @Test
+    public void scoresWithSameContentAreEqual() {
+        RuleSetScore a = RuleSetScore.of(JPINPOINT, new int[]{2, 5, 20, 15, 7}, 12300).orElseThrow();
+        RuleSetScore b = RuleSetScore.of(JPINPOINT, new int[]{2, 5, 20, 15, 7}, 12300).orElseThrow();
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+        assertNotEquals(a, RuleSetScore.of(JPINPOINT, new int[]{2, 5, 20, 15, 8}, 12300).orElseThrow());
+    }
 }

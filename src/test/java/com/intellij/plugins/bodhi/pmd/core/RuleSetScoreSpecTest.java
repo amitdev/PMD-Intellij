@@ -110,4 +110,12 @@ public class RuleSetScoreSpecTest {
         assertEquals("Some rules.\nMore text.",
                 RuleSetScoreSpec.stripMarker("Some rules.\n  upgrade your plugin to see scores  \nMore text."));
     }
+
+    @Test
+    public void specsWithSameContentAreEqual() {
+        String marker = "pmd-score: name=x; weights=27,9,3,1,0; thresholds=0,5,10,15,25";
+        assertEquals(parse(marker), parse(marker));
+        assertEquals(parse(marker).hashCode(), parse(marker).hashCode());
+        assertNotEquals(parse(marker), parse("pmd-score: name=x; weights=27,9,3,1,1"));
+    }
 }
