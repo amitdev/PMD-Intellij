@@ -5,9 +5,13 @@ import com.intellij.ide.BrowserUtil;
 import com.intellij.ide.ui.LafManagerListener;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.plugins.bodhi.pmd.core.RuleSetScore;
+import com.intellij.plugins.bodhi.pmd.tree.PMDRuleSetNode;
 import com.intellij.plugins.bodhi.pmd.tree.Severity;
+import com.intellij.plugins.bodhi.pmd.tree.SustainabilityLeaves;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.OnePixelSplitter;
+import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.ui.jcef.JBCefClient;
 import com.intellij.ui.jcef.JCEFHtmlPanel;
 import net.sourceforge.pmd.lang.rule.Rule;
@@ -23,8 +27,15 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 public class PMDHTMLUtil {
@@ -223,6 +234,11 @@ public class PMDHTMLUtil {
                         border-radius: 4px;
                     }""";
 
+    private static final Map<String, String> SVG_BASE64 = new ConcurrentHashMap<>();
+    private static final String DIV_END = "</div>";
+    private static final String DIV_END_LINE = DIV_END + "\n";
+    private static final String P_END_LINE = "</p>\n";
+
     private PMDHTMLUtil() {
         // utility class not to be instantiated
     }
@@ -265,6 +281,7 @@ public class PMDHTMLUtil {
         jbCefClient.addLoadHandler(new CefLoadHandlerAdapter() {
             @Override
             public void onLoadEnd(CefBrowser browser, CefFrame frame, int httpStatusCode) {
+                resultPanel.onHtmlLoaded();
                 // Inject JavaScript to measure HTML content height (first element: DIV) after load completes
                 String measureHeightJs =
                         "setTimeout(function() {" +
@@ -289,7 +306,7 @@ public class PMDHTMLUtil {
                     try {
                         String heightStr = message.substring("CONTENT_HEIGHT:".length());
                         float height = Float.parseFloat(heightStr.trim());
-                        adjustSplitterBasedOnContentHeight(height, detailsSplit);
+                        adjustSplitterBasedOnContentHeight(height, detailsSplit, resultPanel.isFitSplitToContent(), browser);
                     } catch (NumberFormatException e) {
                         log.warn("Failed to parse content height, not adjusting splitter.", e);
                     }
@@ -357,15 +374,15 @@ public class PMDHTMLUtil {
         else {
             // Start with the title and severity on the same line
             htmlBuilder.append("<div class=\"title-severity\">\n");
-            htmlBuilder.append("  <div class=\"title\">").append(message).append("</div>\n");
+            htmlBuilder.append("  <div class=\"title\">").append(message).append(DIV_END_LINE);
             RulePriority rulePriority = rule.getPriority();
             Severity severity = Severity.of(rulePriority);
             String severityName = severity.getName();
             String severityColor = colorToHex(severity.getColor());
 
             htmlBuilder.append("  <div class='severity' style='background-color: ").append(severityColor)
-                .append(";'>").append(rulePriority.getPriority()).append(":").append(severityName).append("</div>\n");
-            htmlBuilder.append("</div>");
+                .append(";'>").append(rulePriority.getPriority()).append(":").append(severityName).append(DIV_END_LINE);
+            htmlBuilder.append(DIV_END);
 
             // Add rule name and tags in badge format
             appendRuleNameAndTagsTo(htmlBuilder, rule);
@@ -384,6 +401,127 @@ public class PMDHTMLUtil {
             htmlBuilder.append(linkHtml);
         }
         return htmlBuilder.toString();
+    }
+
+    /**
+     * Generates HTML content for the scores of a rule set: its description (without the score definitions) in normal
+     * text, then the score block, then the sustainability block, each with its legend.
+     *
+     * @param description the rule set description without the score marker lines; null or empty for none
+     */
+    public static @NotNull String getScoreDetailsHtml(@Nullable String description, @NotNull Optional<RuleSetScore> score,
+                                                      @NotNull Optional<RuleSetScore> sustainability) {
+        String descriptionHtml = description == null || description.isBlank() ? "" : "<p>" + escapeHtml(description) + P_END_LINE;
+        return descriptionHtml + scoresHtml(score, sustainability, true);
+    }
+
+    private static String escapeHtml(String text) {
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    /**
+     * Generates HTML content with the scores of all rule sets that have one (for the root node): per rule set its
+     * name and score labels, without calculation and legend.
+     *
+     * @return the HTML, empty when no rule set has a score
+     */
+    public static @NotNull String getRuleSetScoresHtml(@NotNull List<PMDRuleSetNode> ruleSetNodes) {
+        StringBuilder html = new StringBuilder();
+        for (PMDRuleSetNode node : ruleSetNodes) {
+            Optional<RuleSetScore> score = node.getScore();
+            Optional<RuleSetScore> sustainability = node.getSustainabilityScore();
+            if (score.isPresent() || sustainability.isPresent()) {
+                html.append(html.isEmpty() ? "" : "\n<div style='margin-top: 16px;'></div>\n")
+                        .append("<p>").append(node.getNodeName()).append(P_END_LINE)
+                        .append(scoresHtml(score, sustainability, false));
+            }
+        }
+        return html.toString();
+    }
+
+    private static String scoresHtml(Optional<RuleSetScore> score, Optional<RuleSetScore> sustainability, boolean withDetails) {
+        StringBuilder html = new StringBuilder();
+        score.ifPresent(s -> html.append(getScoreHtml(s, withDetails)));
+        sustainability.ifPresent(s -> html.append(html.isEmpty() || !withDetails ? "" : "\n<div style='margin-top: 12px;'></div>\n")
+                .append(getSustainabilityHtml(s, isDarkTheme(), withDetails)));
+        return html.toString();
+    }
+
+    static @NotNull String getSustainabilityHtml(@NotNull RuleSetScore score, boolean dark) {
+        return getSustainabilityHtml(score, dark, true);
+    }
+
+    /**
+     * Generates HTML content for the sustainability score of a rule set: the label with the leaves in the leaf color,
+     * and optionally the details: the formula and the legend (the scale of gray leaves, current level framed).
+     *
+     * @param dark whether to use the leaf images for a dark theme
+     */
+    static @NotNull String getSustainabilityHtml(@NotNull RuleSetScore score, boolean dark, boolean withDetails) {
+        String labelColor = colorToHex(SustainabilityLeaves.labelColor(score.gradeIndex()));
+        String gray = colorToHex(SimpleTextAttributes.GRAYED_ATTRIBUTES.getFgColor());
+        String legend = "";
+        if (withDetails) {
+            // '<' only occurs as separator " < ", so escaping it there leaves the tags intact
+            legend = score.gradeScale(level -> leavesHtml(level, dark, true), leaves -> framed(leaves, gray))
+                    .replace(" < ", " &lt; ");
+        }
+        return "<div class=\"title\" style='color: " + labelColor + ";'>" + score.spec().name() + ": "
+                + leavesHtml(score.gradeIndex(), dark, false) + DIV_END_LINE +
+                (withDetails ? detailsHtml(score, gray, legend) : "");
+    }
+
+    /**
+     * @return the content in a small frame, marking the current grade or level in a legend
+     */
+    private static String framed(String content, String color) {
+        return "<span style='border: 1px solid " + color + "; border-radius: 3px; padding: 1px 2px;'>" + content + "</span>";
+    }
+
+    private static String detailsHtml(RuleSetScore score, String gray, String legend) {
+        return "<div style='color: " + gray + ";'>\n" +
+                "  <p>" + score.formula() + P_END_LINE +
+                (legend.isEmpty() ? "" : "  <p>" + legend + P_END_LINE) +
+                DIV_END;
+    }
+
+    private static String leavesHtml(int level, boolean dark, boolean gray) {
+        String img = "<img src='data:image/svg+xml;base64," + svgBase64(SustainabilityLeaves.svgResource(level, dark))
+                + "' width='16' height='16' style='vertical-align: middle;" + (gray ? " filter: grayscale(100%);" : "") + "'>";
+        return img.repeat(SustainabilityLeaves.count(level));
+    }
+
+    private static String svgBase64(String resource) {
+        return SVG_BASE64.computeIfAbsent(resource, PMDHTMLUtil::readResourceBase64);
+    }
+
+    // a bundled leaf icon of about 0.5 KB, read once and cached
+    @SuppressWarnings("PMD.AvoidLoadingAllFromFile")
+    private static String readResourceBase64(String resource) {
+        try (InputStream in = SustainabilityLeaves.class.getResourceAsStream(resource)) {
+            return in == null ? "" : Base64.getEncoder().encodeToString(in.readAllBytes());
+        } catch (IOException e) {
+            log.warn("Cannot read " + resource, e);
+            return "";
+        }
+    }
+
+    public static @NotNull String getScoreHtml(@NotNull RuleSetScore score) {
+        return getScoreHtml(score, true);
+    }
+
+    /**
+     * Generates HTML content for the score of a rule set: the score label in the grade color,
+     * and optionally the details: the formula and the legend (the grade scale, current grade framed), in gray like the
+     * counts in the tree.
+     */
+    static @NotNull String getScoreHtml(@NotNull RuleSetScore score, boolean withDetails) {
+        String gradeColor = colorToHex(PMDRuleSetNode.gradeColor(score.gradeIndex()));
+        String gray = colorToHex(SimpleTextAttributes.GRAYED_ATTRIBUTES.getFgColor());
+        // '<' only occurs as separator " < ", so escaping it there leaves the tags intact
+        String legend = withDetails ? score.gradeScale(grade -> framed(grade, gray)).replace(" < ", " &lt; ") : "";
+        return "<div class=\"title\" style='color: " + gradeColor + ";'>" + score.gradeLabel() + DIV_END_LINE +
+                (withDetails ? detailsHtml(score, gray, legend) : "");
     }
 
     /**
@@ -428,7 +566,7 @@ public class PMDHTMLUtil {
                 }
             }
         }
-        htmlBuilder.append("</div>");
+        htmlBuilder.append(DIV_END);
     }
 
     /**
@@ -439,14 +577,55 @@ public class PMDHTMLUtil {
     }
 
     private static void adjustSplitterBasedOnContentHeight(float htmlHeight,
-                                                           @NotNull OnePixelSplitter detailsSplit) {
+                                                           @NotNull OnePixelSplitter detailsSplit,
+                                                           boolean fitSplitToContent,
+                                                           @NotNull CefBrowser browser) {
         ApplicationManager.getApplication().invokeLater(() -> {
-            int visibleHeight = detailsSplit.getHeight();
-            if (visibleHeight > 20) {
-                detailsSplit.setProportion(calculateSplitProportion(htmlHeight, visibleHeight));
+            if (fitSplitToContent) {
+                fitSplitter(htmlHeight, detailsSplit);
+            }
+            browser.executeJavaScript(RESTORE_SCROLLBAR_JS, browser.getURL(), 0);
+        });
+    }
+
+    private static void fitSplitter(float htmlHeight, @NotNull OnePixelSplitter detailsSplit) {
+        int visibleHeight = detailsSplit.getHeight();
+        if (visibleHeight > 20) {
+            float proportion = calculateSplitProportion(htmlHeight, visibleHeight);
+            if (shouldMoveSplitter(detailsSplit.getProportion(), proportion, visibleHeight)) {
+                detailsSplit.setProportion(proportion);
                 detailsSplit.repaint();
             }
-        });
+        }
+    }
+
+    /**
+     * Decides whether to move the splitter to fit new content, keeping resizes of the browser (which flicker) rare:
+     * grow when the content needs at least a few pixels more, shrink only when that frees a large part of the height.
+     */
+    static boolean shouldMoveSplitter(float currentProportion, float wantedProportion, int visibleHeight) {
+        float extraPixelsNeeded = (wantedProportion - currentProportion) * visibleHeight;
+        return extraPixelsNeeded >= 4 || -extraPixelsNeeded >= 0.15f * visibleHeight;
+    }
+
+    /**
+     * Restores the scrollbar hidden by {@link #replaceContentJs(String)}, after the browser got its new size.
+     */
+    static final String RESTORE_SCROLLBAR_JS = "setTimeout(function() { document.body.style.overflowY = ''; }, 100);";
+
+    static @NotNull String replaceContentJs(@NotNull String htmlContent) {
+        String base64 = Base64.getEncoder().encodeToString(htmlContent.getBytes(StandardCharsets.UTF_8));
+        return "(function() {" +
+                "  const wrapper = document.querySelector('.content-wrapper');" +
+                "  if (!wrapper) { return; }" +
+                // no scrollbar while the splitter isn't fitted to the new content yet: avoids a scrollbar flash and reflow
+                "  document.body.style.overflowY = 'hidden';" +
+                "  wrapper.innerHTML = new TextDecoder().decode(Uint8Array.from(atob('" + base64 + "'), c => c.charCodeAt(0)));" +
+                "  window.scrollTo(0, 0);" +
+                "  requestAnimationFrame(function() {" +
+                "    console.log('CONTENT_HEIGHT:' + wrapper.getBoundingClientRect().bottom);" +
+                "  });" +
+                "})();";
     }
 
     /**
