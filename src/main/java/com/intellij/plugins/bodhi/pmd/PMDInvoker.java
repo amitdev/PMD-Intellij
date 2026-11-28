@@ -238,6 +238,7 @@ public class PMDInvoker {
                 } finally {
                     rootNode.setRunning(false);
                     resultPanel.reloadResultTree();
+                    resultPanel.showRootDetails(); // runs after the reload: both are queued on the EDT in order
                 }
             }
         });

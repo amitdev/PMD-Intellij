@@ -6,7 +6,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Score definition of a rule set, read from a marker line in the rule set description, e.g.:
@@ -77,7 +79,13 @@ public record RuleSetScoreSpec(String name, int[] weights, double[] thresholds) 
     }
 
     /**
-     * @return the description without the score marker lines, trimmed; null for null
+     * Hint in a rule set description for users of plugin versions without score support, which show the full
+     * description (including the score lines) as tooltip. Not shown by this version.
+     */
+    private static final Pattern UPGRADE_HINT = Pattern.compile("\\s*Upgrade your plugin to see scores\\.?[ \\t]*", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * @return the description without the score marker lines and the upgrade hint, trimmed; null for null
      */
     public static @Nullable String stripMarker(@Nullable String description) {
         if (description == null) {
@@ -85,7 +93,13 @@ public record RuleSetScoreSpec(String name, int[] weights, double[] thresholds) 
         }
         return description.lines()
                 .filter(line -> !SCORE.isMarkerLine(line) && !SUSTAINABILITY.isMarkerLine(line))
-                .collect(Collectors.joining("\n")).trim();
+                .flatMap(line -> {
+                    String withoutHint = UPGRADE_HINT.matcher(line).replaceAll("");
+                    // drop a line that only held the hint; keep intentionally blank lines
+                    return withoutHint.isBlank() && !line.isBlank() ? Stream.empty() : Stream.of(withoutHint);
+                })
+                .collect(Collectors.joining("\n"))
+                .trim();
     }
 
     private static RuleSetScoreSpec parseMarker(String settings, Kind kind) {

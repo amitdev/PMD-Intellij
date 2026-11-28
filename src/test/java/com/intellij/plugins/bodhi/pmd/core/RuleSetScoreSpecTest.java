@@ -94,4 +94,20 @@ public class RuleSetScoreSpecTest {
     public void stripsBothMarkers() {
         assertEquals("a\nb", RuleSetScoreSpec.stripMarker("a\npmd-score: weights=1\npmd-sustainability: weights=1\nb"));
     }
+
+    @Test
+    public void stripsUpgradeHintAtEndOfLine() {
+        assertEquals("jPinpoint rules for responsible Kotlin coding, sponsored by Rabobank.",
+                RuleSetScoreSpec.stripMarker("""
+                        jPinpoint rules for responsible Kotlin coding, sponsored by Rabobank. Upgrade your plugin to see scores.
+                        pmd-score: weights=27,9,3,1,0
+                        pmd-sustainability: weights=9,3,1
+                        """));
+    }
+
+    @Test
+    public void stripsUpgradeHintOnOwnLine() {
+        assertEquals("Some rules.\nMore text.",
+                RuleSetScoreSpec.stripMarker("Some rules.\n  upgrade your plugin to see scores  \nMore text."));
+    }
 }

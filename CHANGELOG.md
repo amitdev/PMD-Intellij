@@ -15,6 +15,9 @@
   `pmd-sustainability: weights=9,3,1; thresholds=0,5,10,15,25` (weights for the rule tags `sustainability-high`,
   `-medium` and `-low`). The result tree shows it as leaves after the score: 3, 2 or 1 fresh green leaves (best)
   to 1, 2 or 3 withered brown leaves (worst). Selecting the rule set shows the calculation and the scale.
+  The root node "PMD Results" shows the scores of all rule sets in the detail panel; it is selected after each scan.
+  The score lines and the hint `Upgrade your plugin to see scores.` (for older plugin versions, which show the full
+  rule set description as tooltip) are not shown in the tooltip and detail panel.
 
 ### Changed
 

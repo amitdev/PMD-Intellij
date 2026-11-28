@@ -1,5 +1,7 @@
 package com.intellij.plugins.bodhi.pmd.core;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -63,7 +65,18 @@ public record RuleSetScore(RuleSetScoreSpec spec, int[] violationsPerPriority, i
                 terms.add(spec.weights()[i] + "x" + violationsPerPriority[i]);
             }
         }
-        return String.format(Locale.ROOT, "(%s = %d) / %.1f kloc = %.1f", terms, weightedSum(), kloc(), score());
+        return String.format(Locale.ROOT, "(%s = %d) / %s kloc = %s", terms, weightedSum(), formatNumber(kloc()), formatNumber(score()));
+    }
+
+    /**
+     * @return one decimal for 0 and values from 1, two significant digits between 0 and 1 (e.g. 0.016),
+     * so a small value doesn't show as 0.0
+     */
+    static String formatNumber(double value) {
+        if (value == 0 || value >= 1) {
+            return String.format(Locale.ROOT, "%.1f", value);
+        }
+        return new BigDecimal(value).round(new MathContext(2)).stripTrailingZeros().toPlainString();
     }
 
     /**

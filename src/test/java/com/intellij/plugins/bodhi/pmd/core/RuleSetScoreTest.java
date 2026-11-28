@@ -52,4 +52,17 @@ public class RuleSetScoreTest {
         assertEquals(2, score.gradeIndex());
         assertEquals("L0 = 0 < L1 < 5 ≤ [L2] < 10 ≤ L3 < 15 ≤ L4 < 25 ≤ L5", score.gradeScale(i -> "L" + i, g -> "[" + g + "]"));
     }
+
+    @Test
+    public void smallKlocShownWithTwoSignificantDigits() {
+        RuleSetScore score = RuleSetScore.of(JPINPOINT, new int[]{0, 1, 0, 0, 0}, 16).orElseThrow();
+        assertEquals("(27x0 + 9x1 + 3x0 + 1x0 = 9) / 0.016 kloc = 562.5", score.formula());
+    }
+
+    @Test
+    public void smallScoreShownWithTwoSignificantDigits() {
+        RuleSetScore score = RuleSetScore.of(JPINPOINT, new int[]{0, 0, 0, 1, 0}, 30000).orElseThrow();
+        assertEquals("(27x0 + 9x0 + 3x0 + 1x1 = 1) / 30.0 kloc = 0.033", score.formula());
+        assertEquals("B", score.grade());
+    }
 }
